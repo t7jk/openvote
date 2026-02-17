@@ -1,0 +1,13 @@
+{
+    "name": "evoting",
+    "version": "1.0.0",
+    "description": "E-Voting WordPress Plugin",
+    "private": true,
+    "scripts": {
+        "build": "wp-scripts build --webpack-src-dir=blocks/evoting-poll --output-path=blocks/evoting-poll",
+        "start": "wp-scripts start --webpack-src-dir=blocks/evoting-poll --output-path=blocks/evoting-poll"
+    },
+    "devDependencies": {
+        "@wordpress/scripts": "^30.0.0"
+    }
+}

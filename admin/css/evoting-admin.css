@@ -1,0 +1,89 @@
+/* E-Voting Admin Styles */
+
+.evoting-question-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.evoting-question-number {
+    font-weight: 600;
+    min-width: 24px;
+}
+
+.evoting-question-row input[type="text"] {
+    flex: 1;
+    max-width: 600px;
+}
+
+.evoting-remove-question {
+    color: #b32d2e !important;
+    border-color: #b32d2e !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    padding: 2px 8px !important;
+}
+
+.evoting-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.evoting-status--draft {
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.evoting-status--open {
+    background: #d4edda;
+    color: #155724;
+}
+
+.evoting-status--closed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Result bars */
+.evoting-bar {
+    height: 20px;
+    border-radius: 3px;
+    min-width: 2px;
+    transition: width 0.3s ease;
+}
+
+.evoting-bar--za {
+    background: #28a745;
+}
+
+.evoting-bar--przeciw {
+    background: #dc3545;
+}
+
+.evoting-bar--wstrzymuje {
+    background: #ffc107;
+}
+
+.evoting-result-question {
+    margin-bottom: 24px;
+}
+
+.evoting-result-question table {
+    max-width: 800px;
+}
+
+.evoting-results-summary {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    padding: 12px 20px;
+    margin: 16px 0;
+    max-width: 600px;
+}
+
+.required {
+    color: #d63638;
+}

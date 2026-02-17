@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "evoting/poll",
+  "version": "1.0.0",
+  "title": "E-Voting Poll",
+  "category": "widgets",
+  "icon": "yes-alt",
+  "description": "Wyświetl głosowanie e-voting na stronie.",
+  "keywords": [
+    "głosowanie",
+    "voting",
+    "ankieta",
+    "poll"
+  ],
+  "supports": {
+    "html": false
+  },
+  "textdomain": "evoting",
+  "attributes": {
+    "pollId": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./editor.css",
+  "style": "file:./style.css",
+  "render": "file:./render.php"
+}
