@@ -1,14 +1,7 @@
 <?php
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
-global $wpdb;
+// Load the cleanup helper so we don't duplicate the DROP TABLE logic.
+require_once plugin_dir_path( __FILE__ ) . 'admin/class-evoting-admin-uninstall.php';
 
-// Drop in dependency order: votes → answers → questions → polls.
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_votes" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_answers" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_questions" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_polls" );
-
-delete_option( 'evoting_version' );
-delete_option( 'evoting_db_version' );
-delete_option( 'evoting_field_map' );
+Evoting_Admin_Uninstall::run_cleanup();

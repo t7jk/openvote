@@ -164,6 +164,65 @@
 
 .required { color: #d63638; }
 
+/* ── Uninstall / Danger Zone ── */
+.evoting-danger-zone {
+    max-width: 700px;
+    border: 2px solid #b32d2e;
+    border-radius: 6px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.evoting-danger-zone__header {
+    background: #b32d2e;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.evoting-danger-zone__body {
+    padding: 20px 24px;
+    background: #fff;
+}
+
+.evoting-confirm-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.5;
+}
+
+.evoting-confirm-label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.evoting-btn-danger {
+    background: #b32d2e !important;
+    border-color: #8a2122 !important;
+    color: #fff !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600 !important;
+}
+
+.evoting-btn-danger:hover:not(:disabled) {
+    background: #8a2122 !important;
+}
+
+.evoting-btn-danger:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+}
+
 /* ── Settings page ── */
 .evoting-settings-select {
     min-width: 320px;

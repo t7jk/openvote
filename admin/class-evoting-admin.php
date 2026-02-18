@@ -42,6 +42,15 @@ class Evoting_Admin {
             'evoting-settings',
             [ $this, 'render_settings_page' ]
         );
+
+        add_submenu_page(
+            'evoting',
+            __( 'Odinstaluj wtyczkę', 'evoting' ),
+            __( 'Odinstaluj', 'evoting' ),
+            'manage_options',
+            'evoting-uninstall',
+            [ $this, 'render_uninstall_page' ]
+        );
     }
 
     public function render_polls_page(): void {
@@ -88,6 +97,14 @@ class Evoting_Admin {
         }
 
         include EVOTING_PLUGIN_DIR . 'admin/partials/settings.php';
+    }
+
+    public function render_uninstall_page(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+
+        include EVOTING_PLUGIN_DIR . 'admin/partials/uninstall.php';
     }
 
     public function enqueue_styles( string $hook ): void {

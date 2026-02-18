@@ -23,6 +23,7 @@ class Evoting {
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-polls.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-settings.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-uninstall.php';
 
         $admin = new Evoting_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
@@ -34,6 +35,9 @@ class Evoting {
 
         $settings = new Evoting_Admin_Settings();
         $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission' );
+
+        $uninstall = new Evoting_Admin_Uninstall();
+        $this->loader->add_action( 'admin_init', $uninstall, 'handle_form_submission' );
     }
 
     private function define_public_hooks(): void {
