@@ -7,8 +7,8 @@ class Evoting_Admin {
 
     public function add_menu_pages(): void {
         add_menu_page(
-            __( 'E-Voting', 'evoting' ),
-            __( 'E-Voting', 'evoting' ),
+            __( 'Demokratyczne Głosowanie', 'evoting' ),
+            __( 'Dem. Głosowanie', 'evoting' ),
             self::CAP,
             'evoting',
             [ $this, 'render_polls_page' ],

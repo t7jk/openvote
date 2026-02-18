@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       E-Voting
+ * Plugin Name:       Demokratyczne Głosowanie
  * Plugin URI:        https://example.com/evoting
  * Description:       System e-głosowania dla WordPress. Twórz głosowania z pytaniami, pozwól zalogowanym użytkownikom głosować i przeglądaj anonimowe wyniki.
  * Version:           1.0.0
