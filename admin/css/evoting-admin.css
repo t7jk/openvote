@@ -112,11 +112,54 @@
 .evoting-results-summary {
     background: #fff;
     border: 1px solid #c3c4c7;
-    padding: 12px 20px;
+    padding: 12px 20px 16px;
     margin: 16px 0;
-    max-width: 600px;
+    max-width: 760px;
 }
 
-.evoting-results-summary p { margin: 4px 0; }
+.evoting-results-summary p { margin: 4px 0 10px; }
+
+/* ── Frequency / participation table ── */
+.evoting-freq-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.evoting-freq-table tr + tr td { padding-top: 8px; }
+
+.evoting-freq-label {
+    width: 280px;
+    font-weight: 600;
+    font-size: 13px;
+    padding-right: 12px;
+    vertical-align: middle;
+}
+
+.evoting-freq-count {
+    width: 50px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    padding-right: 8px;
+    vertical-align: middle;
+}
+
+.evoting-freq-pct {
+    width: 52px;
+    text-align: right;
+    color: #555;
+    font-size: 12px;
+    padding-right: 12px;
+    vertical-align: middle;
+}
+
+.evoting-freq-bar-cell {
+    vertical-align: middle;
+    width: 280px;
+}
+
+.evoting-bar--eligible { background: #0073aa; }
+.evoting-bar--voted    { background: #28a745; }
+.evoting-bar--absent   { background: #adb5bd; }
 
 .required { color: #d63638; }

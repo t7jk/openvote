@@ -122,7 +122,7 @@ $groups       = Evoting_Poll::get_location_groups();
             </tr>
         </table>
 
-        <h2><?php esc_html_e( 'Pytania', 'evoting' ); ?> <small>(<?php esc_html_e( '1–12 pytań, 2–12 odpowiedzi per pytanie', 'evoting' ); ?>)</small></h2>
+        <h2><?php esc_html_e( 'Pytania', 'evoting' ); ?> <small>(<?php esc_html_e( '1–12 pytań, 3–12 odpowiedzi per pytanie', 'evoting' ); ?>)</small></h2>
         <p class="description"><?php esc_html_e( 'Ostatnia odpowiedź każdego pytania oznacza "brak głosu / wstrzymanie się" i jest doliczana do osób, które nie oddały głosu.', 'evoting' ); ?></p>
 
         <div id="evoting-questions-container">

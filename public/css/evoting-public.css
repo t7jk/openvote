@@ -98,10 +98,23 @@
 }
 
 /* Results */
-.evoting-results__summary {
-    font-weight: 600;
-    margin-bottom: 16px;
+.evoting-results__participation {
+    background: #f9f9f9;
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
 }
+
+.evoting-results__participation h4 {
+    margin: 0 0 10px;
+    font-size: 1em;
+    font-weight: 700;
+}
+
+.evoting-results__bar--eligible { background: #0073aa; }
+.evoting-results__bar--voted    { background: #28a745; }
+.evoting-results__bar--absent   { background: #adb5bd; }
 
 .evoting-results__question {
     margin-bottom: 20px;
@@ -140,8 +153,27 @@
     background: #ffc107;
 }
 
+.evoting-results__voters-section {
+    margin-top: 20px;
+}
+
+.evoting-voters-toggle {
+    background: none;
+    border: 1px solid #0073aa;
+    color: #0073aa;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.evoting-voters-toggle:hover {
+    background: #0073aa;
+    color: #fff;
+}
+
 .evoting-results__voters {
-    margin-top: 16px;
+    margin-top: 10px;
     font-size: 0.9em;
     color: #666;
 }

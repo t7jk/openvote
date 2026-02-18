@@ -270,20 +270,20 @@ class Evoting_Vote {
     }
 
     /**
-     * Get anonymous voter list — only user_nicename.
+     * Get anonymous voter list — anonymized user_nicename only.
      *
-     * @return array<int, array{nicename: string, voted_at: string}>
+     * @return array<int, array{nicename: string}>
      */
     public static function get_voters_anonymous( int $poll_id ): array {
         global $wpdb;
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT v.user_id, v.voted_at, u.user_nicename
+                "SELECT DISTINCT v.user_id, u.user_nicename
                  FROM %i v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
-                 ORDER BY v.voted_at ASC",
+                 ORDER BY u.user_nicename ASC",
                 self::table(),
                 $poll_id
             )
@@ -292,8 +292,7 @@ class Evoting_Vote {
         $voters = [];
         foreach ( $rows as $row ) {
             $voters[] = [
-                'nicename' => $row->user_nicename,
-                'voted_at' => $row->voted_at,
+                'nicename' => self::anonymize_nicename( $row->user_nicename ),
             ];
         }
 
@@ -301,16 +300,17 @@ class Evoting_Vote {
     }
 
     /**
-     * Full voter list for admin (includes GSM, location).
+     * Admin voter list — full name + anonymized email only.
+     * GSM, location and other data are hidden even from admins.
      *
-     * @return array<int, array{nicename: string, pseudonym: string, gsm: string, location: string, voted_at: string}>
+     * @return array<int, array{name: string, email_anon: string, voted_at: string}>
      */
     public static function get_voters_admin( int $poll_id ): array {
         global $wpdb;
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT v.user_id, v.voted_at, u.user_nicename, u.display_name
+                "SELECT DISTINCT v.user_id, v.voted_at, u.user_email
                  FROM %i v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
@@ -322,20 +322,62 @@ class Evoting_Vote {
 
         $voters = [];
         foreach ( $rows as $row ) {
-            $user_id  = (int) $row->user_id;
-            $nickname = get_user_meta( $user_id, 'nickname', true );
-            $location = get_user_meta( $user_id, 'user_registration_miejsce_spotkania', true );
-            $gsm      = get_user_meta( $user_id, 'user_registration_GSM', true );
+            $user_id    = (int) $row->user_id;
+            $first_name = get_user_meta( $user_id, 'first_name', true );
+            $last_name  = get_user_meta( $user_id, 'last_name', true );
 
             $voters[] = [
-                'nicename' => $row->user_nicename,
-                'pseudonym' => $nickname ?: $row->display_name,
-                'gsm'      => $gsm ?: '',
-                'location' => $location ?: '',
-                'voted_at' => $row->voted_at,
+                'name'       => trim( $first_name . ' ' . $last_name ),
+                'email_anon' => self::anonymize_email( $row->user_email ),
+                'voted_at'   => $row->voted_at,
             ];
         }
 
         return $voters;
+    }
+
+    /**
+     * Anonymize a display name / nicename.
+     * Keeps first 3 and last 3 characters, replaces the middle with dots.
+     * Example: "Januszek" → "Jan..zek"
+     */
+    private static function anonymize_nicename( string $value ): string {
+        $len = mb_strlen( $value );
+        if ( $len <= 6 ) {
+            return $value;
+        }
+        return mb_substr( $value, 0, 3 )
+             . str_repeat( '.', $len - 6 )
+             . mb_substr( $value, -3 );
+    }
+
+    /**
+     * Anonymize an email address.
+     * Local part: keep first 3 chars, replace rest with dots.
+     * Domain:     keep first char + dots + TLD.
+     * Example: "jan-kowalski@gmail.com" → "jan.........@g....com"
+     */
+    private static function anonymize_email( string $email ): string {
+        if ( ! str_contains( $email, '@' ) ) {
+            return str_repeat( '*', mb_strlen( $email ) );
+        }
+
+        [ $local, $domain ] = explode( '@', $email, 2 );
+
+        // Local part.
+        $local_len  = mb_strlen( $local );
+        $local_anon = mb_substr( $local, 0, min( 3, $local_len ) )
+                    . str_repeat( '.', max( 0, $local_len - 3 ) );
+
+        // Domain: split at last dot to get TLD.
+        $dot_pos     = strrpos( $domain, '.' );
+        $domain_name = $dot_pos !== false ? substr( $domain, 0, $dot_pos ) : $domain;
+        $tld         = $dot_pos !== false ? substr( $domain, $dot_pos + 1 ) : '';
+        $dn_len      = mb_strlen( $domain_name );
+        $domain_anon = mb_substr( $domain_name, 0, 1 )
+                     . str_repeat( '.', max( 0, $dn_len - 1 ) )
+                     . $tld;
+
+        return $local_anon . '@' . $domain_anon;
     }
 }

@@ -64,8 +64,8 @@
             if (e.target.classList.contains('evoting-remove-answer')) {
                 var answersCtr2 = e.target.closest('.evoting-answers-container');
                 var nonLocked   = answersCtr2.querySelectorAll('.evoting-answer-row:not(.evoting-answer-row--locked)');
-                if (nonLocked.length <= 1) {
-                    alert('Pytanie musi mieć co najmniej jedną odpowiedź (plus wstrzymanie).');
+                if (nonLocked.length <= 2) {
+                    alert('Pytanie musi mieć co najmniej dwie dowolne odpowiedzi (plus wstrzymanie).');
                     return;
                 }
                 e.target.closest('.evoting-answer-row').remove();

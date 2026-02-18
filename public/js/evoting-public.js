@@ -20,9 +20,8 @@
 
         function update() {
             countdowns.forEach(function (el) {
-                var end = new Date(el.dataset.end).getTime();
-                var now = Date.now();
-                var diff = end - now;
+                var end  = new Date(el.dataset.end).getTime();
+                var diff = end - Date.now();
 
                 if (diff <= 0) {
                     el.textContent = cfg.i18n.ended;
@@ -51,9 +50,7 @@
     /* ── Voting Forms ── */
 
     function initVotingForms() {
-        var forms = document.querySelectorAll('.evoting-poll__form');
-
-        forms.forEach(function (form) {
+        document.querySelectorAll('.evoting-poll__form').forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
@@ -61,18 +58,13 @@
                 var msgEl     = form.querySelector('.evoting-poll__message');
                 var submitBtn = form.querySelector('.evoting-poll__submit');
 
-                // Collect answers: question_id → answer_id (integer).
-                var answers    = {};
-                var fieldsets  = form.querySelectorAll('.evoting-poll__question');
+                // Collect answers: question_id (int) → answer_id (int).
+                var answers     = {};
                 var allAnswered = true;
 
-                fieldsets.forEach(function (fs) {
+                form.querySelectorAll('.evoting-poll__question').forEach(function (fs) {
                     var checked = fs.querySelector('input[type="radio"]:checked');
-                    if (!checked) {
-                        allAnswered = false;
-                        return;
-                    }
-                    // name="question_123" → qId = 123
+                    if (!checked) { allAnswered = false; return; }
                     var qId = parseInt(checked.name.replace('question_', ''), 10);
                     answers[qId] = parseInt(checked.value, 10);
                 });
@@ -84,28 +76,21 @@
 
                 submitBtn.disabled = true;
 
-                // Get nonce from block wrapper.
                 var block = form.closest('.evoting-poll-block');
                 var nonce = block ? block.dataset.nonce : cfg.nonce;
 
                 fetch(cfg.restUrl + '/polls/' + pollId + '/vote', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-WP-Nonce': nonce
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
                     body: JSON.stringify({ answers: answers })
                 })
-                .then(function (res) { return res.json(); })
+                .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.success) {
                         showMessage(msgEl, cfg.i18n.voteSuccess, 'success');
-                        form.querySelectorAll('input, button').forEach(function (el) {
-                            el.disabled = true;
-                        });
+                        form.querySelectorAll('input, button').forEach(function (el) { el.disabled = true; });
                     } else {
-                        var errMsg = data.message || cfg.i18n.voteError;
-                        showMessage(msgEl, errMsg, 'error');
+                        showMessage(msgEl, data.message || cfg.i18n.voteError, 'error');
                         submitBtn.disabled = false;
                     }
                 })
@@ -123,12 +108,10 @@
         el.className = 'evoting-poll__message evoting-poll__message--' + type;
     }
 
-    /* ── Results Loading (for ended polls) ── */
+    /* ── Results (ended polls) ── */
 
     function initResults() {
-        var containers = document.querySelectorAll('.evoting-poll__results');
-
-        containers.forEach(function (container) {
+        document.querySelectorAll('.evoting-poll__results').forEach(function (container) {
             var pollId = container.dataset.pollId;
             if (!pollId) return;
 
@@ -138,7 +121,7 @@
             fetch(cfg.restUrl + '/polls/' + pollId + '/results', {
                 headers: { 'X-WP-Nonce': nonce }
             })
-            .then(function (res) { return res.json(); })
+            .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.code) {
                     container.innerHTML = '<p>' + escapeHtml(data.message || '') + '</p>';
@@ -153,15 +136,23 @@
     }
 
     function renderResults(container, data) {
+        var eligible   = data.total_eligible || 0;
+        var voted      = data.total_voters   || 0;
+        var absent     = data.non_voters     || 0;
+        var pctVoted   = eligible > 0 ? (voted  / eligible * 100).toFixed(1) : '0.0';
+        var pctAbsent  = eligible > 0 ? (absent / eligible * 100).toFixed(1) : '0.0';
+
         var html = '<div class="evoting-results">';
 
-        // Summary.
-        html += '<div class="evoting-results__summary">';
-        html += '<p>' + escapeHtml(cfg.i18n.totalEligible) + ' ' + data.total_eligible + '</p>';
-        html += '<p>' + escapeHtml(cfg.i18n.totalVoters) + ' ' + data.total_voters + '</p>';
+        /* Participation summary */
+        html += '<div class="evoting-results__participation">';
+        html += '<h4>' + escapeHtml(cfg.i18n.participation) + '</h4>';
+        html += participationRow(cfg.i18n.totalEligible, eligible, '100.0', 'eligible');
+        html += participationRow(cfg.i18n.totalVoters,   voted,    pctVoted,  'voted');
+        html += participationRow(cfg.i18n.totalAbsent,   absent,   pctAbsent, 'absent');
         html += '</div>';
 
-        // Per-question results with dynamic answers.
+        /* Per-question answer bars */
         data.questions.forEach(function (q, qi) {
             html += '<div class="evoting-results__question">';
             html += '<h4>' + (qi + 1) + '. ' + escapeHtml(q.question_text) + '</h4>';
@@ -189,18 +180,41 @@
             html += '</div>';
         });
 
-        // Voter list – only user_nicename (anonymous).
+        /* Voter list – anonymized nicenames, toggled */
         if (data.voters && data.voters.length) {
-            html += '<div class="evoting-results__voters">';
+            html += '<div class="evoting-results__voters-section">';
+            html += '<button type="button" class="evoting-voters-toggle">' + escapeHtml(cfg.i18n.showVoters) + '</button>';
+            html += '<div class="evoting-results__voters" style="display:none">';
             html += '<h4>' + escapeHtml(cfg.i18n.voterList) + '</h4><ul>';
             data.voters.forEach(function (v) {
                 html += '<li>' + escapeHtml(v.nicename) + '</li>';
             });
-            html += '</ul></div>';
+            html += '</ul></div></div>';
         }
 
         html += '</div>';
         container.innerHTML = html;
+
+        /* Wire up voter-list toggle */
+        var toggleBtn = container.querySelector('.evoting-voters-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function () {
+                var list = container.querySelector('.evoting-results__voters');
+                var open = list.style.display !== 'none';
+                list.style.display = open ? 'none' : '';
+                toggleBtn.textContent = open ? cfg.i18n.showVoters : cfg.i18n.hideVoters;
+            });
+        }
+    }
+
+    function participationRow(label, count, pct, cssKey) {
+        return '<div class="evoting-results__bar-container">'
+            + '<div class="evoting-results__bar-label">'
+            + '<span>' + escapeHtml(label) + '</span>'
+            + '<span>' + count + ' (' + pct + '%)</span>'
+            + '</div>'
+            + '<div class="evoting-results__bar evoting-results__bar--' + cssKey + '" style="width:' + pct + '%"></div>'
+            + '</div>';
     }
 
     function escapeHtml(str) {

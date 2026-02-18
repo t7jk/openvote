@@ -111,8 +111,8 @@ class Evoting_Admin_Polls {
                 }
             }
 
-            if ( count( $answers ) < 2 ) {
-                return new \WP_Error( 'too_few_answers', __( 'Każde pytanie musi mieć co najmniej 2 odpowiedzi.', 'evoting' ) );
+            if ( count( $answers ) < 3 ) {
+                return new \WP_Error( 'too_few_answers', __( 'Każde pytanie musi mieć co najmniej 3 odpowiedzi (w tym obowiązkową abstencję).', 'evoting' ) );
             }
             if ( count( $answers ) > 12 ) {
                 return new \WP_Error( 'too_many_answers', __( 'Maksymalnie 12 odpowiedzi per pytanie.', 'evoting' ) );
@@ -169,8 +169,20 @@ class Evoting_Admin_Polls {
         );
         $headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
 
+        // Send emails with error handling to prevent stopping on failures
         foreach ( array_column( $users, 'user_email' ) as $email ) {
-            wp_mail( $email, $subject, $message, $headers );
+            // Validate email before sending
+            if ( ! is_email( $email ) ) {
+                continue;
+            }
+            
+            // Try to send email and continue even if one fails
+            try {
+                wp_mail( $email, $subject, $message, $headers );
+            } catch ( Exception $e ) {
+                // Log error but continue with other emails
+                error_log( 'E-Voting email sending error for ' . $email . ': ' . $e->getMessage() );
+            }
         }
     }
 }
