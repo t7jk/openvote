@@ -3,19 +3,97 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Vote {
 
-    private const VALID_ANSWERS = [ 'za', 'przeciw', 'wstrzymuje_sie' ];
-
     private static function table(): string {
         global $wpdb;
         return $wpdb->prefix . 'evoting_votes';
     }
 
     /**
+     * Check if a user is eligible to vote in a poll.
+     * Requires complete profile + matching target group if set.
+     *
+     * @return true|\WP_Error
+     */
+    public static function is_eligible( int $poll_id, int $user_id ): true|\WP_Error {
+        $user = get_userdata( $user_id );
+
+        if ( ! $user ) {
+            return new \WP_Error( 'no_user', __( 'Użytkownik nie istnieje.', 'evoting' ), [ 'status' => 403 ] );
+        }
+
+        // Required profile fields.
+        $nickname  = get_user_meta( $user_id, 'nickname', true );
+        $first     = get_user_meta( $user_id, 'first_name', true );
+        $last      = get_user_meta( $user_id, 'last_name', true );
+        $location  = get_user_meta( $user_id, 'user_registration_miejsce_spotkania', true );
+
+        if ( empty( $user->user_email ) || empty( $nickname ) || empty( $first ) || empty( $last ) || empty( $location ) ) {
+            return new \WP_Error(
+                'incomplete_profile',
+                __( 'Twój profil jest niekompletny. Uzupełnij: nick, imię, nazwisko i miejsce spotkania, aby móc głosować.', 'evoting' ),
+                [ 'status' => 403 ]
+            );
+        }
+
+        $poll = Evoting_Poll::get( $poll_id );
+
+        if ( ! $poll ) {
+            return new \WP_Error( 'poll_not_found', __( 'Głosowanie nie zostało znalezione.', 'evoting' ), [ 'status' => 404 ] );
+        }
+
+        // Group restriction.
+        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
+            if ( $location !== $poll->target_group ) {
+                return new \WP_Error(
+                    'wrong_group',
+                    sprintf(
+                        /* translators: %s: group name */
+                        __( 'To głosowanie jest dostępne tylko dla grupy: %s.', 'evoting' ),
+                        $poll->target_group
+                    ),
+                    [ 'status' => 403 ]
+                );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Count users eligible to vote in a poll.
+     */
+    public static function get_eligible_count( object $poll ): int {
+        global $wpdb;
+
+        // Base: users with complete profile.
+        $sql = "SELECT COUNT(DISTINCT u.ID)
+                FROM {$wpdb->users} u
+                INNER JOIN {$wpdb->usermeta} um_nick ON u.ID = um_nick.user_id AND um_nick.meta_key = 'nickname' AND um_nick.meta_value != ''
+                INNER JOIN {$wpdb->usermeta} um_fn   ON u.ID = um_fn.user_id   AND um_fn.meta_key   = 'first_name' AND um_fn.meta_value != ''
+                INNER JOIN {$wpdb->usermeta} um_ln   ON u.ID = um_ln.user_id   AND um_ln.meta_key   = 'last_name' AND um_ln.meta_value != ''
+                INNER JOIN {$wpdb->usermeta} um_loc  ON u.ID = um_loc.user_id  AND um_loc.meta_key  = 'user_registration_miejsce_spotkania' AND um_loc.meta_value != ''
+                WHERE u.user_email != ''";
+
+        $params = [];
+
+        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
+            $sql     .= " AND um_loc.meta_value = %s";
+            $params[] = $poll->target_group;
+        }
+
+        if ( $params ) {
+            return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) );
+        }
+
+        return (int) $wpdb->get_var( $sql );
+    }
+
+    /**
      * Cast votes for all questions in a poll.
      *
-     * @param int                    $poll_id
-     * @param int                    $user_id
-     * @param array<int, string>     $answers question_id => answer
+     * @param int                $poll_id
+     * @param int                $user_id
+     * @param array<int, int>    $answers  question_id => answer_id
      * @return true|\WP_Error
      */
     public static function cast( int $poll_id, int $user_id, array $answers ): true|\WP_Error {
@@ -31,42 +109,58 @@ class Evoting_Vote {
             return new \WP_Error( 'poll_not_active', __( 'Głosowanie nie jest aktywne.', 'evoting' ), [ 'status' => 403 ] );
         }
 
+        $eligible = self::is_eligible( $poll_id, $user_id );
+        if ( is_wp_error( $eligible ) ) {
+            return $eligible;
+        }
+
         if ( self::has_voted( $poll_id, $user_id ) ) {
             return new \WP_Error( 'already_voted', __( 'Już oddałeś głos w tym głosowaniu.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        $question_ids = array_column( $poll->questions, 'id' );
+        $question_ids = array_map( 'intval', array_column( $poll->questions, 'id' ) );
 
-        foreach ( $answers as $question_id => $answer ) {
-            $question_id = (int) $question_id;
-
-            if ( ! in_array( $question_id, array_map( 'intval', $question_ids ), true ) ) {
-                return new \WP_Error( 'invalid_question', __( 'Nieprawidłowe pytanie.', 'evoting' ), [ 'status' => 400 ] );
-            }
-
-            if ( ! in_array( $answer, self::VALID_ANSWERS, true ) ) {
-                return new \WP_Error( 'invalid_answer', __( 'Nieprawidłowa odpowiedź.', 'evoting' ), [ 'status' => 400 ] );
-            }
-        }
-
-        // Ensure all questions are answered.
+        // Ensure all questions answered.
         foreach ( $question_ids as $qid ) {
-            if ( ! isset( $answers[ (int) $qid ] ) ) {
+            if ( ! isset( $answers[ $qid ] ) ) {
                 return new \WP_Error( 'missing_answer', __( 'Odpowiedz na wszystkie pytania.', 'evoting' ), [ 'status' => 400 ] );
             }
         }
 
-        foreach ( $answers as $question_id => $answer ) {
+        $answers_table = $wpdb->prefix . 'evoting_answers';
+
+        foreach ( $answers as $question_id => $answer_id ) {
+            $question_id = (int) $question_id;
+            $answer_id   = (int) $answer_id;
+
+            if ( ! in_array( $question_id, $question_ids, true ) ) {
+                return new \WP_Error( 'invalid_question', __( 'Nieprawidłowe pytanie.', 'evoting' ), [ 'status' => 400 ] );
+            }
+
+            // Verify answer belongs to this question.
+            $valid = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM %i WHERE id = %d AND question_id = %d",
+                    $answers_table,
+                    $answer_id,
+                    $question_id
+                )
+            );
+
+            if ( ! $valid ) {
+                return new \WP_Error( 'invalid_answer', __( 'Nieprawidłowa odpowiedź.', 'evoting' ), [ 'status' => 400 ] );
+            }
+
             $wpdb->insert(
                 self::table(),
                 [
                     'poll_id'     => $poll_id,
-                    'question_id' => (int) $question_id,
+                    'question_id' => $question_id,
                     'user_id'     => $user_id,
-                    'answer'      => $answer,
+                    'answer_id'   => $answer_id,
                     'voted_at'    => current_time( 'mysql' ),
                 ],
-                [ '%d', '%d', '%d', '%s', '%s' ]
+                [ '%d', '%d', '%d', '%d', '%s' ]
             );
         }
 
@@ -90,19 +184,7 @@ class Evoting_Vote {
     }
 
     /**
-     * Get results for a poll.
-     *
-     * @return array{
-     *     total_voters: int,
-     *     questions: array<int, array{
-     *         question_id: int,
-     *         question_text: string,
-     *         za: int,
-     *         przeciw: int,
-     *         wstrzymuje_sie: int,
-     *         total: int
-     *     }>
-     * }
+     * Get results for a poll (dynamic answers, non-voters counted as abstain).
      */
     public static function get_results( int $poll_id ): array {
         global $wpdb;
@@ -110,10 +192,11 @@ class Evoting_Vote {
         $poll = Evoting_Poll::get( $poll_id );
 
         if ( ! $poll ) {
-            return [ 'total_voters' => 0, 'questions' => [] ];
+            return [ 'total_eligible' => 0, 'total_voters' => 0, 'questions' => [] ];
         }
 
-        // Count distinct voters.
+        $total_eligible = self::get_eligible_count( $poll );
+
         $total_voters = (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(DISTINCT user_id) FROM %i WHERE poll_id = %d",
@@ -122,54 +205,112 @@ class Evoting_Vote {
             )
         );
 
-        $questions = [];
+        $non_voters = max( 0, $total_eligible - $total_voters );
+        $questions  = [];
 
         foreach ( $poll->questions as $question ) {
             $counts = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT answer, COUNT(*) as cnt FROM %i WHERE poll_id = %d AND question_id = %d GROUP BY answer",
+                    "SELECT answer_id, COUNT(*) as cnt FROM %i WHERE poll_id = %d AND question_id = %d GROUP BY answer_id",
                     self::table(),
                     $poll_id,
                     $question->id
                 )
             );
 
-            $result = [
-                'question_id'    => (int) $question->id,
-                'question_text'  => $question->question_text,
-                'za'             => 0,
-                'przeciw'        => 0,
-                'wstrzymuje_sie' => 0,
-                'total'          => 0,
-            ];
-
+            $count_map = [];
             foreach ( $counts as $row ) {
-                if ( isset( $result[ $row->answer ] ) ) {
-                    $result[ $row->answer ] = (int) $row->cnt;
-                    $result['total'] += (int) $row->cnt;
-                }
+                $count_map[ (int) $row->answer_id ] = (int) $row->cnt;
             }
 
-            $questions[] = $result;
+            $answers     = [];
+            $total_votes = 0;
+            $abstain_idx = null;
+
+            foreach ( $question->answers as $idx => $answer ) {
+                $cnt = $count_map[ (int) $answer->id ] ?? 0;
+                if ( $answer->is_abstain ) {
+                    $abstain_idx = $idx;
+                }
+                $answers[] = [
+                    'id'         => (int) $answer->id,
+                    'text'       => $answer->answer_text,
+                    'is_abstain' => (bool) $answer->is_abstain,
+                    'count'      => $cnt,
+                ];
+                $total_votes += $cnt;
+            }
+
+            // Add non-voters to the abstain answer.
+            if ( null !== $abstain_idx ) {
+                $answers[ $abstain_idx ]['count'] += $non_voters;
+                $total_votes                      += $non_voters;
+            }
+
+            // Add percentages.
+            foreach ( $answers as &$a ) {
+                $a['pct'] = $total_votes > 0 ? round( $a['count'] / $total_votes * 100, 1 ) : 0.0;
+            }
+            unset( $a );
+
+            $questions[] = [
+                'question_id'   => (int) $question->id,
+                'question_text' => $question->question_text,
+                'answers'       => $answers,
+                'total'         => $total_votes,
+            ];
         }
 
         return [
-            'total_voters' => $total_voters,
-            'questions'    => $questions,
+            'total_eligible' => $total_eligible,
+            'total_voters'   => $total_voters,
+            'non_voters'     => $non_voters,
+            'questions'      => $questions,
         ];
     }
 
     /**
-     * Get anonymous voter list with pseudonyms.
+     * Get anonymous voter list — only user_nicename.
      *
-     * @return array<int, array{pseudonym: string, voted_at: string}>
+     * @return array<int, array{nicename: string, voted_at: string}>
      */
     public static function get_voters_anonymous( int $poll_id ): array {
         global $wpdb;
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT v.user_id, v.voted_at, u.display_name
+                "SELECT DISTINCT v.user_id, v.voted_at, u.user_nicename
+                 FROM %i v
+                 INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
+                 WHERE v.poll_id = %d
+                 ORDER BY v.voted_at ASC",
+                self::table(),
+                $poll_id
+            )
+        );
+
+        $voters = [];
+        foreach ( $rows as $row ) {
+            $voters[] = [
+                'nicename' => $row->user_nicename,
+                'voted_at' => $row->voted_at,
+            ];
+        }
+
+        return $voters;
+    }
+
+    /**
+     * Full voter list for admin (includes GSM, location).
+     *
+     * @return array<int, array{nicename: string, pseudonym: string, gsm: string, location: string, voted_at: string}>
+     */
+    public static function get_voters_admin( int $poll_id ): array {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT v.user_id, v.voted_at, u.user_nicename, u.display_name
                  FROM %i v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
@@ -187,10 +328,11 @@ class Evoting_Vote {
             $gsm      = get_user_meta( $user_id, 'user_registration_GSM', true );
 
             $voters[] = [
+                'nicename' => $row->user_nicename,
                 'pseudonym' => $nickname ?: $row->display_name,
-                'location'  => $location ?: '',
-                'gsm'       => $gsm ?: '',
-                'voted_at'  => $row->voted_at,
+                'gsm'      => $gsm ?: '',
+                'location' => $location ?: '',
+                'voted_at' => $row->voted_at,
             ];
         }
 

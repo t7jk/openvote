@@ -19,10 +19,7 @@ class Evoting_Rest_Controller {
             'callback'            => [ $this, 'get_poll' ],
             'permission_callback' => '__return_true',
             'args'                => [
-                'id' => [
-                    'validate_callback' => fn( $param ) => is_numeric( $param ),
-                    'sanitize_callback' => 'absint',
-                ],
+                'id' => [ 'sanitize_callback' => 'absint' ],
             ],
         ] );
 
@@ -32,27 +29,21 @@ class Evoting_Rest_Controller {
             'callback'            => [ $this, 'cast_vote' ],
             'permission_callback' => fn() => is_user_logged_in(),
             'args'                => [
-                'id' => [
-                    'validate_callback' => fn( $param ) => is_numeric( $param ),
-                    'sanitize_callback' => 'absint',
-                ],
+                'id'      => [ 'sanitize_callback' => 'absint' ],
                 'answers' => [
                     'required'          => true,
-                    'validate_callback' => fn( $param ) => is_array( $param ),
+                    'validate_callback' => fn( $p ) => is_array( $p ),
                 ],
             ],
         ] );
 
-        // Get results.
+        // Get results (public after poll ends).
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/results', [
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => [ $this, 'get_results' ],
             'permission_callback' => '__return_true',
             'args'                => [
-                'id' => [
-                    'validate_callback' => fn( $param ) => is_numeric( $param ),
-                    'sanitize_callback' => 'absint',
-                ],
+                'id' => [ 'sanitize_callback' => 'absint' ],
             ],
         ] );
     }
@@ -60,15 +51,13 @@ class Evoting_Rest_Controller {
     public function get_polls( WP_REST_Request $request ): WP_REST_Response {
         $polls = Evoting_Poll::get_all( [ 'limit' => 100 ] );
 
-        $data = array_map( function ( $poll ) {
-            return [
-                'id'         => (int) $poll->id,
-                'title'      => $poll->title,
-                'status'     => $poll->status,
-                'start_date' => $poll->start_date,
-                'end_date'   => $poll->end_date,
-            ];
-        }, $polls );
+        $data = array_map( fn( $p ) => [
+            'id'         => (int) $p->id,
+            'title'      => $p->title,
+            'status'     => $p->status,
+            'start_date' => $p->start_date,
+            'end_date'   => $p->end_date,
+        ], $polls );
 
         return new WP_REST_Response( $data, 200 );
     }
@@ -84,23 +73,37 @@ class Evoting_Rest_Controller {
         $is_ended  = Evoting_Poll::is_ended( $poll );
         $has_voted = is_user_logged_in() ? Evoting_Vote::has_voted( (int) $poll->id, get_current_user_id() ) : false;
 
-        $data = [
-            'id'          => (int) $poll->id,
-            'title'       => $poll->title,
-            'description' => $poll->description,
-            'status'      => $poll->status,
-            'start_date'  => $poll->start_date,
-            'end_date'    => $poll->end_date,
-            'is_active'   => $is_active,
-            'is_ended'    => $is_ended,
-            'has_voted'   => $has_voted,
-            'questions'   => array_map( fn( $q ) => [
-                'id'   => (int) $q->id,
-                'text' => $q->question_text,
-            ], $poll->questions ),
-        ];
+        // Check eligibility for logged-in users.
+        $eligible_error = null;
+        if ( is_user_logged_in() && $is_active && ! $has_voted ) {
+            $eligible = Evoting_Vote::is_eligible( (int) $poll->id, get_current_user_id() );
+            if ( is_wp_error( $eligible ) ) {
+                $eligible_error = $eligible->get_error_message();
+            }
+        }
 
-        return new WP_REST_Response( $data, 200 );
+        return new WP_REST_Response( [
+            'id'             => (int) $poll->id,
+            'title'          => $poll->title,
+            'description'    => $poll->description,
+            'status'         => $poll->status,
+            'start_date'     => $poll->start_date,
+            'end_date'       => $poll->end_date,
+            'target_type'    => $poll->target_type,
+            'is_active'      => $is_active,
+            'is_ended'       => $is_ended,
+            'has_voted'      => $has_voted,
+            'eligible_error' => $eligible_error,
+            'questions'      => array_map( fn( $q ) => [
+                'id'      => (int) $q->id,
+                'text'    => $q->question_text,
+                'answers' => array_map( fn( $a ) => [
+                    'id'         => (int) $a->id,
+                    'text'       => $a->answer_text,
+                    'is_abstain' => (bool) $a->is_abstain,
+                ], $q->answers ),
+            ], $poll->questions ),
+        ], 200 );
     }
 
     public function cast_vote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
@@ -108,10 +111,10 @@ class Evoting_Rest_Controller {
         $answers = $request->get_param( 'answers' );
         $user_id = get_current_user_id();
 
-        // Sanitize answers: keys to int, values to string.
+        // Sanitize: question_id → int, answer_id → int.
         $clean_answers = [];
-        foreach ( $answers as $question_id => $answer ) {
-            $clean_answers[ absint( $question_id ) ] = sanitize_text_field( $answer );
+        foreach ( $answers as $question_id => $answer_id ) {
+            $clean_answers[ absint( $question_id ) ] = absint( $answer_id );
         }
 
         $result = Evoting_Vote::cast( $poll_id, $user_id, $clean_answers );
@@ -122,7 +125,7 @@ class Evoting_Rest_Controller {
 
         return new WP_REST_Response( [
             'success' => true,
-            'message' => __( 'Twój głos został zapisany.', 'evoting' ),
+            'message' => __( 'Twój głos został zapisany. Dziękujemy!', 'evoting' ),
         ], 200 );
     }
 
@@ -141,17 +144,14 @@ class Evoting_Rest_Controller {
         $results = Evoting_Vote::get_results( $poll_id );
         $voters  = Evoting_Vote::get_voters_anonymous( $poll_id );
 
-        // Public endpoint – only pseudonyms, no identifying data.
-        $anonymous_voters = array_map( fn( $v ) => [
-            'pseudonym' => $v['pseudonym'],
-        ], $voters );
-
         return new WP_REST_Response( [
-            'poll_id'      => $poll_id,
-            'title'        => $poll->title,
-            'total_voters' => $results['total_voters'],
-            'questions'    => $results['questions'],
-            'voters'       => $anonymous_voters,
+            'poll_id'        => $poll_id,
+            'title'          => $poll->title,
+            'total_eligible' => $results['total_eligible'],
+            'total_voters'   => $results['total_voters'],
+            'non_voters'     => $results['non_voters'],
+            'questions'      => $results['questions'],
+            'voters'         => $voters, // only nicename
         ], 200 );
     }
 }

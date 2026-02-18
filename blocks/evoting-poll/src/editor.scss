@@ -1,0 +1,32 @@
+.evoting-block-preview {
+    padding: 16px;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    background: #f9f9f9;
+
+    h3 {
+        margin: 0 0 8px;
+    }
+
+    &__desc {
+        color: #666;
+        font-style: italic;
+    }
+
+    &__questions {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0;
+
+        li {
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
+    }
+
+    &__note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 12px;
+    }
+}

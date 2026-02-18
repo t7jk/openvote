@@ -3,11 +3,13 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Admin {
 
+    private const CAP = 'edit_others_posts';
+
     public function add_menu_pages(): void {
         add_menu_page(
             __( 'E-Voting', 'evoting' ),
             __( 'E-Voting', 'evoting' ),
-            'manage_options',
+            self::CAP,
             'evoting',
             [ $this, 'render_polls_page' ],
             'dashicons-yes-alt',
@@ -18,7 +20,7 @@ class Evoting_Admin {
             'evoting',
             __( 'Głosowania', 'evoting' ),
             __( 'Głosowania', 'evoting' ),
-            'manage_options',
+            self::CAP,
             'evoting',
             [ $this, 'render_polls_page' ]
         );
@@ -27,14 +29,18 @@ class Evoting_Admin {
             'evoting',
             __( 'Dodaj głosowanie', 'evoting' ),
             __( 'Dodaj nowe', 'evoting' ),
-            'manage_options',
+            self::CAP,
             'evoting-new',
             [ $this, 'render_poll_form_page' ]
         );
     }
 
     public function render_polls_page(): void {
-        $action = sanitize_text_field( $_GET['action'] ?? '' );
+        if ( ! current_user_can( self::CAP ) ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+
+        $action  = sanitize_text_field( $_GET['action'] ?? '' );
         $poll_id = isset( $_GET['poll_id'] ) ? absint( $_GET['poll_id'] ) : 0;
 
         if ( 'edit' === $action && $poll_id ) {
@@ -49,7 +55,7 @@ class Evoting_Admin {
             $poll = Evoting_Poll::get( $poll_id );
             if ( $poll ) {
                 $results = Evoting_Vote::get_results( $poll_id );
-                $voters  = Evoting_Vote::get_voters_anonymous( $poll_id );
+                $voters  = Evoting_Vote::get_voters_admin( $poll_id );
                 include EVOTING_PLUGIN_DIR . 'admin/partials/poll-results.php';
                 return;
             }
@@ -59,6 +65,10 @@ class Evoting_Admin {
     }
 
     public function render_poll_form_page(): void {
+        if ( ! current_user_can( self::CAP ) ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+
         $poll = null;
         include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
     }
