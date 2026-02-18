@@ -1,5 +1,48 @@
 /* E-Voting Admin Styles */
 
+/* ── Brand Header ── */
+.evoting-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 10px 20px;
+    margin: -8px -20px 20px;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.evoting-brand-header__icon {
+    font-size: 22px !important;
+    width: 22px !important;
+    height: 22px !important;
+    color: #e2b96f;
+    flex-shrink: 0;
+}
+
+.evoting-brand-header__title {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #e2b96f;
+    text-transform: uppercase;
+}
+
+.evoting-brand-header__sep {
+    color: rgba(255,255,255,.4);
+    font-size: 14px;
+}
+
+.evoting-brand-header__subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,.75);
+    font-style: italic;
+    letter-spacing: 0.3px;
+}
+
+
+
 /* ── Questions ── */
 .evoting-question-block {
     background: #f9f9f9;

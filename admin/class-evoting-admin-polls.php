@@ -181,7 +181,7 @@ class Evoting_Admin_Polls {
                 wp_mail( $email, $subject, $message, $headers );
             } catch ( Exception $e ) {
                 // Log error but continue with other emails
-                error_log( 'E-Voting email sending error for ' . $email . ': ' . $e->getMessage() );
+                error_log( 'EP-RWL email sending error for ' . $email . ': ' . $e->getMessage() );
             }
         }
     }

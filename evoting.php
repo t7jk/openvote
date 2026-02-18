@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name:       Demokratyczne Głosowanie
+ * Plugin Name:       EP-RWL
  * Plugin URI:        https://example.com/evoting
- * Description:       System e-głosowania dla WordPress. Twórz głosowania z pytaniami, pozwól zalogowanym użytkownikom głosować i przeglądaj anonimowe wyniki.
+ * Description:       E-Parlament Ruch Wolnych Ludzi — system e-głosowania dla WordPress. Twórz głosowania z pytaniami, pozwól zalogowanym użytkownikom głosować i przeglądaj anonimowe wyniki.
  * Version:           1.0.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Author:            E-Voting Team
+ * Author:            EP-RWL
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       evoting

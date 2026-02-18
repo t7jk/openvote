@@ -7,8 +7,8 @@ class Evoting_Admin {
 
     public function add_menu_pages(): void {
         add_menu_page(
-            __( 'Demokratyczne Głosowanie', 'evoting' ),
-            __( 'Dem. Głosowanie', 'evoting' ),
+            __( 'EP-RWL', 'evoting' ),
+            __( 'EP-RWL', 'evoting' ),
             self::CAP,
             'evoting',
             [ $this, 'render_polls_page' ],
@@ -97,6 +97,21 @@ class Evoting_Admin {
         }
 
         include EVOTING_PLUGIN_DIR . 'admin/partials/settings.php';
+    }
+
+    public function render_brand_header(): void {
+        $screen = get_current_screen();
+        if ( ! $screen || ! str_contains( $screen->id, 'evoting' ) ) {
+            return;
+        }
+        ?>
+        <div class="evoting-brand-header">
+            <span class="evoting-brand-header__icon dashicons dashicons-groups"></span>
+            <span class="evoting-brand-header__title">EP-RWL</span>
+            <span class="evoting-brand-header__sep">·</span>
+            <span class="evoting-brand-header__subtitle">E-Parlament Ruch Wolnych Ludzi</span>
+        </div>
+        <?php
     }
 
     public function render_uninstall_page(): void {
