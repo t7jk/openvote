@@ -1,0 +1,127 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+$current_map    = Evoting_Field_Map::get();
+$available_keys = Evoting_Field_Map::available_keys();
+$labels         = Evoting_Field_Map::LABELS;
+
+/**
+ * Render a <select> dropdown for a logical field.
+ *
+ * @param string   $logical      Logical field key (e.g. 'first_name').
+ * @param string   $current      Currently mapped actual key.
+ * @param string[] $core_keys    Core wp_users columns.
+ * @param string[] $meta_keys    All usermeta keys.
+ */
+function evoting_settings_select( string $logical, string $current, array $core_keys, array $meta_keys ): void {
+    $name = 'evoting_field_map[' . esc_attr( $logical ) . ']';
+    echo '<select name="' . $name . '" id="evoting_field_' . esc_attr( $logical ) . '" class="evoting-settings-select">';
+
+    echo '<optgroup label="' . esc_attr__( 'Pola wbudowane WordPress (wp_users)', 'evoting' ) . '">';
+    foreach ( $core_keys as $key ) {
+        printf(
+            '<option value="%s"%s>%s</option>',
+            esc_attr( $key ),
+            selected( $current, $key, false ),
+            esc_html( $key )
+        );
+    }
+    echo '</optgroup>';
+
+    echo '<optgroup label="' . esc_attr__( 'Własne pola użytkownika (usermeta)', 'evoting' ) . '">';
+    foreach ( $meta_keys as $key ) {
+        printf(
+            '<option value="%s"%s>%s</option>',
+            esc_attr( $key ),
+            selected( $current, $key, false ),
+            esc_html( $key )
+        );
+    }
+    echo '</optgroup>';
+
+    echo '</select>';
+}
+?>
+<div class="wrap">
+    <h1><?php esc_html_e( 'Konfiguracja bazy danych', 'evoting' ); ?></h1>
+
+    <?php if ( isset( $_GET['saved'] ) ) : ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php esc_html_e( 'Konfiguracja została zapisana.', 'evoting' ); ?></p>
+        </div>
+    <?php endif; ?>
+
+    <p class="description" style="max-width:700px;margin:12px 0 20px;">
+        <?php esc_html_e(
+            'Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych WordPress. '
+            . 'Dzięki temu wtyczka będzie działać poprawnie niezależnie od użytej wtyczki rejestracji '
+            . 'lub własnego schematu metadanych.',
+            'evoting'
+        ); ?>
+    </p>
+
+    <form method="post" action="">
+        <?php wp_nonce_field( 'evoting_save_settings', 'evoting_settings_nonce' ); ?>
+
+        <table class="widefat fixed evoting-settings-table" style="max-width:780px;">
+            <thead>
+                <tr>
+                    <th style="width:220px;"><?php esc_html_e( 'Pole logiczne', 'evoting' ); ?></th>
+                    <th><?php esc_html_e( 'Klucz w bazie danych WordPress', 'evoting' ); ?></th>
+                    <th style="width:180px;"><?php esc_html_e( 'Aktualny klucz', 'evoting' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $labels as $logical => $label ) :
+                    $current_val = $current_map[ $logical ] ?? Evoting_Field_Map::DEFAULTS[ $logical ];
+                    $is_core     = Evoting_Field_Map::is_core_field( $current_val );
+                ?>
+                <tr>
+                    <td>
+                        <strong><?php echo esc_html( $label ); ?></strong>
+                        <?php if ( 'email' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Zazwyczaj user_email (pole wbudowane)', 'evoting' ); ?>
+                            </span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php evoting_settings_select(
+                            $logical,
+                            $current_val,
+                            $available_keys['core'],
+                            $available_keys['meta']
+                        ); ?>
+                    </td>
+                    <td>
+                        <code><?php echo esc_html( $current_val ); ?></code>
+                        <?php if ( $is_core ) : ?>
+                            <br><span class="evoting-badge evoting-badge--core">
+                                <?php esc_html_e( 'wbudowane', 'evoting' ); ?>
+                            </span>
+                        <?php else : ?>
+                            <br><span class="evoting-badge evoting-badge--meta">
+                                <?php esc_html_e( 'usermeta', 'evoting' ); ?>
+                            </span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <p style="margin-top:16px;">
+            <?php submit_button( __( 'Zapisz konfigurację', 'evoting' ), 'primary', 'submit', false ); ?>
+        </p>
+    </form>
+
+    <hr>
+    <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'evoting' ); ?></h2>
+    <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
+        <li><?php esc_html_e( 'Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie 5 pól jest wypełnionych.', 'evoting' ); ?></li>
+        <li><?php esc_html_e( 'Pole "Nazwa miasta" służy do definiowania grup docelowych głosowania.', 'evoting' ); ?></li>
+        <li><?php esc_html_e( 'Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users.', 'evoting' ); ?></li>
+        <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'evoting' ); ?></li>
+        <li><?php esc_html_e( 'Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają nowych kluczy.', 'evoting' ); ?></li>
+    </ul>
+</div>

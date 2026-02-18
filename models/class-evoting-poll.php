@@ -370,14 +370,26 @@ class Evoting_Poll {
     public static function get_location_groups(): array {
         global $wpdb;
 
-        $rows = $wpdb->get_col(
-            $wpdb->prepare(
-                "SELECT DISTINCT meta_value FROM {$wpdb->usermeta}
-                 WHERE meta_key = %s AND meta_value != ''
-                 ORDER BY meta_value ASC",
-                'user_registration_miejsce_spotkania'
-            )
-        );
+        $city_key = Evoting_Field_Map::get_field( 'city' );
+
+        if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
+            // Core wp_users column.
+            $rows = $wpdb->get_col(
+                "SELECT DISTINCT {$city_key}
+                 FROM {$wpdb->users}
+                 WHERE {$city_key} != ''
+                 ORDER BY {$city_key} ASC"
+            );
+        } else {
+            $rows = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT DISTINCT meta_value FROM {$wpdb->usermeta}
+                     WHERE meta_key = %s AND meta_value != ''
+                     ORDER BY meta_value ASC",
+                    sanitize_key( $city_key )
+                )
+            );
+        }
 
         return array_filter( $rows );
     }

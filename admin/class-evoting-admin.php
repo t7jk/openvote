@@ -33,6 +33,15 @@ class Evoting_Admin {
             'evoting-new',
             [ $this, 'render_poll_form_page' ]
         );
+
+        add_submenu_page(
+            'evoting',
+            __( 'Konfiguracja bazy danych', 'evoting' ),
+            __( 'Konfiguracja', 'evoting' ),
+            'manage_options',
+            'evoting-settings',
+            [ $this, 'render_settings_page' ]
+        );
     }
 
     public function render_polls_page(): void {
@@ -71,6 +80,14 @@ class Evoting_Admin {
 
         $poll = null;
         include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
+    }
+
+    public function render_settings_page(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+
+        include EVOTING_PLUGIN_DIR . 'admin/partials/settings.php';
     }
 
     public function enqueue_styles( string $hook ): void {

@@ -10,7 +10,7 @@ class Evoting_Vote {
 
     /**
      * Check if a user is eligible to vote in a poll.
-     * Requires complete profile + matching target group if set.
+     * Requires complete profile (per field map) + matching target group if set.
      *
      * @return true|\WP_Error
      */
@@ -21,18 +21,28 @@ class Evoting_Vote {
             return new \WP_Error( 'no_user', __( 'Użytkownik nie istnieje.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        // Required profile fields.
-        $nickname  = get_user_meta( $user_id, 'nickname', true );
-        $first     = get_user_meta( $user_id, 'first_name', true );
-        $last      = get_user_meta( $user_id, 'last_name', true );
-        $location  = get_user_meta( $user_id, 'user_registration_miejsce_spotkania', true );
+        // Check all 5 required fields via the field map.
+        $required = [
+            'first_name' => Evoting_Field_Map::LABELS['first_name'],
+            'last_name'  => Evoting_Field_Map::LABELS['last_name'],
+            'nickname'   => Evoting_Field_Map::LABELS['nickname'],
+            'email'      => Evoting_Field_Map::LABELS['email'],
+            'city'       => Evoting_Field_Map::LABELS['city'],
+        ];
 
-        if ( empty( $user->user_email ) || empty( $nickname ) || empty( $first ) || empty( $last ) || empty( $location ) ) {
-            return new \WP_Error(
-                'incomplete_profile',
-                __( 'Twój profil jest niekompletny. Uzupełnij: nick, imię, nazwisko i miejsce spotkania, aby móc głosować.', 'evoting' ),
-                [ 'status' => 403 ]
-            );
+        foreach ( $required as $logical => $label ) {
+            $value = Evoting_Field_Map::get_user_value( $user, $logical );
+            if ( '' === $value ) {
+                return new \WP_Error(
+                    'incomplete_profile',
+                    sprintf(
+                        /* translators: %s: field label */
+                        __( 'Twój profil jest niekompletny. Brakuje: %s.', 'evoting' ),
+                        $label
+                    ),
+                    [ 'status' => 403 ]
+                );
+            }
         }
 
         $poll = Evoting_Poll::get( $poll_id );
@@ -43,6 +53,7 @@ class Evoting_Vote {
 
         // Group restriction.
         if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
+            $location = Evoting_Field_Map::get_user_value( $user, 'city' );
             if ( $location !== $poll->target_group ) {
                 return new \WP_Error(
                     'wrong_group',
@@ -61,27 +72,65 @@ class Evoting_Vote {
 
     /**
      * Count users eligible to vote in a poll.
+     * Builds the query dynamically based on the field map configuration.
      */
     public static function get_eligible_count( object $poll ): int {
         global $wpdb;
 
-        // Base: users with complete profile.
-        $sql = "SELECT COUNT(DISTINCT u.ID)
-                FROM {$wpdb->users} u
-                INNER JOIN {$wpdb->usermeta} um_nick ON u.ID = um_nick.user_id AND um_nick.meta_key = 'nickname' AND um_nick.meta_value != ''
-                INNER JOIN {$wpdb->usermeta} um_fn   ON u.ID = um_fn.user_id   AND um_fn.meta_key   = 'first_name' AND um_fn.meta_value != ''
-                INNER JOIN {$wpdb->usermeta} um_ln   ON u.ID = um_ln.user_id   AND um_ln.meta_key   = 'last_name' AND um_ln.meta_value != ''
-                INNER JOIN {$wpdb->usermeta} um_loc  ON u.ID = um_loc.user_id  AND um_loc.meta_key  = 'user_registration_miejsce_spotkania' AND um_loc.meta_value != ''
-                WHERE u.user_email != ''";
-
+        $map    = Evoting_Field_Map::get();
+        $joins  = '';
+        $where  = [ '1=1' ];
         $params = [];
 
-        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
-            $sql     .= " AND um_loc.meta_value = %s";
-            $params[] = $poll->target_group;
+        // --- Email ---
+        $email_key = $map['email'] ?? 'user_email';
+        if ( Evoting_Field_Map::is_core_field( $email_key ) ) {
+            $where[] = "u.{$email_key} != ''";
+        } else {
+            $key_safe = sanitize_key( $email_key );
+            $joins   .= " INNER JOIN {$wpdb->usermeta} um_email"
+                      . " ON u.ID = um_email.user_id AND um_email.meta_key = %s AND um_email.meta_value != ''";
+            $params[] = $key_safe;
         }
 
-        if ( $params ) {
+        // --- Meta fields: nickname, first_name, last_name, city ---
+        $meta_fields = [
+            'nickname'   => 'um_nick',
+            'first_name' => 'um_fn',
+            'last_name'  => 'um_ln',
+            'city'       => 'um_city',
+        ];
+
+        foreach ( $meta_fields as $logical => $alias ) {
+            $actual = sanitize_key( $map[ $logical ] ?? $logical );
+            if ( Evoting_Field_Map::is_core_field( $actual ) ) {
+                $where[] = "u.{$actual} != ''";
+            } else {
+                $joins   .= " INNER JOIN {$wpdb->usermeta} {$alias}"
+                          . " ON u.ID = {$alias}.user_id AND {$alias}.meta_key = %s AND {$alias}.meta_value != ''";
+                $params[] = $actual;
+            }
+        }
+
+        // --- Group filter on city ---
+        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
+            $city_key = sanitize_key( $map['city'] ?? 'user_registration_miejsce_spotkania' );
+            if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
+                $where[]  = "u.{$city_key} = %s";
+                $params[] = $poll->target_group;
+            } else {
+                // um_city JOIN already exists; just filter its value.
+                $where[]  = 'um_city.meta_value = %s';
+                $params[] = $poll->target_group;
+            }
+        }
+
+        $sql = "SELECT COUNT(DISTINCT u.ID)
+                FROM {$wpdb->users} u
+                {$joins}
+                WHERE " . implode( ' AND ', $where );
+
+        if ( ! empty( $params ) ) {
             return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) );
         }
 
@@ -322,9 +371,13 @@ class Evoting_Vote {
 
         $voters = [];
         foreach ( $rows as $row ) {
-            $user_id    = (int) $row->user_id;
-            $first_name = get_user_meta( $user_id, 'first_name', true );
-            $last_name  = get_user_meta( $user_id, 'last_name', true );
+            $user = get_userdata( (int) $row->user_id );
+            if ( ! $user ) {
+                continue;
+            }
+
+            $first_name = Evoting_Field_Map::get_user_value( $user, 'first_name' );
+            $last_name  = Evoting_Field_Map::get_user_value( $user, 'last_name' );
 
             $voters[] = [
                 'name'       => trim( $first_name . ' ' . $last_name ),

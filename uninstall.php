@@ -11,3 +11,4 @@ $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_polls" );
 
 delete_option( 'evoting_version' );
 delete_option( 'evoting_db_version' );
+delete_option( 'evoting_field_map' );

@@ -22,6 +22,7 @@ class Evoting {
     private function define_admin_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-polls.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-settings.php';
 
         $admin = new Evoting_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
@@ -30,6 +31,9 @@ class Evoting {
 
         $polls = new Evoting_Admin_Polls();
         $this->loader->add_action( 'admin_init', $polls, 'handle_form_submission' );
+
+        $settings = new Evoting_Admin_Settings();
+        $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission' );
     }
 
     private function define_public_hooks(): void {
