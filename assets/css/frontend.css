@@ -1,0 +1,358 @@
+/* ═══════════════════════════════════════════════════════════
+   E-Voting — Frontend Styles
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Poll block container ── */
+.evoting-poll-block {
+    max-width: 720px;
+    margin: 24px auto;
+    padding: 24px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.evoting-poll__title {
+    margin: 0 0 8px;
+    font-size: 1.4em;
+}
+
+.evoting-poll__description {
+    color: #555;
+    margin-bottom: 16px;
+}
+
+.evoting-poll__countdown {
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: #0073aa;
+}
+
+/* ── Questions / answers ── */
+.evoting-poll__question {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.evoting-poll__question legend {
+    font-weight: 600;
+    font-size: 1.05em;
+    padding: 0 4px;
+}
+
+.evoting-poll__option {
+    display: block;
+    padding: 6px 0;
+    cursor: pointer;
+}
+
+.evoting-poll__option input[type="radio"] {
+    margin-right: 8px;
+}
+
+/* ── Submit button ── */
+.evoting-poll__submit {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    font-size: 1em;
+    background: #0073aa;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.evoting-poll__submit:hover {
+    background: #005f8d;
+}
+
+.evoting-poll__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Messages ── */
+.evoting-poll__message {
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.evoting-poll__message--success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.evoting-poll__message--error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* ── Status notices ── */
+.evoting-poll__login-notice,
+.evoting-poll__already-voted,
+.evoting-poll__not-started,
+.evoting-poll__status,
+.evoting-poll__ineligible {
+    padding: 12px 16px;
+    border-radius: 4px;
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.evoting-poll__ineligible {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    margin-top: 12px;
+}
+
+/* Read-only questions (non-voters / ineligible) */
+.evoting-poll__questions-readonly {
+    margin-bottom: 16px;
+}
+
+.evoting-poll__question-readonly {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: #fafafa;
+}
+
+.evoting-poll__question-text {
+    margin: 0 0 8px;
+}
+
+.evoting-poll__answers-list {
+    list-style: disc;
+    padding-left: 24px;
+    margin: 0;
+    color: #555;
+}
+
+/* ── Results ── */
+.evoting-results__participation {
+    background: #f9f9f9;
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+}
+
+.evoting-results__participation h4 {
+    margin: 0 0 10px;
+    font-size: 1em;
+    font-weight: 700;
+}
+
+.evoting-results__bar--eligible { background: #0073aa; }
+.evoting-results__bar--voted    { background: #28a745; }
+.evoting-results__bar--absent   { background: #adb5bd; }
+
+.evoting-results__question {
+    margin-bottom: 20px;
+}
+
+.evoting-results__question h4 {
+    margin: 0 0 8px;
+}
+
+.evoting-results__bar-container {
+    margin-bottom: 6px;
+}
+
+.evoting-results__bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    font-size: 0.9em;
+}
+
+.evoting-results__bar {
+    height: 22px;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    min-width: 2px;
+}
+
+.evoting-results__bar--za            { background: #28a745; }
+.evoting-results__bar--przeciw       { background: #dc3545; }
+.evoting-results__bar--wstrzymuje_sie { background: #ffc107; }
+
+.evoting-results__anon-msg {
+    padding: 10px 16px;
+    background: #e8f4fd;
+    border-left: 4px solid #0073aa;
+    border-radius: 3px;
+    margin: 16px 0;
+    font-size: 0.95em;
+    color: #31708f;
+}
+
+/* ── Voter list ── */
+.evoting-results__voters-section {
+    margin-top: 20px;
+}
+
+.evoting-voters-toggle {
+    background: none;
+    border: 1px solid #0073aa;
+    color: #0073aa;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.15s, color 0.15s;
+}
+
+.evoting-voters-toggle:hover {
+    background: #0073aa;
+    color: #fff;
+}
+
+.evoting-results__voters {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.evoting-results__voters h4 {
+    margin-bottom: 4px;
+}
+
+.evoting-results__voters ul {
+    list-style: none;
+    padding: 0;
+}
+
+.evoting-results__voters li {
+    padding: 2px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   /glosowanie — Polls listing page
+   ═══════════════════════════════════════════════════════════ */
+
+.evoting-polls-page {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.evoting-polls-page__section-title {
+    font-size: 1.2em;
+    font-weight: 700;
+    margin: 28px 0 16px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e2e4e7;
+}
+
+.evoting-polls-page__empty {
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    color: #666;
+    text-align: center;
+}
+
+.evoting-polls-page__back {
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+.evoting-polls-page__back a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.evoting-polls-page__back a:hover {
+    text-decoration: underline;
+}
+
+/* ── Poll cards ── */
+.evoting-polls-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.evoting-poll-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 18px 20px;
+    background: #fff;
+    transition: box-shadow 0.15s;
+}
+
+.evoting-poll-card:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.evoting-poll-card--closed {
+    background: #fafafa;
+    border-color: #e8e8e8;
+}
+
+.evoting-poll-card__title {
+    margin: 0 0 8px;
+    font-size: 1.05em;
+}
+
+.evoting-poll-card__title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.evoting-poll-card__title a:hover {
+    color: #0073aa;
+}
+
+.evoting-poll-card__desc {
+    font-size: 0.88em;
+    color: #666;
+    margin: 0 0 10px;
+    line-height: 1.5;
+}
+
+.evoting-poll-card__dates {
+    font-size: 0.82em;
+    color: #888;
+    margin: 0 0 14px;
+}
+
+.evoting-poll-card__voted {
+    font-size: 0.88em;
+    color: #155724;
+    font-weight: 600;
+}
+
+.evoting-poll-card__btn {
+    display: inline-block;
+    padding: 7px 18px;
+    background: #0073aa;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.9em;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.evoting-poll-card__btn:hover {
+    background: #005f8d;
+    color: #fff;
+}
+
+.evoting-poll-card__btn--secondary {
+    background: #6c757d;
+}
+
+.evoting-poll-card__btn--secondary:hover {
+    background: #545b62;
+}
