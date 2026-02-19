@@ -5,13 +5,27 @@ $is_edit      = isset( $poll ) && $poll;
 $title        = $is_edit ? $poll->title : '';
 $desc         = $is_edit ? $poll->description : '';
 $status       = $is_edit ? $poll->status : 'draft';
-$start        = $is_edit ? $poll->start_date : '';
-$end          = $is_edit ? $poll->end_date : '';
-$notify       = $is_edit ? (bool) $poll->notify_users : false;
-$target_type  = $is_edit ? $poll->target_type : 'all';
-$target_group = $is_edit ? ( $poll->target_group ?? '' ) : '';
+$date_start   = $is_edit ? $poll->date_start : '';
+$date_end     = $is_edit ? $poll->date_end : '';
+$join_mode    = $is_edit ? ( $poll->join_mode ?? 'open' ) : 'open';
+$vote_mode    = $is_edit ? ( $poll->vote_mode ?? 'public' ) : 'public';
+$notify_start = $is_edit ? (bool) $poll->notify_start : false;
+$notify_end   = $is_edit ? (bool) $poll->notify_end : false;
 $questions    = $is_edit ? $poll->questions : [];
-$groups       = Evoting_Poll::get_location_groups();
+
+// target_groups: stored as JSON array of group IDs
+$selected_group_ids = [];
+if ( $is_edit && ! empty( $poll->target_groups ) ) {
+    $decoded = json_decode( $poll->target_groups, true );
+    if ( is_array( $decoded ) ) {
+        $selected_group_ids = array_map( 'absint', $decoded );
+    }
+}
+
+// Get all groups for multiselect.
+global $wpdb;
+$groups_table = $wpdb->prefix . 'evoting_groups';
+$all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER BY name ASC" );
 ?>
 <div class="wrap">
     <h1><?php echo $is_edit ? esc_html__( 'Edytuj głosowanie', 'evoting' ) : esc_html__( 'Nowe głosowanie', 'evoting' ); ?></h1>
@@ -59,71 +73,91 @@ $groups       = Evoting_Poll::get_location_groups();
                 <th scope="row"><label for="poll_status"><?php esc_html_e( 'Status', 'evoting' ); ?></label></th>
                 <td>
                     <select id="poll_status" name="poll_status">
-                        <option value="draft" <?php selected( $status, 'draft' ); ?>><?php esc_html_e( 'Szkic', 'evoting' ); ?></option>
-                        <option value="open"  <?php selected( $status, 'open' ); ?>><?php esc_html_e( 'Otwarte', 'evoting' ); ?></option>
+                        <option value="draft"  <?php selected( $status, 'draft' ); ?>><?php esc_html_e( 'Szkic', 'evoting' ); ?></option>
+                        <option value="open"   <?php selected( $status, 'open' ); ?>><?php esc_html_e( 'Otwarte', 'evoting' ); ?></option>
                         <option value="closed" <?php selected( $status, 'closed' ); ?>><?php esc_html_e( 'Zamknięte', 'evoting' ); ?></option>
                     </select>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label for="start_date"><?php esc_html_e( 'Data rozpoczęcia', 'evoting' ); ?> <span class="required">*</span></label></th>
+                <th scope="row"><label for="date_start"><?php esc_html_e( 'Data rozpoczęcia', 'evoting' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <input type="date" id="start_date" name="start_date"
-                           value="<?php echo esc_attr( $start ); ?>" required>
-                    <p class="description"><?php esc_html_e( 'Głosowanie staje się aktywne od godziny 00:00 tego dnia.', 'evoting' ); ?></p>
+                    <input type="date" id="date_start" name="date_start"
+                           value="<?php echo esc_attr( $date_start ); ?>" required>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label for="end_date"><?php esc_html_e( 'Data zakończenia', 'evoting' ); ?> <span class="required">*</span></label></th>
+                <th scope="row"><label for="date_end"><?php esc_html_e( 'Data zakończenia', 'evoting' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <input type="date" id="end_date" name="end_date"
-                           value="<?php echo esc_attr( $end ); ?>" required>
-                    <p class="description"><?php esc_html_e( 'Głosowanie trwa do godziny 23:59 tego dnia.', 'evoting' ); ?></p>
+                    <input type="date" id="date_end" name="date_end"
+                           value="<?php echo esc_attr( $date_end ); ?>" required>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e( 'Kto może głosować', 'evoting' ); ?></th>
+                <th scope="row"><?php esc_html_e( 'Tryb dołączania', 'evoting' ); ?></th>
                 <td>
                     <fieldset>
                         <label>
-                            <input type="radio" name="target_type" value="all" <?php checked( $target_type, 'all' ); ?> id="target_all">
-                            <?php esc_html_e( 'Wszyscy uprawnieni użytkownicy', 'evoting' ); ?>
+                            <input type="radio" name="join_mode" value="open" <?php checked( $join_mode, 'open' ); ?>>
+                            <?php esc_html_e( 'Otwarte — nowi użytkownicy mogą dołączyć do aktywnego głosowania', 'evoting' ); ?>
                         </label><br>
                         <label>
-                            <input type="radio" name="target_type" value="group" <?php checked( $target_type, 'group' ); ?> id="target_group_radio">
-                            <?php esc_html_e( 'Wybrana grupa (miejsce spotkania)', 'evoting' ); ?>
+                            <input type="radio" name="join_mode" value="closed" <?php checked( $join_mode, 'closed' ); ?>>
+                            <?php esc_html_e( 'Zamknięte — lista uprawnionych ustalana przy otwarciu (snapshot)', 'evoting' ); ?>
                         </label>
-                        <div id="evoting-target-group-wrapper" style="margin-top:8px; <?php echo ( 'group' !== $target_type ) ? 'display:none' : ''; ?>">
-                            <?php if ( ! empty( $groups ) ) : ?>
-                                <select name="target_group" id="target_group_select">
-                                    <option value=""><?php esc_html_e( '— Wybierz grupę —', 'evoting' ); ?></option>
-                                    <?php foreach ( $groups as $group ) : ?>
-                                        <option value="<?php echo esc_attr( $group ); ?>" <?php selected( $target_group, $group ); ?>>
-                                            <?php echo esc_html( $group ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php else : ?>
-                                <p class="description"><?php esc_html_e( 'Brak grup w bazie użytkowników.', 'evoting' ); ?></p>
-                            <?php endif; ?>
-                        </div>
-                        <p class="description"><?php esc_html_e( 'Uprawniony użytkownik musi mieć wypełnione: adres e-mail, nick, imię, nazwisko i miejsce spotkania.', 'evoting' ); ?></p>
                     </fieldset>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Tryb głosowania', 'evoting' ); ?></th>
+                <td>
+                    <fieldset>
+                        <label>
+                            <input type="radio" name="vote_mode" value="public" <?php checked( $vote_mode, 'public' ); ?>>
+                            <?php esc_html_e( 'Jawne — zanonimizowane nicki widoczne w wynikach', 'evoting' ); ?>
+                        </label><br>
+                        <label>
+                            <input type="radio" name="vote_mode" value="anonymous" <?php checked( $vote_mode, 'anonymous' ); ?>>
+                            🔒 <?php esc_html_e( 'Anonimowe — UWAGA: decyzja jest nieodwracalna, zero danych osobowych w wynikach', 'evoting' ); ?>
+                        </label>
+                    </fieldset>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Grupy docelowe', 'evoting' ); ?></th>
+                <td>
+                    <?php if ( ! empty( $all_groups ) ) : ?>
+                        <select name="target_groups[]" multiple size="6" style="min-width:280px;">
+                            <?php foreach ( $all_groups as $group ) : ?>
+                                <option value="<?php echo esc_attr( $group->id ); ?>"
+                                        <?php echo in_array( (int) $group->id, $selected_group_ids, true ) ? 'selected' : ''; ?>>
+                                    <?php echo esc_html( $group->name ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele grup. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'evoting' ); ?></p>
+                    <?php else : ?>
+                        <p class="description"><?php esc_html_e( 'Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'evoting' ); ?></p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e( 'Powiadomienia e-mail', 'evoting' ); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="notify_users" value="1" <?php checked( $notify ); ?>>
-                        <?php esc_html_e( 'Wyślij powiadomienie e-mail do wszystkich użytkowników', 'evoting' ); ?>
+                        <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?>>
+                        <?php esc_html_e( 'Wyślij e-mail przy otwarciu głosowania', 'evoting' ); ?>
+                    </label><br>
+                    <label>
+                        <input type="checkbox" name="notify_end" value="1" <?php checked( $notify_end ); ?>>
+                        <?php esc_html_e( 'Wyślij e-mail przypomnienie 24h przed zakończeniem', 'evoting' ); ?>
                     </label>
                 </td>
             </tr>
         </table>
 
-        <h2><?php esc_html_e( 'Pytania', 'evoting' ); ?> <small>(<?php esc_html_e( '1–12 pytań, 3–12 odpowiedzi per pytanie', 'evoting' ); ?>)</small></h2>
-        <p class="description"><?php esc_html_e( 'Ostatnia odpowiedź każdego pytania oznacza "brak głosu / wstrzymanie się" i jest doliczana do osób, które nie oddały głosu.', 'evoting' ); ?></p>
+        <h2><?php esc_html_e( 'Pytania', 'evoting' ); ?> <small>(<?php esc_html_e( '1–24 pytania, 3–12 odpowiedzi per pytanie', 'evoting' ); ?>)</small></h2>
+        <p class="description"><?php esc_html_e( 'Ostatnia odpowiedź każdego pytania to obowiązkowe "Wstrzymuję się" (doliczane do nieuczestniczących).', 'evoting' ); ?></p>
 
         <div id="evoting-questions-container">
             <?php if ( ! empty( $questions ) ) : ?>
@@ -132,7 +166,7 @@ $groups       = Evoting_Poll::get_location_groups();
                         <div class="evoting-question-header">
                             <span class="evoting-question-number"><?php echo esc_html( $qi + 1 ); ?>.</span>
                             <input type="text" name="questions[<?php echo esc_attr( $qi ); ?>][text]"
-                                   value="<?php echo esc_attr( $q->question_text ); ?>"
+                                   value="<?php echo esc_attr( $q->body ); ?>"
                                    maxlength="512"
                                    class="large-text"
                                    placeholder="<?php esc_attr_e( 'Treść pytania', 'evoting' ); ?>">
@@ -144,7 +178,7 @@ $groups       = Evoting_Poll::get_location_groups();
                                     <span class="evoting-answer-bullet">&#8226;</span>
                                     <input type="text"
                                            name="questions[<?php echo esc_attr( $qi ); ?>][answers][<?php echo esc_attr( $ai ); ?>]"
-                                           value="<?php echo esc_attr( $answer->answer_text ); ?>"
+                                           value="<?php echo esc_attr( $answer->body ); ?>"
                                            maxlength="512"
                                            class="regular-text"
                                            placeholder="<?php esc_attr_e( 'Treść odpowiedzi', 'evoting' ); ?>"

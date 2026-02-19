@@ -35,6 +35,12 @@ class Evoting_Admin_Polls {
             exit;
         }
 
+        $was_open = false;
+        if ( $poll_id ) {
+            $existing = Evoting_Poll::get( $poll_id );
+            $was_open = $existing && 'open' === $existing->status;
+        }
+
         if ( $poll_id ) {
             Evoting_Poll::update( $poll_id, $data );
             $redirect = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $poll_id . '&updated=1' );
@@ -45,12 +51,13 @@ class Evoting_Admin_Polls {
                 wp_safe_redirect( admin_url( 'admin.php?page=evoting-new' ) );
                 exit;
             }
-
-            if ( ! empty( $data['notify_users'] ) ) {
-                $this->send_notifications( $new_id, $data['title'] );
-            }
-
+            $poll_id  = $new_id;
             $redirect = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $new_id . '&created=1' );
+        }
+
+        // Send start notifications when poll is set to open.
+        if ( ! empty( $data['notify_start'] ) && 'open' === $data['status'] && ! $was_open ) {
+            $this->send_notifications( $poll_id, $data['title'] );
         }
 
         wp_safe_redirect( $redirect );
@@ -69,18 +76,18 @@ class Evoting_Admin_Polls {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'evoting' ) );
         }
 
-        $start_date = sanitize_text_field( $_POST['start_date'] ?? '' );
-        $end_date   = sanitize_text_field( $_POST['end_date'] ?? '' );
+        $date_start = sanitize_text_field( $_POST['date_start'] ?? '' );
+        $date_end   = sanitize_text_field( $_POST['date_end'] ?? '' );
 
-        if ( '' === $start_date || '' === $end_date ) {
+        if ( '' === $date_start || '' === $date_end ) {
             return new \WP_Error( 'missing_dates', __( 'Daty rozpoczęcia i zakończenia są wymagane.', 'evoting' ) );
         }
 
-        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $start_date ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $end_date ) ) {
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_start ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_end ) ) {
             return new \WP_Error( 'invalid_date_format', __( 'Format daty: RRRR-MM-DD.', 'evoting' ) );
         }
 
-        if ( $end_date < $start_date ) {
+        if ( $date_end < $date_start ) {
             return new \WP_Error( 'invalid_dates', __( 'Data zakończenia musi być taka sama lub późniejsza niż data rozpoczęcia.', 'evoting' ) );
         }
 
@@ -127,31 +134,34 @@ class Evoting_Admin_Polls {
         if ( count( $questions ) < 1 ) {
             return new \WP_Error( 'missing_questions', __( 'Dodaj przynajmniej jedno pytanie.', 'evoting' ) );
         }
-        if ( count( $questions ) > 12 ) {
-            return new \WP_Error( 'too_many_questions', __( 'Maksymalnie 12 pytań.', 'evoting' ) );
+        if ( count( $questions ) > 24 ) {
+            return new \WP_Error( 'too_many_questions', __( 'Maksymalnie 24 pytania.', 'evoting' ) );
         }
 
-        $target_type  = in_array( $_POST['target_type'] ?? 'all', [ 'all', 'group' ], true )
-            ? sanitize_text_field( $_POST['target_type'] )
-            : 'all';
-        $target_group = ( 'group' === $target_type )
-            ? sanitize_text_field( $_POST['target_group'] ?? '' )
-            : '';
+        // target_groups: multi-select of group IDs → store as JSON.
+        $raw_groups    = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
+        $target_groups = ! empty( $raw_groups ) ? wp_json_encode( array_values( $raw_groups ) ) : '';
 
-        if ( 'group' === $target_type && '' === $target_group ) {
-            return new \WP_Error( 'missing_group', __( 'Wybierz grupę docelową.', 'evoting' ) );
-        }
+        $join_mode = in_array( $_POST['join_mode'] ?? 'open', [ 'open', 'closed' ], true )
+            ? sanitize_text_field( $_POST['join_mode'] )
+            : 'open';
+
+        $vote_mode = in_array( $_POST['vote_mode'] ?? 'public', [ 'public', 'anonymous' ], true )
+            ? sanitize_text_field( $_POST['vote_mode'] )
+            : 'public';
 
         return [
-            'title'        => $title,
-            'description'  => sanitize_textarea_field( $_POST['poll_description'] ?? '' ),
-            'status'       => sanitize_text_field( $_POST['poll_status'] ?? 'draft' ),
-            'start_date'   => $start_date,
-            'end_date'     => $end_date,
-            'target_type'  => $target_type,
-            'target_group' => $target_group,
-            'notify_users' => ! empty( $_POST['notify_users'] ),
-            'questions'    => $questions,
+            'title'         => $title,
+            'description'   => sanitize_textarea_field( $_POST['poll_description'] ?? '' ),
+            'status'        => sanitize_text_field( $_POST['poll_status'] ?? 'draft' ),
+            'date_start'    => $date_start,
+            'date_end'      => $date_end,
+            'join_mode'     => $join_mode,
+            'vote_mode'     => $vote_mode,
+            'target_groups' => $target_groups,
+            'notify_start'  => ! empty( $_POST['notify_start'] ),
+            'notify_end'    => ! empty( $_POST['notify_end'] ),
+            'questions'     => $questions,
         ];
     }
 
@@ -164,25 +174,16 @@ class Evoting_Admin_Polls {
 
         $subject = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $title );
         $message = sprintf(
-            __( "Zostało utworzone nowe głosowanie: %s\n\nZaloguj się, aby oddać swój głos.", 'evoting' ),
+            __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby oddać swój głos.", 'evoting' ),
             $title
         );
         $headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
 
-        // Send emails with error handling to prevent stopping on failures
         foreach ( array_column( $users, 'user_email' ) as $email ) {
-            // Validate email before sending
             if ( ! is_email( $email ) ) {
                 continue;
             }
-            
-            // Try to send email and continue even if one fails
-            try {
-                wp_mail( $email, $subject, $message, $headers );
-            } catch ( Exception $e ) {
-                // Log error but continue with other emails
-                error_log( 'EP-RWL email sending error for ' . $email . ': ' . $e->getMessage() );
-            }
+            wp_mail( $email, $subject, $message, $headers );
         }
     }
 }

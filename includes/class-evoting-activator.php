@@ -3,75 +3,105 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Activator {
 
-    const DB_VERSION = '2.0.0';
+    const DB_VERSION = '3.0.0';
 
     public static function activate(): void {
         self::create_tables();
         self::run_migrations();
         update_option( 'evoting_version', EVOTING_VERSION );
         update_option( 'evoting_db_version', self::DB_VERSION );
+
+        if ( ! wp_next_scheduled( 'evoting_check_reminders' ) ) {
+            wp_schedule_event( time(), 'daily', 'evoting_check_reminders' );
+        }
     }
 
     private static function create_tables(): void {
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
 
-        $polls_table     = $wpdb->prefix . 'evoting_polls';
-        $questions_table = $wpdb->prefix . 'evoting_questions';
-        $answers_table   = $wpdb->prefix . 'evoting_answers';
-        $votes_table     = $wpdb->prefix . 'evoting_votes';
+        $polls         = $wpdb->prefix . 'evoting_polls';
+        $questions     = $wpdb->prefix . 'evoting_questions';
+        $answers       = $wpdb->prefix . 'evoting_answers';
+        $votes         = $wpdb->prefix . 'evoting_votes';
+        $groups        = $wpdb->prefix . 'evoting_groups';
+        $group_members = $wpdb->prefix . 'evoting_group_members';
 
-        $sql = "CREATE TABLE {$polls_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            title VARCHAR(512) NOT NULL,
-            description TEXT,
-            status VARCHAR(20) NOT NULL DEFAULT 'draft',
-            start_date DATE NOT NULL,
-            end_date DATE NOT NULL,
-            target_type VARCHAR(10) NOT NULL DEFAULT 'all',
-            target_group VARCHAR(255) NULL,
-            notify_users TINYINT(1) NOT NULL DEFAULT 0,
-            created_by BIGINT(20) UNSIGNED NOT NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
+        $sql = "CREATE TABLE {$polls} (
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            title         VARCHAR(512) NOT NULL,
+            description   TEXT,
+            status        ENUM('draft','open','closed') NOT NULL DEFAULT 'draft',
+            join_mode     ENUM('open','closed') NOT NULL DEFAULT 'open',
+            vote_mode     ENUM('public','anonymous') NOT NULL DEFAULT 'public',
+            target_groups TEXT,
+            notify_start  TINYINT(1) NOT NULL DEFAULT 0,
+            notify_end    TINYINT(1) NOT NULL DEFAULT 0,
+            date_start    DATE NOT NULL,
+            date_end      DATE NOT NULL,
+            created_by    BIGINT UNSIGNED NOT NULL,
+            created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
             KEY status (status),
-            KEY start_date (start_date),
-            KEY end_date (end_date)
+            KEY date_start (date_start),
+            KEY date_end (date_end)
         ) {$charset_collate};
 
-        CREATE TABLE {$questions_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            poll_id BIGINT(20) UNSIGNED NOT NULL,
-            question_text VARCHAR(512) NOT NULL,
-            sort_order INT UNSIGNED NOT NULL DEFAULT 0,
-            PRIMARY KEY (id),
+        CREATE TABLE {$questions} (
+            id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            poll_id    BIGINT UNSIGNED NOT NULL,
+            body       VARCHAR(512) NOT NULL,
+            sort_order TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
             KEY poll_id (poll_id)
         ) {$charset_collate};
 
-        CREATE TABLE {$answers_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            question_id BIGINT(20) UNSIGNED NOT NULL,
-            answer_text VARCHAR(512) NOT NULL,
-            sort_order INT UNSIGNED NOT NULL DEFAULT 0,
-            is_abstain TINYINT(1) NOT NULL DEFAULT 0,
-            PRIMARY KEY (id),
+        CREATE TABLE {$answers} (
+            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            question_id BIGINT UNSIGNED NOT NULL,
+            body        VARCHAR(512) NOT NULL,
+            is_abstain  TINYINT(1) NOT NULL DEFAULT 0,
+            sort_order  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY  (id),
             KEY question_id (question_id)
         ) {$charset_collate};
 
-        CREATE TABLE {$votes_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            poll_id BIGINT(20) UNSIGNED NOT NULL,
-            question_id BIGINT(20) UNSIGNED NOT NULL,
-            user_id BIGINT(20) UNSIGNED NOT NULL,
-            answer_id BIGINT(20) UNSIGNED NOT NULL,
-            voted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY poll_question_user (poll_id, question_id, user_id),
+        CREATE TABLE {$votes} (
+            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            poll_id      BIGINT UNSIGNED NOT NULL,
+            question_id  BIGINT UNSIGNED NOT NULL,
+            user_id      BIGINT UNSIGNED NOT NULL,
+            answer_id    BIGINT UNSIGNED NOT NULL,
+            is_anonymous TINYINT(1) NOT NULL DEFAULT 0,
+            voted_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY unique_vote (poll_id,question_id,user_id),
             KEY poll_id (poll_id),
-            KEY question_id (question_id),
-            KEY user_id (user_id),
-            KEY answer_id (answer_id)
+            KEY user_id (user_id)
+        ) {$charset_collate};
+
+        CREATE TABLE {$groups} (
+            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name         VARCHAR(255) NOT NULL,
+            type         ENUM('city','custom') NOT NULL DEFAULT 'city',
+            description  TEXT,
+            member_count INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY name (name),
+            KEY type (type)
+        ) {$charset_collate};
+
+        CREATE TABLE {$group_members} (
+            id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            group_id BIGINT UNSIGNED NOT NULL,
+            user_id  BIGINT UNSIGNED NOT NULL,
+            source   ENUM('auto','manual') NOT NULL DEFAULT 'auto',
+            added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY unique_member (group_id,user_id),
+            KEY group_id (group_id),
+            KEY user_id (user_id)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -79,45 +109,86 @@ class Evoting_Activator {
     }
 
     /**
-     * Run ALTER TABLE migrations for upgrades from older schema.
+     * ALTER TABLE migrations from older schemas.
      */
     private static function run_migrations(): void {
         global $wpdb;
 
         $installed = get_option( 'evoting_db_version', '1.0.0' );
 
-        if ( version_compare( $installed, '2.0.0', '<' ) ) {
-            $polls_table     = $wpdb->prefix . 'evoting_polls';
-            $questions_table = $wpdb->prefix . 'evoting_questions';
-            $votes_table     = $wpdb->prefix . 'evoting_votes';
+        // ── 2.0.0 → 3.0.0 : rename old polls columns to spec names ──────────
+        if ( version_compare( $installed, '3.0.0', '<' ) ) {
+            $polls     = $wpdb->prefix . 'evoting_polls';
+            $questions = $wpdb->prefix . 'evoting_questions';
+            $answers   = $wpdb->prefix . 'evoting_answers';
+            $votes     = $wpdb->prefix . 'evoting_votes';
 
-            // Extend title length.
-            $wpdb->query( "ALTER TABLE {$polls_table} MODIFY title VARCHAR(512) NOT NULL" );
+            // Polls: rename start_date → date_start, end_date → date_end
+            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$polls}" );
 
-            // Change date columns from DATETIME to DATE.
-            $wpdb->query( "ALTER TABLE {$polls_table} MODIFY start_date DATE NOT NULL" );
-            $wpdb->query( "ALTER TABLE {$polls_table} MODIFY end_date DATE NOT NULL" );
-
-            // Add target columns (IF NOT EXISTS via try – dbDelta already handles new columns).
-            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$polls_table}" );
-            if ( ! in_array( 'target_type', $cols, true ) ) {
-                $wpdb->query( "ALTER TABLE {$polls_table} ADD COLUMN target_type VARCHAR(10) NOT NULL DEFAULT 'all' AFTER notify_users" );
+            if ( in_array( 'start_date', $cols, true ) && ! in_array( 'date_start', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} CHANGE start_date date_start DATE NOT NULL" );
             }
-            if ( ! in_array( 'target_group', $cols, true ) ) {
-                $wpdb->query( "ALTER TABLE {$polls_table} ADD COLUMN target_group VARCHAR(255) NULL AFTER target_type" );
+            if ( in_array( 'end_date', $cols, true ) && ! in_array( 'date_end', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} CHANGE end_date date_end DATE NOT NULL" );
             }
 
-            // Extend question_text length.
-            $wpdb->query( "ALTER TABLE {$questions_table} MODIFY question_text VARCHAR(512) NOT NULL" );
+            // Polls: rename notify_users → notify_start, add notify_end
+            if ( in_array( 'notify_users', $cols, true ) && ! in_array( 'notify_start', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} CHANGE notify_users notify_start TINYINT(1) NOT NULL DEFAULT 0" );
+            }
+            // Re-fetch cols after possible renames
+            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$polls}" );
+            if ( ! in_array( 'notify_end', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} ADD COLUMN notify_end TINYINT(1) NOT NULL DEFAULT 0" );
+            }
 
-            // Migrate votes: rename answer → answer_id if old column still exists.
-            $vote_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$votes_table}" );
-            if ( in_array( 'answer', $vote_cols, true ) && ! in_array( 'answer_id', $vote_cols, true ) ) {
-                // Drop old data – no valid answer_id references exist yet.
-                $wpdb->query( "TRUNCATE TABLE {$votes_table}" );
-                $wpdb->query( "ALTER TABLE {$votes_table} DROP COLUMN answer" );
-                $wpdb->query( "ALTER TABLE {$votes_table} ADD COLUMN answer_id BIGINT(20) UNSIGNED NOT NULL AFTER user_id" );
-                $wpdb->query( "ALTER TABLE {$votes_table} ADD KEY answer_id (answer_id)" );
+            // Polls: add join_mode, vote_mode, target_groups; drop target_type/target_group
+            if ( ! in_array( 'join_mode', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} ADD COLUMN join_mode ENUM('open','closed') NOT NULL DEFAULT 'open'" );
+            }
+            if ( ! in_array( 'vote_mode', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} ADD COLUMN vote_mode ENUM('public','anonymous') NOT NULL DEFAULT 'public'" );
+            }
+            if ( ! in_array( 'target_groups', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} ADD COLUMN target_groups TEXT" );
+            }
+            if ( in_array( 'target_type', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} DROP COLUMN target_type" );
+            }
+            if ( in_array( 'target_group', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} DROP COLUMN target_group" );
+            }
+            if ( in_array( 'updated_at', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} DROP COLUMN updated_at" );
+            }
+
+            // Questions: rename question_text → body
+            $q_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$questions}" );
+            if ( in_array( 'question_text', $q_cols, true ) && ! in_array( 'body', $q_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$questions} CHANGE question_text body VARCHAR(512) NOT NULL" );
+            }
+            // Sort_order: change INT to TINYINT if needed (safe, dbDelta handles)
+
+            // Answers: rename answer_text → body
+            $a_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$answers}" );
+            if ( in_array( 'answer_text', $a_cols, true ) && ! in_array( 'body', $a_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$answers} CHANGE answer_text body VARCHAR(512) NOT NULL" );
+            }
+
+            // Votes: add is_anonymous if missing
+            $v_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$votes}" );
+            if ( ! in_array( 'is_anonymous', $v_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$votes} ADD COLUMN is_anonymous TINYINT(1) NOT NULL DEFAULT 0 AFTER answer_id" );
+            }
+            // Remove extra indexes that may be left from old schema
+            $indexes = $wpdb->get_results( "SHOW INDEX FROM {$votes}", ARRAY_A );
+            $idx_names = array_column( $indexes, 'Key_name' );
+            if ( in_array( 'question_id', $idx_names, true ) ) {
+                $wpdb->query( "ALTER TABLE {$votes} DROP INDEX question_id" );
+            }
+            if ( in_array( 'answer_id', $idx_names, true ) ) {
+                $wpdb->query( "ALTER TABLE {$votes} DROP INDEX answer_id" );
             }
         }
     }

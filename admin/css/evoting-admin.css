@@ -290,3 +290,73 @@
 
 .evoting-badge--core { background: #cce5ff; color: #004085; }
 .evoting-badge--meta { background: #d4edda; color: #155724; }
+
+/* ── Batch progress bar ── */
+.evoting-progress-wrap {
+    margin-top: 10px;
+}
+
+.evoting-progress-bar-track {
+    background: #e2e4e7;
+    border-radius: 4px;
+    height: 18px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 480px;
+}
+
+.evoting-progress-bar-fill {
+    height: 18px;
+    background: #0073aa;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    min-width: 4px;
+}
+
+.evoting-progress-label {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+}
+
+/* ── Groups page ── */
+.evoting-group-row td {
+    vertical-align: middle;
+}
+
+.evoting-sync-btn-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ── Roles page ── */
+.evoting-roles-table th,
+.evoting-roles-table td {
+    vertical-align: middle;
+    padding: 8px 10px;
+}
+
+.evoting-limit-badge {
+    font-size: 11px;
+    color: #777;
+    font-style: italic;
+    margin-left: 6px;
+}
+
+/* ── Poll form: vote mode warning ── */
+.evoting-anon-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 8px 12px;
+    margin-top: 6px;
+    font-size: 12px;
+    max-width: 560px;
+}
+
+/* ── Poll list: date overdue highlight ── */
+.evoting-date-overdue {
+    color: #d63638;
+    font-weight: 600;
+}

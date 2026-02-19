@@ -25,11 +25,13 @@ class Evoting_Poll {
      *     title: string,
      *     description?: string,
      *     status?: string,
-     *     start_date: string,
-     *     end_date: string,
-     *     target_type?: string,
-     *     target_group?: string,
-     *     notify_users?: bool,
+     *     date_start: string,
+     *     date_end: string,
+     *     join_mode?: string,
+     *     vote_mode?: string,
+     *     target_groups?: string,
+     *     notify_start?: bool,
+     *     notify_end?: bool,
      *     questions: array<array{text: string, answers: string[]}>
      * } $data
      * @return int|false Poll ID or false on failure.
@@ -40,19 +42,20 @@ class Evoting_Poll {
         $result = $wpdb->insert(
             self::polls_table(),
             [
-                'title'        => sanitize_text_field( $data['title'] ),
-                'description'  => isset( $data['description'] ) ? sanitize_textarea_field( $data['description'] ) : null,
-                'status'       => $data['status'] ?? 'draft',
-                'start_date'   => $data['start_date'],
-                'end_date'     => $data['end_date'],
-                'target_type'  => $data['target_type'] ?? 'all',
-                'target_group' => ( isset( $data['target_group'] ) && '' !== $data['target_group'] ) ? sanitize_text_field( $data['target_group'] ) : null,
-                'notify_users' => ! empty( $data['notify_users'] ) ? 1 : 0,
-                'created_by'   => get_current_user_id(),
-                'created_at'   => current_time( 'mysql' ),
-                'updated_at'   => current_time( 'mysql' ),
+                'title'         => sanitize_text_field( $data['title'] ),
+                'description'   => isset( $data['description'] ) ? sanitize_textarea_field( $data['description'] ) : null,
+                'status'        => in_array( $data['status'] ?? 'draft', [ 'draft', 'open', 'closed' ], true ) ? $data['status'] : 'draft',
+                'join_mode'     => in_array( $data['join_mode'] ?? 'open', [ 'open', 'closed' ], true ) ? $data['join_mode'] : 'open',
+                'vote_mode'     => in_array( $data['vote_mode'] ?? 'public', [ 'public', 'anonymous' ], true ) ? $data['vote_mode'] : 'public',
+                'target_groups' => isset( $data['target_groups'] ) && '' !== $data['target_groups'] ? sanitize_text_field( $data['target_groups'] ) : null,
+                'notify_start'  => ! empty( $data['notify_start'] ) ? 1 : 0,
+                'notify_end'    => ! empty( $data['notify_end'] ) ? 1 : 0,
+                'date_start'    => $data['date_start'],
+                'date_end'      => $data['date_end'],
+                'created_by'    => get_current_user_id(),
+                'created_at'    => current_time( 'mysql' ),
             ],
-            [ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' ]
+            [ '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s' ]
         );
 
         if ( false === $result ) {
@@ -89,37 +92,51 @@ class Evoting_Poll {
             $update['status'] = sanitize_text_field( $data['status'] );
             $format[]         = '%s';
         }
-        if ( isset( $data['start_date'] ) ) {
-            $update['start_date'] = $data['start_date'];
-            $format[]             = '%s';
+        if ( isset( $data['join_mode'] ) ) {
+            $update['join_mode'] = in_array( $data['join_mode'], [ 'open', 'closed' ], true ) ? $data['join_mode'] : 'open';
+            $format[]            = '%s';
         }
-        if ( isset( $data['end_date'] ) ) {
-            $update['end_date'] = $data['end_date'];
-            $format[]           = '%s';
+        if ( isset( $data['vote_mode'] ) ) {
+            $update['vote_mode'] = in_array( $data['vote_mode'], [ 'public', 'anonymous' ], true ) ? $data['vote_mode'] : 'public';
+            $format[]            = '%s';
         }
-        if ( isset( $data['target_type'] ) ) {
-            $update['target_type'] = sanitize_text_field( $data['target_type'] );
-            $format[]              = '%s';
+        if ( array_key_exists( 'target_groups', $data ) ) {
+            $update['target_groups'] = ( '' !== $data['target_groups'] ) ? sanitize_text_field( $data['target_groups'] ) : null;
+            $format[]                = '%s';
         }
-        if ( array_key_exists( 'target_group', $data ) ) {
-            $update['target_group'] = ( '' !== $data['target_group'] ) ? sanitize_text_field( $data['target_group'] ) : null;
-            $format[]               = '%s';
-        }
-        if ( isset( $data['notify_users'] ) ) {
-            $update['notify_users'] = ! empty( $data['notify_users'] ) ? 1 : 0;
+        if ( isset( $data['notify_start'] ) ) {
+            $update['notify_start'] = ! empty( $data['notify_start'] ) ? 1 : 0;
             $format[]               = '%d';
         }
+        if ( isset( $data['notify_end'] ) ) {
+            $update['notify_end'] = ! empty( $data['notify_end'] ) ? 1 : 0;
+            $format[]             = '%d';
+        }
+        if ( isset( $data['date_start'] ) ) {
+            $update['date_start'] = $data['date_start'];
+            $format[]             = '%s';
+        }
+        if ( isset( $data['date_end'] ) ) {
+            $update['date_end'] = $data['date_end'];
+            $format[]           = '%s';
+        }
 
-        $update['updated_at'] = current_time( 'mysql' );
-        $format[]             = '%s';
+        if ( empty( $update ) && ! isset( $data['questions'] ) ) {
+            return true;
+        }
 
-        $result = $wpdb->update( self::polls_table(), $update, [ 'id' => $poll_id ], $format, [ '%d' ] );
+        if ( ! empty( $update ) ) {
+            $result = $wpdb->update( self::polls_table(), $update, [ 'id' => $poll_id ], $format, [ '%d' ] );
+            if ( false === $result ) {
+                return false;
+            }
+        }
 
         if ( isset( $data['questions'] ) ) {
             self::save_questions( $poll_id, $data['questions'] );
         }
 
-        return false !== $result;
+        return true;
     }
 
     /**
@@ -156,9 +173,9 @@ class Evoting_Poll {
             $wpdb->insert(
                 self::questions_table(),
                 [
-                    'poll_id'       => $poll_id,
-                    'question_text' => sanitize_text_field( $text ),
-                    'sort_order'    => $q_order,
+                    'poll_id'    => $poll_id,
+                    'body'       => sanitize_text_field( $text ),
+                    'sort_order' => $q_order,
                 ],
                 [ '%d', '%s', '%d' ]
             );
@@ -196,7 +213,7 @@ class Evoting_Poll {
                 self::answers_table(),
                 [
                     'question_id' => $question_id,
-                    'answer_text' => sanitize_text_field( $text ),
+                    'body'        => sanitize_text_field( $text ),
                     'sort_order'  => $a_order,
                     'is_abstain'  => $is_abstain,
                 ],
@@ -273,18 +290,18 @@ class Evoting_Poll {
     public static function get_all( array $args = [] ): array {
         global $wpdb;
 
-        $where   = '1=1';
-        $params  = [];
+        $where  = '1=1';
+        $params = [];
 
         if ( ! empty( $args['status'] ) ) {
             $where   .= ' AND status = %s';
             $params[] = $args['status'];
         }
 
-        $orderby = in_array( $args['orderby'] ?? '', [ 'title', 'start_date', 'end_date', 'created_at', 'status' ], true )
+        $orderby = in_array( $args['orderby'] ?? '', [ 'title', 'date_start', 'date_end', 'created_at', 'status' ], true )
             ? $args['orderby']
             : 'created_at';
-        $order = strtoupper( $args['order'] ?? 'DESC' ) === 'ASC' ? 'ASC' : 'DESC';
+        $order   = strtoupper( $args['order'] ?? 'DESC' ) === 'ASC' ? 'ASC' : 'DESC';
 
         $limit  = isset( $args['limit'] ) ? absint( $args['limit'] ) : 20;
         $offset = isset( $args['offset'] ) ? absint( $args['offset'] ) : 0;
@@ -348,7 +365,7 @@ class Evoting_Poll {
 
         $today = current_time( 'Y-m-d' );
 
-        return $today >= $poll->start_date && $today <= $poll->end_date;
+        return $today >= $poll->date_start && $today <= $poll->date_end;
     }
 
     /**
@@ -359,7 +376,7 @@ class Evoting_Poll {
             return true;
         }
 
-        return current_time( 'Y-m-d' ) > $poll->end_date;
+        return current_time( 'Y-m-d' ) > $poll->date_end;
     }
 
     /**
@@ -373,7 +390,6 @@ class Evoting_Poll {
         $city_key = Evoting_Field_Map::get_field( 'city' );
 
         if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
-            // Core wp_users column.
             $rows = $wpdb->get_col(
                 "SELECT DISTINCT {$city_key}
                  FROM {$wpdb->users}
@@ -392,5 +408,19 @@ class Evoting_Poll {
         }
 
         return array_filter( $rows );
+    }
+
+    /**
+     * Return target_groups as an array of group IDs.
+     */
+    public static function get_target_group_ids( object $poll ): array {
+        if ( empty( $poll->target_groups ) ) {
+            return [];
+        }
+        $decoded = json_decode( $poll->target_groups, true );
+        if ( is_array( $decoded ) ) {
+            return array_map( 'absint', $decoded );
+        }
+        return [];
     }
 }

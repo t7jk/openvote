@@ -55,8 +55,8 @@ class Evoting_Rest_Controller {
             'id'         => (int) $p->id,
             'title'      => $p->title,
             'status'     => $p->status,
-            'start_date' => $p->start_date,
-            'end_date'   => $p->end_date,
+            'date_start' => $p->date_start,
+            'date_end'   => $p->date_end,
         ], $polls );
 
         return new WP_REST_Response( $data, 200 );
@@ -73,12 +73,12 @@ class Evoting_Rest_Controller {
         $is_ended  = Evoting_Poll::is_ended( $poll );
         $has_voted = is_user_logged_in() ? Evoting_Vote::has_voted( (int) $poll->id, get_current_user_id() ) : false;
 
-        // Check eligibility for logged-in users.
+        // Check eligibility for logged-in users (pełne 7 sprawdzeń).
         $eligible_error = null;
         if ( is_user_logged_in() && $is_active && ! $has_voted ) {
-            $eligible = Evoting_Vote::is_eligible( (int) $poll->id, get_current_user_id() );
-            if ( is_wp_error( $eligible ) ) {
-                $eligible_error = $eligible->get_error_message();
+            $check = Evoting_Eligibility::can_vote( get_current_user_id(), (int) $poll->id );
+            if ( ! $check['eligible'] ) {
+                $eligible_error = $check['reason'];
             }
         }
 
@@ -87,19 +87,20 @@ class Evoting_Rest_Controller {
             'title'          => $poll->title,
             'description'    => $poll->description,
             'status'         => $poll->status,
-            'start_date'     => $poll->start_date,
-            'end_date'       => $poll->end_date,
-            'target_type'    => $poll->target_type,
+            'date_start'     => $poll->date_start,
+            'date_end'       => $poll->date_end,
+            'join_mode'      => $poll->join_mode,
+            'vote_mode'      => $poll->vote_mode,
             'is_active'      => $is_active,
             'is_ended'       => $is_ended,
             'has_voted'      => $has_voted,
             'eligible_error' => $eligible_error,
             'questions'      => array_map( fn( $q ) => [
                 'id'      => (int) $q->id,
-                'text'    => $q->question_text,
+                'text'    => $q->body,
                 'answers' => array_map( fn( $a ) => [
                     'id'         => (int) $a->id,
-                    'text'       => $a->answer_text,
+                    'text'       => $a->body,
                     'is_abstain' => (bool) $a->is_abstain,
                 ], $q->answers ),
             ], $poll->questions ),
@@ -141,17 +142,22 @@ class Evoting_Rest_Controller {
             return new WP_Error( 'poll_not_ended', __( 'Wyniki dostępne po zakończeniu głosowania.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        $results = Evoting_Vote::get_results( $poll_id );
-        $voters  = Evoting_Vote::get_voters_anonymous( $poll_id );
+        $results   = Evoting_Vote::get_results( $poll_id );
+        $is_anon   = 'anonymous' === $poll->vote_mode;
+        $voters    = $is_anon ? [] : Evoting_Vote::get_voters_anonymous( $poll_id );
 
         return new WP_REST_Response( [
             'poll_id'        => $poll_id,
             'title'          => $poll->title,
+            'vote_mode'      => $poll->vote_mode,
             'total_eligible' => $results['total_eligible'],
             'total_voters'   => $results['total_voters'],
             'non_voters'     => $results['non_voters'],
             'questions'      => $results['questions'],
-            'voters'         => $voters, // only nicename
+            'voters'         => $voters,
+            'anonymous_msg'  => $is_anon
+                ? __( 'Głosowanie odbyło się w trybie anonimowym. Wyświetlane są wyłącznie zbiorcze wyniki.', 'evoting' )
+                : null,
         ], 200 );
     }
 }

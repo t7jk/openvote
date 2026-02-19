@@ -25,17 +25,17 @@ $is_ended  = Evoting_Poll::is_ended( $poll );
 $is_logged = is_user_logged_in();
 $has_voted = $is_logged ? Evoting_Vote::has_voted( $poll_id, get_current_user_id() ) : false;
 
-// Check eligibility for logged-in, active, not-yet-voted users.
+// Check eligibility for logged-in, active, not-yet-voted users (pełne 7 sprawdzeń).
 $eligible_error = null;
 if ( $is_logged && $is_active && ! $has_voted ) {
-    $eligible = Evoting_Vote::is_eligible( $poll_id, get_current_user_id() );
-    if ( is_wp_error( $eligible ) ) {
-        $eligible_error = $eligible->get_error_message();
+    $check = Evoting_Eligibility::can_vote( get_current_user_id(), $poll_id );
+    if ( ! $check['eligible'] ) {
+        $eligible_error = $check['reason'];
     }
 }
 
-// End-of-day timestamp for countdown (poll ends at 23:59:59 on end_date).
-$end_dt = new DateTimeImmutable( $poll->end_date . ' 23:59:59', wp_timezone() );
+// End-of-day timestamp for countdown (poll ends at 23:59:59 on date_end).
+$end_dt = new DateTimeImmutable( $poll->date_end . ' 23:59:59', wp_timezone() );
 $end_ts = $end_dt->getTimestamp();
 ?>
 <div <?php echo get_block_wrapper_attributes( [ 'class' => 'evoting-poll-block' ] ); ?>
@@ -71,11 +71,11 @@ $end_ts = $end_dt->getTimestamp();
                 <?php foreach ( $poll->questions as $i => $question ) : ?>
                     <div class="evoting-poll__question-readonly">
                         <p class="evoting-poll__question-text">
-                            <strong><?php echo esc_html( ( $i + 1 ) . '. ' . $question->question_text ); ?></strong>
+                            <strong><?php echo esc_html( ( $i + 1 ) . '. ' . $question->body ); ?></strong>
                         </p>
                         <ul class="evoting-poll__answers-list">
                             <?php foreach ( $question->answers as $answer ) : ?>
-                                <li><?php echo esc_html( $answer->answer_text ); ?></li>
+                                <li><?php echo esc_html( $answer->body ); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -97,11 +97,11 @@ $end_ts = $end_dt->getTimestamp();
                 <?php foreach ( $poll->questions as $i => $question ) : ?>
                     <div class="evoting-poll__question-readonly">
                         <p class="evoting-poll__question-text">
-                            <strong><?php echo esc_html( ( $i + 1 ) . '. ' . $question->question_text ); ?></strong>
+                            <strong><?php echo esc_html( ( $i + 1 ) . '. ' . $question->body ); ?></strong>
                         </p>
                         <ul class="evoting-poll__answers-list">
                             <?php foreach ( $question->answers as $answer ) : ?>
-                                <li><?php echo esc_html( $answer->answer_text ); ?></li>
+                                <li><?php echo esc_html( $answer->body ); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -119,14 +119,14 @@ $end_ts = $end_dt->getTimestamp();
 
                 <?php foreach ( $poll->questions as $i => $question ) : ?>
                     <fieldset class="evoting-poll__question">
-                        <legend><?php echo esc_html( ( $i + 1 ) . '. ' . $question->question_text ); ?></legend>
+                        <legend><?php echo esc_html( ( $i + 1 ) . '. ' . $question->body ); ?></legend>
                         <?php foreach ( $question->answers as $answer ) : ?>
                             <label class="evoting-poll__option">
                                 <input type="radio"
                                        name="question_<?php echo esc_attr( $question->id ); ?>"
                                        value="<?php echo esc_attr( $answer->id ); ?>"
                                        required>
-                                <?php echo esc_html( $answer->answer_text ); ?>
+                                <?php echo esc_html( $answer->body ); ?>
                             </label>
                         <?php endforeach; ?>
                     </fieldset>
@@ -146,7 +146,7 @@ $end_ts = $end_dt->getTimestamp();
             printf(
                 /* translators: %s: start date */
                 esc_html__( 'Głosowanie rozpocznie się: %s', 'evoting' ),
-                esc_html( $poll->start_date )
+                esc_html( $poll->date_start )
             );
             ?>
         </p>

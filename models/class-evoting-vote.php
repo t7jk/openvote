@@ -10,64 +10,12 @@ class Evoting_Vote {
 
     /**
      * Check if a user is eligible to vote in a poll.
-     * Requires complete profile (per field map) + matching target group if set.
+     * Delegates to Evoting_Eligibility::can_vote_or_error() (7 checks).
      *
      * @return true|\WP_Error
      */
     public static function is_eligible( int $poll_id, int $user_id ): true|\WP_Error {
-        $user = get_userdata( $user_id );
-
-        if ( ! $user ) {
-            return new \WP_Error( 'no_user', __( 'Użytkownik nie istnieje.', 'evoting' ), [ 'status' => 403 ] );
-        }
-
-        // Check all 5 required fields via the field map.
-        $required = [
-            'first_name' => Evoting_Field_Map::LABELS['first_name'],
-            'last_name'  => Evoting_Field_Map::LABELS['last_name'],
-            'nickname'   => Evoting_Field_Map::LABELS['nickname'],
-            'email'      => Evoting_Field_Map::LABELS['email'],
-            'city'       => Evoting_Field_Map::LABELS['city'],
-        ];
-
-        foreach ( $required as $logical => $label ) {
-            $value = Evoting_Field_Map::get_user_value( $user, $logical );
-            if ( '' === $value ) {
-                return new \WP_Error(
-                    'incomplete_profile',
-                    sprintf(
-                        /* translators: %s: field label */
-                        __( 'Twój profil jest niekompletny. Brakuje: %s.', 'evoting' ),
-                        $label
-                    ),
-                    [ 'status' => 403 ]
-                );
-            }
-        }
-
-        $poll = Evoting_Poll::get( $poll_id );
-
-        if ( ! $poll ) {
-            return new \WP_Error( 'poll_not_found', __( 'Głosowanie nie zostało znalezione.', 'evoting' ), [ 'status' => 404 ] );
-        }
-
-        // Group restriction.
-        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
-            $location = Evoting_Field_Map::get_user_value( $user, 'city' );
-            if ( $location !== $poll->target_group ) {
-                return new \WP_Error(
-                    'wrong_group',
-                    sprintf(
-                        /* translators: %s: group name */
-                        __( 'To głosowanie jest dostępne tylko dla grupy: %s.', 'evoting' ),
-                        $poll->target_group
-                    ),
-                    [ 'status' => 403 ]
-                );
-            }
-        }
-
-        return true;
+        return Evoting_Eligibility::can_vote_or_error( $user_id, $poll_id );
     }
 
     /**
@@ -112,17 +60,13 @@ class Evoting_Vote {
             }
         }
 
-        // --- Group filter on city ---
-        if ( 'group' === $poll->target_type && ! empty( $poll->target_group ) ) {
-            $city_key = sanitize_key( $map['city'] ?? 'user_registration_miejsce_spotkania' );
-            if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
-                $where[]  = "u.{$city_key} = %s";
-                $params[] = $poll->target_group;
-            } else {
-                // um_city JOIN already exists; just filter its value.
-                $where[]  = 'um_city.meta_value = %s';
-                $params[] = $poll->target_group;
-            }
+        // --- Group filter via wp_evoting_group_members ---
+        $group_ids = Evoting_Poll::get_target_group_ids( $poll );
+        if ( ! empty( $group_ids ) ) {
+            $gm_table     = $wpdb->prefix . 'evoting_group_members';
+            $g_holders    = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $joins       .= " INNER JOIN {$gm_table} gm ON u.ID = gm.user_id AND gm.group_id IN ({$g_holders})";
+            $params       = array_merge( $params, $group_ids );
         }
 
         $sql = "SELECT COUNT(DISTINCT u.ID)
@@ -143,9 +87,10 @@ class Evoting_Vote {
      * @param int                $poll_id
      * @param int                $user_id
      * @param array<int, int>    $answers  question_id => answer_id
+     * @param bool               $is_anonymous
      * @return true|\WP_Error
      */
-    public static function cast( int $poll_id, int $user_id, array $answers ): true|\WP_Error {
+    public static function cast( int $poll_id, int $user_id, array $answers, bool $is_anonymous = false ): true|\WP_Error {
         global $wpdb;
 
         $poll = Evoting_Poll::get( $poll_id );
@@ -156,6 +101,11 @@ class Evoting_Vote {
 
         if ( ! Evoting_Poll::is_active( $poll ) ) {
             return new \WP_Error( 'poll_not_active', __( 'Głosowanie nie jest aktywne.', 'evoting' ), [ 'status' => 403 ] );
+        }
+
+        // Enforce anonymous mode.
+        if ( 'anonymous' === $poll->vote_mode ) {
+            $is_anonymous = true;
         }
 
         $eligible = self::is_eligible( $poll_id, $user_id );
@@ -203,13 +153,14 @@ class Evoting_Vote {
             $wpdb->insert(
                 self::table(),
                 [
-                    'poll_id'     => $poll_id,
-                    'question_id' => $question_id,
-                    'user_id'     => $user_id,
-                    'answer_id'   => $answer_id,
-                    'voted_at'    => current_time( 'mysql' ),
+                    'poll_id'      => $poll_id,
+                    'question_id'  => $question_id,
+                    'user_id'      => $user_id,
+                    'answer_id'    => $answer_id,
+                    'is_anonymous' => $is_anonymous ? 1 : 0,
+                    'voted_at'     => current_time( 'mysql' ),
                 ],
-                [ '%d', '%d', '%d', '%d', '%s' ]
+                [ '%d', '%d', '%d', '%d', '%d', '%s' ]
             );
         }
 
@@ -283,7 +234,7 @@ class Evoting_Vote {
                 }
                 $answers[] = [
                     'id'         => (int) $answer->id,
-                    'text'       => $answer->answer_text,
+                    'text'       => $answer->body,
                     'is_abstain' => (bool) $answer->is_abstain,
                     'count'      => $cnt,
                 ];
@@ -304,7 +255,7 @@ class Evoting_Vote {
 
             $questions[] = [
                 'question_id'   => (int) $question->id,
-                'question_text' => $question->question_text,
+                'question_text' => $question->body,
                 'answers'       => $answers,
                 'total'         => $total_votes,
             ];
@@ -320,11 +271,17 @@ class Evoting_Vote {
 
     /**
      * Get anonymous voter list — anonymized user_nicename only.
+     * For vote_mode = anonymous: returns empty array (no data at all).
      *
      * @return array<int, array{nicename: string}>
      */
     public static function get_voters_anonymous( int $poll_id ): array {
         global $wpdb;
+
+        $poll = Evoting_Poll::get( $poll_id );
+        if ( $poll && 'anonymous' === $poll->vote_mode ) {
+            return [];
+        }
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
@@ -390,46 +347,35 @@ class Evoting_Vote {
     }
 
     /**
-     * Anonymize a display name / nicename.
-     * Keeps first 3 and last 3 characters, replaces the middle with dots.
-     * Example: "Januszek" → "Jan..zek"
+     * "Jan Kowalski" → "Jan...ski"
      */
-    private static function anonymize_nicename( string $value ): string {
+    public static function anonymize_nicename( string $value ): string {
         $len = mb_strlen( $value );
         if ( $len <= 6 ) {
-            return $value;
+            return str_repeat( '.', $len );
         }
         return mb_substr( $value, 0, 3 )
-             . str_repeat( '.', $len - 6 )
+             . '...'
              . mb_substr( $value, -3 );
     }
 
     /**
-     * Anonymize an email address.
-     * Local part: keep first 3 chars, replace rest with dots.
-     * Domain:     keep first char + dots + TLD.
-     * Example: "jan-kowalski@gmail.com" → "jan.........@g....com"
+     * "jan@gmail.com" → "jan.........@g....com"
      */
-    private static function anonymize_email( string $email ): string {
+    public static function anonymize_email( string $email ): string {
         if ( ! str_contains( $email, '@' ) ) {
             return str_repeat( '*', mb_strlen( $email ) );
         }
 
         [ $local, $domain ] = explode( '@', $email, 2 );
 
-        // Local part.
-        $local_len  = mb_strlen( $local );
-        $local_anon = mb_substr( $local, 0, min( 3, $local_len ) )
-                    . str_repeat( '.', max( 0, $local_len - 3 ) );
+        $local_anon = mb_substr( $local, 0, min( 3, mb_strlen( $local ) ) )
+                    . '.........' ;
 
-        // Domain: split at last dot to get TLD.
         $dot_pos     = strrpos( $domain, '.' );
         $domain_name = $dot_pos !== false ? substr( $domain, 0, $dot_pos ) : $domain;
         $tld         = $dot_pos !== false ? substr( $domain, $dot_pos + 1 ) : '';
-        $dn_len      = mb_strlen( $domain_name );
-        $domain_anon = mb_substr( $domain_name, 0, 1 )
-                     . str_repeat( '.', max( 0, $dn_len - 1 ) )
-                     . $tld;
+        $domain_anon = mb_substr( $domain_name, 0, 1 ) . '....' . '.' . $tld;
 
         return $local_anon . '@' . $domain_anon;
     }

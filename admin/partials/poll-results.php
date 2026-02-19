@@ -10,6 +10,7 @@ $total_voters   = (int) $results['total_voters'];
 $non_voters     = (int) $results['non_voters'];
 $pct_voted      = $total_eligible > 0 ? round( $total_voters / $total_eligible * 100, 1 ) : 0;
 $pct_absent     = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100, 1 ) : 0;
+$is_anonymous   = 'anonymous' === ( $poll->vote_mode ?? 'public' );
 ?>
 <div class="wrap">
     <h1><?php printf( esc_html__( 'Wyniki: %s', 'evoting' ), esc_html( $poll->title ) ); ?></h1>
@@ -22,16 +23,28 @@ $pct_absent     = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 
     </a>
     <hr class="wp-header-end">
 
-    <?php // ── Participation summary with bars ── ?>
+    <?php // ── Participation summary ── ?>
     <div class="evoting-results-summary">
         <h2><?php esc_html_e( 'Frekwencja', 'evoting' ); ?></h2>
 
-        <p><strong><?php esc_html_e( 'Status:', 'evoting' ); ?></strong> <?php echo esc_html( $poll->status ); ?>
-           &nbsp;|&nbsp; <strong><?php esc_html_e( 'Okres:', 'evoting' ); ?></strong> <?php echo esc_html( $poll->start_date . ' — ' . $poll->end_date ); ?>
-           <?php if ( 'group' === $poll->target_type && $poll->target_group ) : ?>
-               &nbsp;|&nbsp; <strong><?php esc_html_e( 'Grupa:', 'evoting' ); ?></strong> <?php echo esc_html( $poll->target_group ); ?>
-           <?php endif; ?>
+        <p>
+            <strong><?php esc_html_e( 'Status:', 'evoting' ); ?></strong> <?php echo esc_html( $poll->status ); ?>
+            &nbsp;|&nbsp;
+            <strong><?php esc_html_e( 'Okres:', 'evoting' ); ?></strong>
+            <?php echo esc_html( $poll->date_start . ' — ' . $poll->date_end ); ?>
+            &nbsp;|&nbsp;
+            <strong><?php esc_html_e( 'Tryb:', 'evoting' ); ?></strong>
+            <?php echo $is_anonymous
+                ? esc_html__( '🔒 Anonimowe', 'evoting' )
+                : esc_html__( 'Jawne', 'evoting' );
+            ?>
         </p>
+
+        <?php if ( $is_anonymous ) : ?>
+            <div class="notice notice-info inline" style="margin:0 0 16px;">
+                <p><?php esc_html_e( 'Głosowanie odbyło się w trybie anonimowym. Wyświetlane są wyłącznie zbiorcze wyniki.', 'evoting' ); ?></p>
+            </div>
+        <?php endif; ?>
 
         <table class="evoting-freq-table">
             <tbody>
@@ -82,8 +95,10 @@ $pct_absent     = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 
                     </thead>
                     <tbody>
                         <?php foreach ( $q['answers'] as $ai => $answer ) :
-                            $bar_class = $answer['is_abstain'] ? 'evoting-bar--wstrzymuje' : ( 0 === $ai ? 'evoting-bar--za' : 'evoting-bar--przeciw' );
-                            ?>
+                            $bar_class = $answer['is_abstain']
+                                ? 'evoting-bar--wstrzymuje'
+                                : ( 0 === $ai ? 'evoting-bar--za' : 'evoting-bar--przeciw' );
+                        ?>
                             <tr>
                                 <td>
                                     <?php echo esc_html( $answer['text'] ); ?>
@@ -107,8 +122,10 @@ $pct_absent     = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 
         <p><?php esc_html_e( 'Brak pytań w tym głosowaniu.', 'evoting' ); ?></p>
     <?php endif; ?>
 
-    <?php // ── Voter list (admin view: full name + anonymized email) ── ?>
-    <?php if ( ! empty( $voters ) ) : ?>
+    <?php // ── Voter list ── ?>
+    <?php if ( $is_anonymous ) : ?>
+        <?php // Tryb anonimowy — zero danych osobowych ?>
+    <?php elseif ( ! empty( $voters ) ) : ?>
         <h2><?php esc_html_e( 'Lista głosujących', 'evoting' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Widoczne: imię i nazwisko oraz zanonimizowany adres e-mail. Pozostałe dane są utajnione.', 'evoting' ); ?></p>
         <table class="widefat fixed striped" style="max-width:700px;">
@@ -129,5 +146,7 @@ $pct_absent     = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 
                 <?php endforeach; ?>
             </tbody>
         </table>
+    <?php else : ?>
+        <p class="description"><?php esc_html_e( 'Nikt jeszcze nie głosował.', 'evoting' ); ?></p>
     <?php endif; ?>
 </div>

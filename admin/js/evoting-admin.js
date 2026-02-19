@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    var MAX_QUESTIONS = 12;
+    var MAX_QUESTIONS = 24;
     var MAX_ANSWERS   = 12;
 
     document.addEventListener('DOMContentLoaded', function () {

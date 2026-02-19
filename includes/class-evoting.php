@@ -21,8 +21,10 @@ class Evoting {
 
     private function define_admin_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-polls-list.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-polls.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-settings.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-roles.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-uninstall.php';
 
         $admin = new Evoting_Admin();
@@ -36,6 +38,9 @@ class Evoting {
 
         $settings = new Evoting_Admin_Settings();
         $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission' );
+
+        $roles = new Evoting_Admin_Roles();
+        $this->loader->add_action( 'admin_init', $roles, 'handle_form_submission' );
 
         $uninstall = new Evoting_Admin_Uninstall();
         $this->loader->add_action( 'admin_init', $uninstall, 'handle_form_submission' );
@@ -51,9 +56,13 @@ class Evoting {
 
     private function define_rest_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'rest-api/class-evoting-rest-controller.php';
+        require_once EVOTING_PLUGIN_DIR . 'rest-api/class-evoting-groups-rest-controller.php';
 
         $rest = new Evoting_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $rest, 'register_routes' );
+
+        $groups_rest = new Evoting_Groups_Rest_Controller();
+        $this->loader->add_action( 'rest_api_init', $groups_rest, 'register_routes' );
     }
 
     private function define_block_hooks(): void {
