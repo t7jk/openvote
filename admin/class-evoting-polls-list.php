@@ -48,6 +48,8 @@ class Evoting_Polls_List extends WP_List_Table {
 
     protected function get_bulk_actions(): array {
         return [
+            'start'  => __( 'Rozpocznij', 'evoting' ),
+            'end'    => __( 'Zakończ', 'evoting' ),
             'delete' => __( 'Usuń', 'evoting' ),
         ];
     }
@@ -65,8 +67,8 @@ class Evoting_Polls_List extends WP_List_Table {
         $labels = [
             ''       => __( 'Wszystkie', 'evoting' ),
             'draft'  => __( 'Szkic', 'evoting' ),
-            'open'   => __( 'Otwarte', 'evoting' ),
-            'closed' => __( 'Zamknięte', 'evoting' ),
+            'open'   => __( 'Rozpoczęte', 'evoting' ),
+            'closed' => __( 'Zakończone', 'evoting' ),
         ];
 
         $base_url = admin_url( 'admin.php?page=evoting' );
@@ -141,19 +143,71 @@ class Evoting_Polls_List extends WP_List_Table {
     protected function column_title( $item ): string {
         $edit_url    = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $item->id );
         $results_url = admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $item->id );
+        $view_url    = admin_url( 'admin.php?page=evoting&action=view&poll_id=' . $item->id );
 
-        $actions = [
-            'edit'    => sprintf(
-                '<a href="%s">%s</a>',
-                esc_url( $edit_url ),
-                esc_html__( 'Edytuj', 'evoting' )
-            ),
-            'results' => sprintf(
+        $actions = [];
+
+        // Wyniki — tylko dla głosowania zakończonego.
+        if ( 'closed' === $item->status ) {
+            $actions['results'] = sprintf(
                 '<a href="%s">%s</a>',
                 esc_url( $results_url ),
                 esc_html__( 'Wyniki', 'evoting' )
-            ),
-            'delete'  => sprintf(
+            );
+        }
+
+        if ( 'draft' === $item->status ) {
+            $actions['edit'] = sprintf(
+                '<a href="%s">%s</a>',
+                esc_url( $edit_url ),
+                esc_html__( 'Edytuj', 'evoting' )
+            );
+        }
+
+        if ( in_array( $item->status, [ 'open', 'closed' ], true ) ) {
+            $actions['view'] = sprintf(
+                '<a href="%s">%s</a>',
+                esc_url( $view_url ),
+                esc_html__( 'Podgląd', 'evoting' )
+            );
+        }
+
+        if ( 'open' === $item->status ) {
+            $actions['end'] = sprintf(
+                '<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
+                esc_url( wp_nonce_url(
+                    admin_url( 'admin.php?page=evoting&action=end&poll_id=' . $item->id ),
+                    'evoting_end_poll_' . $item->id
+                ) ),
+                esc_js( __( 'Zakończyć głosowanie? Przyjmowanie głosów zostanie zatrzymane, data zakończenia ustawiona na dziś. Operacja nieodwracalna.', 'evoting' ) ),
+                esc_html__( 'Zakończ', 'evoting' )
+            );
+        }
+
+        if ( 'draft' === $item->status ) {
+            $actions['start'] = sprintf(
+                '<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
+                esc_url( wp_nonce_url(
+                    admin_url( 'admin.php?page=evoting&action=start&poll_id=' . $item->id ),
+                    'evoting_start_poll_' . $item->id
+                ) ),
+                esc_js( __( 'Uruchomić głosowanie? Data rozpoczęcia zostanie ustawiona na dziś i rozpocznie się zbieranie głosów.', 'evoting' ) ),
+                esc_html__( 'Uruchom', 'evoting' )
+            );
+        }
+
+        $actions['duplicate'] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url( wp_nonce_url(
+                admin_url( 'admin.php?page=evoting&action=duplicate&poll_id=' . $item->id ),
+                'evoting_duplicate_poll_' . $item->id
+            ) ),
+            esc_html__( 'Duplikuj', 'evoting' )
+        );
+
+        // Usuń — niedostępne dla głosowania rozpoczętego.
+        if ( 'open' !== $item->status ) {
+            $actions['delete'] = sprintf(
                 '<a href="%s" onclick="return confirm(\'%s\')" class="submitdelete">%s</a>',
                 esc_url( wp_nonce_url(
                     admin_url( 'admin.php?page=evoting&action=delete&poll_id=' . $item->id ),
@@ -161,12 +215,13 @@ class Evoting_Polls_List extends WP_List_Table {
                 ) ),
                 esc_js( __( 'Czy na pewno chcesz usunąć to głosowanie?', 'evoting' ) ),
                 esc_html__( 'Usuń', 'evoting' )
-            ),
-        ];
+            );
+        }
 
+        $title_link = ( 'draft' === $item->status ) ? $edit_url : $view_url;
         return sprintf(
             '<strong><a class="row-title" href="%s">%s</a></strong>%s',
-            esc_url( $edit_url ),
+            esc_url( $title_link ),
             esc_html( $item->title ),
             $this->row_actions( $actions )
         );
@@ -175,8 +230,8 @@ class Evoting_Polls_List extends WP_List_Table {
     protected function column_status( $item ): string {
         $labels = [
             'draft'  => __( 'Szkic', 'evoting' ),
-            'open'   => __( 'Otwarte', 'evoting' ),
-            'closed' => __( 'Zamknięte', 'evoting' ),
+            'open'   => __( 'Rozpoczęte', 'evoting' ),
+            'closed' => __( 'Zakończone', 'evoting' ),
         ];
         $label = $labels[ $item->status ] ?? $item->status;
         return sprintf(
@@ -207,8 +262,12 @@ class Evoting_Polls_List extends WP_List_Table {
     }
 
     protected function column_date_end( $item ): string {
-        $today = current_time( 'Y-m-d' );
-        $style = ( $item->date_end < $today && 'open' === $item->status )
+        $now = current_time( 'Y-m-d H:i:s' );
+        $end = $item->date_end;
+        if ( strlen( $end ) === 10 ) {
+            $end .= ' 23:59:59';
+        }
+        $style = ( $end < $now && 'open' === $item->status )
             ? ' style="color:#d63638;font-weight:600;"'
             : '';
         return sprintf( '<span%s>%s</span>', $style, esc_html( $item->date_end ) );
@@ -221,7 +280,8 @@ class Evoting_Polls_List extends WP_List_Table {
     // ─── Obsługa bulk actions ─────────────────────────────────────────────
 
     public function process_bulk_action(): void {
-        if ( 'delete' !== $this->current_action() ) {
+        $action = $this->current_action();
+        if ( ! $action ) {
             return;
         }
 
@@ -230,17 +290,63 @@ class Evoting_Polls_List extends WP_List_Table {
             return;
         }
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        $ids = array_map( 'absint', (array) ( $_POST['poll_ids'] ?? [] ) );
+        if ( empty( $ids ) ) {
             return;
         }
 
-        $ids = array_map( 'absint', (array) ( $_POST['poll_ids'] ?? [] ) );
-        foreach ( $ids as $id ) {
-            Evoting_Poll::delete( $id );
+        if ( 'start' === $action ) {
+            if ( ! current_user_can( 'edit_others_posts' ) ) {
+                return;
+            }
+            $now = current_time( 'Y-m-d H:i:s' );
+            $count = 0;
+            foreach ( $ids as $id ) {
+                $poll = Evoting_Poll::get( $id );
+                if ( $poll && 'draft' === $poll->status ) {
+                    $date_end = ( $poll->date_end && $poll->date_end >= $now ) ? $poll->date_end : $now;
+                    Evoting_Poll::update( $id, [
+                        'status'     => 'open',
+                        'date_start' => $now,
+                        'date_end'   => $date_end,
+                    ] );
+                    ++$count;
+                }
+            }
+            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting', 'bulk_started' => $count ], admin_url( 'admin.php' ) ) );
+            exit;
         }
 
-        wp_safe_redirect( add_query_arg( [ 'page' => 'evoting', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) );
-        exit;
+        if ( 'end' === $action ) {
+            if ( ! current_user_can( 'edit_others_posts' ) ) {
+                return;
+            }
+            $now = current_time( 'Y-m-d H:i:s' );
+            $count = 0;
+            foreach ( $ids as $id ) {
+                $poll = Evoting_Poll::get( $id );
+                if ( $poll && 'open' === $poll->status ) {
+                    Evoting_Poll::update( $id, [
+                        'status'   => 'closed',
+                        'date_end' => $now,
+                    ] );
+                    ++$count;
+                }
+            }
+            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting', 'bulk_ended' => $count ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        if ( 'delete' === $action ) {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                return;
+            }
+            foreach ( $ids as $id ) {
+                Evoting_Poll::delete( $id );
+            }
+            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
     }
 
     // ─── Wyświetlenie formularza z nonce ──────────────────────────────────

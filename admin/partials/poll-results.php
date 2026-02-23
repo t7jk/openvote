@@ -15,9 +15,11 @@ $is_anonymous   = 'anonymous' === ( $poll->vote_mode ?? 'public' );
 <div class="wrap">
     <h1><?php printf( esc_html__( 'Wyniki: %s', 'evoting' ), esc_html( $poll->title ) ); ?></h1>
 
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $poll->id ) ); ?>" class="page-title-action">
-        <?php esc_html_e( 'Edytuj głosowanie', 'evoting' ); ?>
-    </a>
+    <?php if ( 'draft' === ( $poll->status ?? '' ) ) : ?>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $poll->id ) ); ?>" class="page-title-action">
+            <?php esc_html_e( 'Edytuj głosowanie', 'evoting' ); ?>
+        </a>
+    <?php endif; ?>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting' ) ); ?>" class="page-title-action">
         <?php esc_html_e( 'Wszystkie głosowania', 'evoting' ); ?>
     </a>

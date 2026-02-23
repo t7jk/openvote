@@ -7,10 +7,15 @@ $editors     = Evoting_Role_Manager::get_poll_editors();
 $all_users   = get_users( [ 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
 $current_uid = get_current_user_id();
 
-// Pobierz grupy do selecta redaktora.
+// Pobierz grupy do selecta lokalnego koordynatora.
 global $wpdb;
 $groups_table = $wpdb->prefix . 'evoting_groups';
 $all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER BY name ASC" );
+
+// Użytkownicy z grupy "Administratorzy", którzy jeszcze nie są administratorami WordPress (do dropdownu).
+$wp_admin_group_users = Evoting_Role_Manager::get_users_in_administrators_group();
+$wp_admin_ids        = array_map( fn( $u ) => (int) $u->ID, $wp_admins );
+$available_wp_admins = array_filter( $wp_admin_group_users, fn( $u ) => ! in_array( (int) $u->ID, $wp_admin_ids, true ) );
 
 // Usuń z listy użytkowników tych, którzy już mają jakąś rolę evoting (dla uniknięcia duplikatów).
 $assigned_ids = array_merge(
@@ -43,31 +48,71 @@ $available_users = array_filter( $all_users, fn( $u ) => ! in_array( (int) $u->I
     <h2><?php esc_html_e( 'Administratorzy WordPress', 'evoting' ); ?>
         <span class="evoting-badge evoting-badge--core"><?php echo esc_html( count( $wp_admins ) . ' / ' . Evoting_Role_Manager::LIMIT_WP_ADMINS ); ?></span>
     </h2>
-    <p class="description"><?php esc_html_e( 'Użytkownicy z rolą WordPress "administrator". Limit: min. 1, maks. 2. Zarządzanie przez panel WordPress.', 'evoting' ); ?></p>
+    <p class="description"><?php esc_html_e( 'Użytkownicy z rolą WordPress "administrator". Limit: min. 1, maks. 2. Dodawanie i usuwanie na tym ekranie — tylko użytkownicy z grupy „Administratorzy”.', 'evoting' ); ?></p>
+    <p class="description"><?php esc_html_e( 'Administratorem WordPress może zostać tylko użytkownik należący do grupy „Administratorzy” (w sekcji Grupy). Użytkownik spoza tej grupy, któremu nadano rolę administratora, utraci ją przy zapisie profilu.', 'evoting' ); ?></p>
+    <?php if ( ! Evoting_Role_Manager::get_administrators_group_id() ) : ?>
+        <div class="notice notice-warning inline"><p><?php esc_html_e( 'Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy, aby móc przypisywać administratorów WordPress.', 'evoting' ); ?></p></div>
+    <?php endif; ?>
 
-    <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:30px;">
+    <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:16px;">
         <thead>
             <tr>
                 <th><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></th>
                 <th><?php esc_html_e( 'E-mail', 'evoting' ); ?></th>
+                <th style="width:100px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if ( empty( $wp_admins ) ) : ?>
-                <tr><td colspan="2"><?php esc_html_e( 'Brak.', 'evoting' ); ?></td></tr>
+                <tr><td colspan="3"><?php esc_html_e( 'Brak.', 'evoting' ); ?></td></tr>
             <?php else : ?>
                 <?php foreach ( $wp_admins as $u ) : ?>
                     <tr>
                         <td><?php echo esc_html( $u->display_name ); ?></td>
                         <td><?php echo esc_html( $u->user_email ); ?></td>
+                        <td>
+                            <?php if ( count( $wp_admins ) > 1 && current_user_can( 'manage_options' ) ) : ?>
+                                <form method="post" action="">
+                                    <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
+                                    <input type="hidden" name="evoting_roles_action" value="remove_wp_admin">
+                                    <input type="hidden" name="target_user_id" value="<?php echo esc_attr( $u->ID ); ?>">
+                                    <button type="submit" class="button button-small button-link-delete"
+                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć rolę Administratora WordPress?', 'evoting' ); ?>');">
+                                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
         </tbody>
     </table>
 
-    <?php // ─── Administratorzy Głosowań ───────────────────────────────────── ?>
-    <h2><?php esc_html_e( 'Administratorzy Głosowań', 'evoting' ); ?>
+    <?php if ( Evoting_Role_Manager::get_administrators_group_id() && count( $wp_admins ) < Evoting_Role_Manager::LIMIT_WP_ADMINS ) : ?>
+        <form method="post" action="" style="margin-bottom:30px;">
+            <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
+            <input type="hidden" name="evoting_roles_action" value="add_wp_admin">
+            <select name="target_user_id" required style="min-width:280px;">
+                <option value=""><?php esc_html_e( '— Wybierz użytkownika z grupy Administratorzy —', 'evoting' ); ?></option>
+                <?php foreach ( $available_wp_admins as $u ) : ?>
+                    <option value="<?php echo esc_attr( $u->ID ); ?>">
+                        <?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="button button-primary" style="margin-left:8px;">
+                <?php esc_html_e( 'Dodaj Administratora WordPress', 'evoting' ); ?>
+            </button>
+        </form>
+    <?php elseif ( count( $wp_admins ) >= Evoting_Role_Manager::LIMIT_WP_ADMINS ) : ?>
+        <p class="description" style="margin-bottom:30px;">
+            <?php esc_html_e( 'Osiągnięto limit Administratorów WordPress.', 'evoting' ); ?>
+        </p>
+    <?php endif; ?>
+
+    <?php // ─── Koordynatorzy ───────────────────────────────────────────────── ?>
+    <h2><?php esc_html_e( 'Koordynator Głosowania Polska', 'evoting' ); ?>
         <span class="evoting-badge evoting-badge--meta"><?php echo esc_html( count( $poll_admins ) . ' / ' . Evoting_Role_Manager::LIMIT_POLL_ADMINS ); ?></span>
     </h2>
 
@@ -119,20 +164,20 @@ $available_users = array_filter( $all_users, fn( $u ) => ! in_array( (int) $u->I
                 <?php endforeach; ?>
             </select>
             <button type="submit" class="button button-primary" style="margin-left:8px;">
-                <?php esc_html_e( 'Dodaj Administratora Głosowań', 'evoting' ); ?>
+                <?php esc_html_e( 'Dodaj Koordynatora', 'evoting' ); ?>
             </button>
         </form>
     <?php else : ?>
         <p class="description" style="margin-bottom:30px;">
-            <?php esc_html_e( 'Osiągnięto limit Administratorów Głosowań.', 'evoting' ); ?>
+            <?php esc_html_e( 'Osiągnięto limit Koordynatorów.', 'evoting' ); ?>
         </p>
     <?php endif; ?>
 
-    <?php // ─── Redaktorzy Głosowań ────────────────────────────────────────── ?>
-    <h2><?php esc_html_e( 'Redaktorzy Głosowań', 'evoting' ); ?>
+    <?php // ─── Lokalni Koordynatorzy Grup ─────────────────────────────────── ?>
+    <h2><?php esc_html_e( 'Lokalni Koordynatorzy Grup', 'evoting' ); ?>
         <span class="evoting-badge evoting-badge--meta"><?php echo esc_html( count( $editors ) ); ?></span>
     </h2>
-    <p class="description"><?php printf( esc_html__( 'Maks. %d redaktorów na grupę.', 'evoting' ), Evoting_Role_Manager::LIMIT_EDITORS_PER_GROUP ); ?></p>
+    <p class="description"><?php printf( esc_html__( 'Maks. %d lokalnych koordynatorów na grupę.', 'evoting' ), Evoting_Role_Manager::LIMIT_EDITORS_PER_GROUP ); ?></p>
 
     <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:16px;">
         <thead>
@@ -219,11 +264,11 @@ $available_users = array_filter( $all_users, fn( $u ) => ! in_array( (int) $u->I
             </table>
             <p>
                 <button type="submit" class="button button-primary">
-                    <?php esc_html_e( 'Dodaj Redaktora Głosowań', 'evoting' ); ?>
+                    <?php esc_html_e( 'Dodaj Lokalnego Koordynatora Grup', 'evoting' ); ?>
                 </button>
             </p>
         </form>
     <?php else : ?>
-        <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Redaktorów.', 'evoting' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Lokalnych Koordynatorów Grup.', 'evoting' ); ?></p>
     <?php endif; ?>
 </div>

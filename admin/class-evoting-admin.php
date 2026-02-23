@@ -28,15 +28,6 @@ class Evoting_Admin {
 
         add_submenu_page(
             'evoting',
-            __( 'Dodaj głosowanie', 'evoting' ),
-            __( 'Dodaj nowe', 'evoting' ),
-            self::CAP,
-            'evoting-new',
-            [ $this, 'render_poll_form_page' ]
-        );
-
-        add_submenu_page(
-            'evoting',
             __( 'Grupy użytkowników', 'evoting' ),
             __( 'Grupy', 'evoting' ),
             self::CAP,
@@ -72,6 +63,83 @@ class Evoting_Admin {
         );
     }
 
+    /**
+     * Przekierowanie ze starego adresu evoting-new na page=evoting&action=new.
+     */
+    public function redirect_evoting_new(): void {
+        if ( isset( $_GET['page'] ) && 'evoting-new' === sanitize_text_field( $_GET['page'] ) ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting&action=new' ) );
+            exit;
+        }
+    }
+
+    /**
+     * Akcje GET (duplikat, zakończ, uruchom, usuń) — wykonywane w admin_init,
+     * zanim cokolwiek zostanie wysłane, żeby przekierowanie działało.
+     */
+    public function handle_evoting_get_actions(): void {
+        if ( ! isset( $_GET['page'] ) || 'evoting' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+
+        $action  = sanitize_text_field( $_GET['action'] ?? '' );
+        $poll_id = isset( $_GET['poll_id'] ) ? absint( $_GET['poll_id'] ) : 0;
+
+        if ( ! $poll_id || ! in_array( $action, [ 'delete', 'end', 'start', 'duplicate' ], true ) ) {
+            return;
+        }
+
+        if ( 'delete' === $action ) {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                return;
+            }
+            check_admin_referer( 'evoting_delete_poll_' . $poll_id );
+            Evoting_Poll::delete( $poll_id );
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting&deleted=1' ) );
+            exit;
+        }
+
+        if ( 'end' === $action && current_user_can( self::CAP ) ) {
+            check_admin_referer( 'evoting_end_poll_' . $poll_id );
+            $poll = Evoting_Poll::get( $poll_id );
+            if ( $poll && 'open' === $poll->status ) {
+                Evoting_Poll::update( $poll_id, [
+                    'status'   => 'closed',
+                    'date_end' => current_time( 'Y-m-d H:i:s' ),
+                ] );
+                wp_safe_redirect( admin_url( 'admin.php?page=evoting&poll_ended=1' ) );
+                exit;
+            }
+        }
+
+        if ( 'start' === $action && current_user_can( self::CAP ) ) {
+            check_admin_referer( 'evoting_start_poll_' . $poll_id );
+            $poll = Evoting_Poll::get( $poll_id );
+            if ( $poll && 'draft' === $poll->status ) {
+                $now      = current_time( 'Y-m-d H:i:s' );
+                $date_end = ( $poll->date_end && $poll->date_end >= $now ) ? $poll->date_end : $now;
+                Evoting_Poll::update( $poll_id, [
+                    'status'     => 'open',
+                    'date_start' => $now,
+                    'date_end'   => $date_end,
+                ] );
+                wp_safe_redirect( add_query_arg( 'started', 1, admin_url( 'admin.php?page=evoting' ) ) );
+                exit;
+            }
+        }
+
+        if ( 'duplicate' === $action && current_user_can( self::CAP ) ) {
+            check_admin_referer( 'evoting_duplicate_poll_' . $poll_id );
+            $new_id = Evoting_Poll::duplicate( $poll_id );
+            if ( false !== $new_id ) {
+                wp_safe_redirect( add_query_arg( [ 'duplicated' => 1, 'edit_poll_id' => $new_id ], admin_url( 'admin.php?page=evoting' ) ) );
+                exit;
+            }
+            wp_safe_redirect( add_query_arg( 'duplicate_error', 1, admin_url( 'admin.php?page=evoting' ) ) );
+            exit;
+        }
+    }
+
     public function render_polls_page(): void {
         if ( ! current_user_can( self::CAP ) ) {
             wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
@@ -80,9 +148,28 @@ class Evoting_Admin {
         $action  = sanitize_text_field( $_GET['action'] ?? '' );
         $poll_id = isset( $_GET['poll_id'] ) ? absint( $_GET['poll_id'] ) : 0;
 
+        if ( 'new' === $action ) {
+            $poll = null;
+            include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
+            return;
+        }
+
         if ( 'edit' === $action && $poll_id ) {
             $poll = Evoting_Poll::get( $poll_id );
             if ( $poll ) {
+                if ( 'draft' !== $poll->status ) {
+                    wp_safe_redirect( add_query_arg( 'edit_locked', 1, admin_url( 'admin.php?page=evoting' ) ) );
+                    exit;
+                }
+                include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
+                return;
+            }
+        }
+
+        if ( 'view' === $action && $poll_id ) {
+            $poll = Evoting_Poll::get( $poll_id );
+            if ( $poll && in_array( $poll->status, [ 'open', 'closed' ], true ) ) {
+                $is_read_only = true;
                 include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
                 return;
             }
@@ -98,13 +185,7 @@ class Evoting_Admin {
             }
         }
 
-        // Single-poll delete via GET (nonce from wp_nonce_url in row actions).
-        if ( 'delete' === $action && $poll_id && current_user_can( 'manage_options' ) ) {
-            check_admin_referer( 'evoting_delete_poll_' . $poll_id );
-            Evoting_Poll::delete( $poll_id );
-            wp_safe_redirect( admin_url( 'admin.php?page=evoting&deleted=1' ) );
-            exit;
-        }
+        // Akcje GET (delete, end, start, duplicate) są obsługiwane w admin_init — handle_evoting_get_actions().
 
         // WP_List_Table — polls listing.
         $list_table = new Evoting_Polls_List();
@@ -113,7 +194,7 @@ class Evoting_Admin {
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Głosowania', 'evoting' ); ?></h1>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-new' ) ); ?>" class="page-title-action">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=new' ) ); ?>" class="page-title-action">
                 <?php esc_html_e( 'Dodaj nowe', 'evoting' ); ?>
             </a>
 
@@ -124,9 +205,68 @@ class Evoting_Admin {
                 </p></div>
             <?php endif; ?>
 
+            <?php if ( isset( $_GET['started'] ) ) : ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php esc_html_e( 'Głosowanie zostało uruchomione.', 'evoting' ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['bulk_started'] ) ) : ?>
+                <?php $count = absint( $_GET['bulk_started'] ); ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php echo esc_html( sprintf( _n( 'Rozpoczęto %d głosowanie.', 'Rozpoczęto %d głosowań.', $count, 'evoting' ), $count ) ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['bulk_ended'] ) ) : ?>
+                <?php $count = absint( $_GET['bulk_ended'] ); ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php echo esc_html( sprintf( _n( 'Zakończono %d głosowanie.', 'Zakończono %d głosowań.', $count, 'evoting' ), $count ) ); ?>
+                </p></div>
+            <?php endif; ?>
+
             <?php if ( isset( $_GET['deleted'] ) ) : ?>
                 <div class="notice notice-success is-dismissible"><p>
                     <?php esc_html_e( 'Głosowanie zostało usunięte.', 'evoting' ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['updated'] ) ) : ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php esc_html_e( 'Zmiany zostały zapisane.', 'evoting' ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['poll_ended'] ) ) : ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php esc_html_e( 'Głosowanie zostało zakończone.', 'evoting' ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['edit_locked'] ) ) : ?>
+                <div class="notice notice-warning is-dismissible"><p>
+                    <?php esc_html_e( 'Nie można edytować głosowania, które zostało rozpoczęte lub zakończone. Tylko szkice są edytowalne.', 'evoting' ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['duplicated'] ) ) : ?>
+                <?php
+                $edit_poll_id = isset( $_GET['edit_poll_id'] ) ? absint( $_GET['edit_poll_id'] ) : 0;
+                $edit_url     = $edit_poll_id ? admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $edit_poll_id . '&duplicated=1' ) : '';
+                ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php esc_html_e( 'Utworzono kopię głosowania. Znajdziesz ją na liście jako szkic.', 'evoting' ); ?>
+                    <?php if ( $edit_url ) : ?>
+                        <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-primary" style="margin-left:10px;">
+                            <?php esc_html_e( 'Edytuj skopiowane głosowanie', 'evoting' ); ?>
+                        </a>
+                    <?php endif; ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['duplicate_error'] ) ) : ?>
+                <div class="notice notice-error is-dismissible"><p>
+                    <?php esc_html_e( 'Nie udało się skopiować głosowania. Upewnij się, że głosowanie ma pytania.', 'evoting' ); ?>
                 </p></div>
             <?php endif; ?>
 

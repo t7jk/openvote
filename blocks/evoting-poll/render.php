@@ -34,8 +34,12 @@ if ( $is_logged && $is_active && ! $has_voted ) {
     }
 }
 
-// End-of-day timestamp for countdown (poll ends at 23:59:59 on date_end).
-$end_dt = new DateTimeImmutable( $poll->date_end . ' 23:59:59', wp_timezone() );
+// End timestamp for countdown (date_end is now full datetime).
+$end_raw = $poll->date_end;
+if ( strlen( $end_raw ) === 10 ) {
+    $end_raw .= ' 23:59:59';
+}
+$end_dt = new DateTimeImmutable( $end_raw, wp_timezone() );
 $end_ts = $end_dt->getTimestamp();
 ?>
 <div <?php echo get_block_wrapper_attributes( [ 'class' => 'evoting-poll-block' ] ); ?>

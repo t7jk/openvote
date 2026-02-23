@@ -29,6 +29,8 @@ class Evoting {
 
         $admin = new Evoting_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_evoting_get_actions', 5 );
+        $this->loader->add_action( 'admin_init', $admin, 'redirect_evoting_new' );
         $this->loader->add_action( 'admin_notices', $admin, 'render_brand_header' );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_scripts' );

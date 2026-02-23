@@ -30,6 +30,14 @@ class Evoting_Admin_Roles {
         $current_user_id = get_current_user_id();
 
         switch ( $action ) {
+            case 'add_wp_admin':
+                $result = Evoting_Role_Manager::add_wp_admin( $user_id );
+                break;
+
+            case 'remove_wp_admin':
+                $result = Evoting_Role_Manager::remove_wp_admin( $user_id, $current_user_id );
+                break;
+
             case 'add_poll_admin':
                 $result = Evoting_Role_Manager::add_poll_admin( $user_id );
                 break;

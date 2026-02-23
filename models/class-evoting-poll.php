@@ -330,6 +330,59 @@ class Evoting_Poll {
     }
 
     /**
+     * Duplicate a poll: new poll with status draft, date_start = today, date_end = original date_end.
+     * Questions and answers are copied. No votes.
+     *
+     * @return int|false New poll ID or false on failure.
+     */
+    public static function duplicate( int $poll_id ): int|false {
+        $poll = self::get( $poll_id );
+        if ( ! $poll || empty( $poll->questions ) ) {
+            return false;
+        }
+
+        $today_date = current_time( 'Y-m-d' );
+        $today_start = $today_date . ' 00:00:00';
+
+        $questions = [];
+        foreach ( $poll->questions as $q ) {
+            $answers = [];
+            if ( ! empty( $q->answers ) ) {
+                foreach ( $q->answers as $a ) {
+                    $answers[] = $a->body;
+                }
+            }
+            if ( count( $answers ) < 3 ) {
+                continue;
+            }
+            $questions[] = [
+                'text'    => $q->body,
+                'answers' => $answers,
+            ];
+        }
+
+        if ( empty( $questions ) ) {
+            return false;
+        }
+
+        $data = [
+            'title'         => $poll->title,
+            'description'   => $poll->description ?? '',
+            'status'        => 'draft',
+            'date_start'    => $today_start,
+            'date_end'      => $poll->date_end ?: ( $today_date . ' 23:59:59' ),
+            'join_mode'     => $poll->join_mode ?? 'open',
+            'vote_mode'     => $poll->vote_mode ?? 'public',
+            'target_groups' => $poll->target_groups ?? '',
+            'notify_start'  => false,
+            'notify_end'    => false,
+            'questions'     => $questions,
+        ];
+
+        return self::create( $data );
+    }
+
+    /**
      * Delete a poll and all related data.
      */
     public static function delete( int $poll_id ): bool {
@@ -363,20 +416,32 @@ class Evoting_Poll {
             return false;
         }
 
-        $today = current_time( 'Y-m-d' );
+        $now = current_time( 'Y-m-d H:i:s' );
+        $start = $poll->date_start;
+        $end   = $poll->date_end;
+        if ( strlen( $start ) === 10 ) {
+            $start .= ' 00:00:00';
+        }
+        if ( strlen( $end ) === 10 ) {
+            $end .= ' 23:59:59';
+        }
 
-        return $today >= $poll->date_start && $today <= $poll->date_end;
+        return $now >= $start && $now <= $end;
     }
 
     /**
      * Check if poll has ended.
      */
     public static function is_ended( object $poll ): bool {
+        $end = $poll->date_end;
+        if ( strlen( $end ) === 10 ) {
+            $end .= ' 23:59:59';
+        }
         if ( 'closed' === $poll->status ) {
             return true;
         }
 
-        return current_time( 'Y-m-d' ) > $poll->date_end;
+        return current_time( 'Y-m-d H:i:s' ) > $end;
     }
 
     /**

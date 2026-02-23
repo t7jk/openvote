@@ -5,7 +5,7 @@ $polls = Evoting_Poll::get_all();
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Głosowania', 'evoting' ); ?></h1>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-new' ) ); ?>" class="page-title-action">
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=new' ) ); ?>" class="page-title-action">
         <?php esc_html_e( 'Dodaj nowe', 'evoting' ); ?>
     </a>
     <hr class="wp-header-end">
@@ -48,8 +48,8 @@ $polls = Evoting_Poll::get_all();
                     $questions     = Evoting_Poll::get_questions( (int) $poll->id );
                     $status_labels = [
                         'draft'  => __( 'Szkic', 'evoting' ),
-                        'open'   => __( 'Otwarte', 'evoting' ),
-                        'closed' => __( 'Zamknięte', 'evoting' ),
+                        'open'   => __( 'Rozpoczęte', 'evoting' ),
+                        'closed' => __( 'Zakończone', 'evoting' ),
                     ];
                     $mode_label = 'anonymous' === ( $poll->vote_mode ?? 'public' )
                         ? __( '🔒 Anonim.', 'evoting' )

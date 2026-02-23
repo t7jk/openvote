@@ -15,7 +15,7 @@ class Evoting_Eligibility {
      *
      * Kolejność sprawdzeń:
      *   1. Głosowanie istnieje i ma status 'open'
-     *   2. Dzisiejsza data między date_start a date_end
+     *   2. Bieżący moment (data i godzina) między date_start a date_end
      *   3. Użytkownik jest zalogowany
      *   4. Profil kompletny: Imię, Nazwisko, Nickname, E-mail, Miasto
      *   5. Użytkownik należy do grupy docelowej (lub target_groups = null)
@@ -43,25 +43,27 @@ class Evoting_Eligibility {
             return self::no( $labels[ $poll->status ] ?? __( 'Głosowanie nie jest aktywne.', 'evoting' ) );
         }
 
-        // ── 2. Data mieści się między date_start a date_end ────────────────
-        $today = current_time( 'Y-m-d' );
+        // ── 2. Bieżący moment mieści się między date_start a date_end ───────
+        $now = current_time( 'Y-m-d H:i:s' );
+        $start = self::normalize_poll_datetime( $poll->date_start, true );
+        $end   = self::normalize_poll_datetime( $poll->date_end, false );
 
-        if ( $today < $poll->date_start ) {
+        if ( $now < $start ) {
             return self::no(
                 sprintf(
-                    /* translators: %s: data rozpoczęcia */
+                    /* translators: %s: data i godzina rozpoczęcia */
                     __( 'Głosowanie rozpocznie się %s.', 'evoting' ),
-                    $poll->date_start
+                    $start
                 )
             );
         }
 
-        if ( $today > $poll->date_end ) {
+        if ( $now > $end ) {
             return self::no(
                 sprintf(
-                    /* translators: %s: data zakończenia */
+                    /* translators: %s: data i godzina zakończenia */
                     __( 'Głosowanie zakończyło się %s.', 'evoting' ),
-                    $poll->date_end
+                    $end
                 )
             );
         }
@@ -142,6 +144,25 @@ class Evoting_Eligibility {
      */
     private static function no( string $reason ): array {
         return [ 'eligible' => false, 'reason' => $reason ];
+    }
+
+    /**
+     * Normalizes poll date/datetime from DB to Y-m-d H:i:s for comparison.
+     * Legacy DATE-only values: start → 00:00:00, end → 23:59:59.
+     *
+     * @param string $value date_start or date_end from DB.
+     * @param bool   $is_start true for date_start (default time 00:00:00).
+     * @return string Y-m-d H:i:s
+     */
+    private static function normalize_poll_datetime( string $value, bool $is_start ): string {
+        $value = trim( $value );
+        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+            return $value . ( $is_start ? ' 00:00:00' : ' 23:59:59' );
+        }
+        if ( preg_match( '/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}(?::\d{2})?$/', $value ) ) {
+            return strlen( $value ) === 16 ? $value . ':00' : $value;
+        }
+        return $value;
     }
 
     /**

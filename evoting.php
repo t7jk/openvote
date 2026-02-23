@@ -44,3 +44,7 @@ function evoting_run(): void {
 }
 
 evoting_run();
+
+// Administrator WordPress tylko z grupy "Administratorzy".
+add_action( 'profile_update', [ 'Evoting_Role_Manager', 'enforce_wp_admin_group' ], 99, 2 );
+add_action( 'user_register', [ 'Evoting_Role_Manager', 'enforce_wp_admin_group_on_register' ], 10, 1 );

@@ -27,12 +27,29 @@ class Evoting_Admin_Polls {
             exit;
         }
 
+        if ( $poll_id ) {
+            $existing = Evoting_Poll::get( $poll_id );
+            if ( $existing && 'draft' !== $existing->status ) {
+                set_transient( 'evoting_admin_error', __( 'Nie można edytować głosowania, które zostało rozpoczęte lub zakończone.', 'evoting' ), 30 );
+                wp_safe_redirect( add_query_arg( 'edit_locked', 1, admin_url( 'admin.php?page=evoting' ) ) );
+                exit;
+            }
+        }
+
         $data = $this->sanitize_form_data();
 
         if ( is_wp_error( $data ) ) {
             set_transient( 'evoting_admin_error', $data->get_error_message(), 30 );
             wp_safe_redirect( wp_get_referer() ?: admin_url( 'admin.php?page=evoting' ) );
             exit;
+        }
+
+        // Status wyłącznie sterowany przez program: nowe/duplikat = draft, Uruchom = open, Zakończ = closed.
+        if ( $poll_id ) {
+            $existing   = Evoting_Poll::get( $poll_id );
+            $data['status'] = $existing ? $existing->status : 'draft';
+        } else {
+            $data['status'] = 'draft';
         }
 
         $was_open = false;
@@ -43,12 +60,12 @@ class Evoting_Admin_Polls {
 
         if ( $poll_id ) {
             Evoting_Poll::update( $poll_id, $data );
-            $redirect = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $poll_id . '&updated=1' );
+            $redirect = add_query_arg( 'updated', 1, admin_url( 'admin.php?page=evoting' ) );
         } else {
             $new_id = Evoting_Poll::create( $data );
             if ( false === $new_id ) {
                 set_transient( 'evoting_admin_error', __( 'Błąd zapisu głosowania.', 'evoting' ), 30 );
-                wp_safe_redirect( admin_url( 'admin.php?page=evoting-new' ) );
+                wp_safe_redirect( admin_url( 'admin.php?page=evoting&action=new' ) );
                 exit;
             }
             $poll_id  = $new_id;
@@ -76,15 +93,18 @@ class Evoting_Admin_Polls {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'evoting' ) );
         }
 
-        $date_start = sanitize_text_field( $_POST['date_start'] ?? '' );
-        $date_end   = sanitize_text_field( $_POST['date_end'] ?? '' );
+        $date_start_raw = sanitize_text_field( $_POST['date_start'] ?? '' );
+        $date_end_raw   = sanitize_text_field( $_POST['date_end'] ?? '' );
 
-        if ( '' === $date_start || '' === $date_end ) {
-            return new \WP_Error( 'missing_dates', __( 'Daty rozpoczęcia i zakończenia są wymagane.', 'evoting' ) );
+        if ( '' === $date_start_raw || '' === $date_end_raw ) {
+            return new \WP_Error( 'missing_dates', __( 'Data i godzina rozpoczęcia oraz zakończenia są wymagane.', 'evoting' ) );
         }
 
-        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_start ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_end ) ) {
-            return new \WP_Error( 'invalid_date_format', __( 'Format daty: RRRR-MM-DD.', 'evoting' ) );
+        $date_start = self::normalize_datetime_for_db( $date_start_raw );
+        $date_end   = self::normalize_datetime_for_db( $date_end_raw );
+
+        if ( ! $date_start || ! $date_end ) {
+            return new \WP_Error( 'invalid_date_format', __( 'Format: data (RRRR-MM-DD) i godzina (GG:MM).', 'evoting' ) );
         }
 
         if ( $date_end < $date_start ) {
@@ -153,7 +173,6 @@ class Evoting_Admin_Polls {
         return [
             'title'         => $title,
             'description'   => sanitize_textarea_field( $_POST['poll_description'] ?? '' ),
-            'status'        => sanitize_text_field( $_POST['poll_status'] ?? 'draft' ),
             'date_start'    => $date_start,
             'date_end'      => $date_end,
             'join_mode'     => $join_mode,
@@ -163,6 +182,46 @@ class Evoting_Admin_Polls {
             'notify_end'    => ! empty( $_POST['notify_end'] ),
             'questions'     => $questions,
         ];
+    }
+
+    /**
+     * Normalizes datetime from form (YYYY-MM-DD, YYYY-MM-DDTHH:mm, or Y-m-d H:i:s) to DB format Y-m-d H:i:s.
+     *
+     * @param string $raw Sanitized POST value.
+     * @return string|false DB datetime 'Y-m-d H:i:s' or false if invalid.
+     */
+    private static function normalize_datetime_for_db( string $raw ): string|false {
+        $raw = trim( $raw );
+        if ( '' === $raw ) {
+            return false;
+        }
+        // datetime-local: YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
+        if ( preg_match( '/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $raw, $m ) ) {
+            $d = $m[1];
+            $h = (int) $m[2];
+            $i = (int) $m[3];
+            $s = isset( $m[4] ) ? (int) $m[4] : 0;
+            if ( $h < 0 || $h > 23 || $i < 0 || $i > 59 || $s < 0 || $s > 59 ) {
+                return false;
+            }
+            return sprintf( '%s %02d:%02d:%02d', $d, $h, $i, $s );
+        }
+        // date only: YYYY-MM-DD
+        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw ) ) {
+            return $raw . ' 00:00:00';
+        }
+        // already Y-m-d H:i or Y-m-d H:i:s
+        if ( preg_match( '/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $raw, $m ) ) {
+            $d = $m[1];
+            $h = (int) $m[2];
+            $i = (int) $m[3];
+            $s = isset( $m[4] ) ? (int) $m[4] : 0;
+            if ( $h < 0 || $h > 23 || $i < 0 || $i > 59 || $s < 0 || $s > 59 ) {
+                return false;
+            }
+            return sprintf( '%s %02d:%02d:%02d', $d, $h, $i, $s );
+        }
+        return false;
     }
 
     private function send_notifications( int $poll_id, string $title ): void {

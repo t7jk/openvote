@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Activator {
 
-    const DB_VERSION = '3.0.0';
+    const DB_VERSION = '3.1.0';
 
     public static function activate(): void {
         self::create_tables();
@@ -37,8 +37,8 @@ class Evoting_Activator {
             target_groups TEXT,
             notify_start  TINYINT(1) NOT NULL DEFAULT 0,
             notify_end    TINYINT(1) NOT NULL DEFAULT 0,
-            date_start    DATE NOT NULL,
-            date_end      DATE NOT NULL,
+            date_start    DATETIME NOT NULL,
+            date_end      DATETIME NOT NULL,
             created_by    BIGINT UNSIGNED NOT NULL,
             created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
@@ -189,6 +189,18 @@ class Evoting_Activator {
             }
             if ( in_array( 'answer_id', $idx_names, true ) ) {
                 $wpdb->query( "ALTER TABLE {$votes} DROP INDEX answer_id" );
+            }
+        }
+
+        // ── 3.0.0 → 3.1.0 : date_start / date_end DATE → DATETIME (add time) ─
+        if ( version_compare( $installed, '3.1.0', '<' ) ) {
+            $polls = $wpdb->prefix . 'evoting_polls';
+            $cols  = $wpdb->get_col( "SHOW COLUMNS FROM {$polls}" );
+            if ( in_array( 'date_start', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN date_start DATETIME NOT NULL" );
+            }
+            if ( in_array( 'date_end', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN date_end DATETIME NOT NULL" );
             }
         }
     }

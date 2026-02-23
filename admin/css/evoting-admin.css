@@ -360,3 +360,11 @@
     color: #d63638;
     font-weight: 600;
 }
+
+/* ── Podgląd głosowania: pola tylko do odczytu ── */
+.evoting-form-readonly input:disabled,
+.evoting-form-readonly textarea:disabled,
+.evoting-form-readonly select:disabled {
+    background-color: #f0f0f1;
+    cursor: default;
+}

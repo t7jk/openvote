@@ -10,8 +10,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * Limity:
  *   Administrator WordPress : min 1, maks. 2  (rola WP 'administrator')
- *   Administrator Głosowań  : maks. 3          (evoting_role = poll_admin)
- *   Redaktor Głosowań       : maks. 3 na grupę (evoting_role = poll_editor)
+ *   Koordynator             : maks. 3          (evoting_role = poll_admin)
+ *   Lokalny Koordynator Grup: maks. 3 na grupę (evoting_role = poll_editor)
+ *
+ * Administrator WordPress: tylko użytkownicy z grupy "Administratorzy" (wp_evoting_groups).
  */
 class Evoting_Role_Manager {
 
@@ -20,6 +22,9 @@ class Evoting_Role_Manager {
 
     const META_ROLE   = 'evoting_role';
     const META_GROUPS = 'evoting_groups';
+
+    /** Nazwa grupy, której członkowie mogą być administratorami WordPress. */
+    const WP_ADMIN_GROUP_NAME = 'Administratorzy';
 
     const LIMIT_WP_ADMINS   = 2;
     const LIMIT_POLL_ADMINS = 3;
@@ -36,7 +41,7 @@ class Evoting_Role_Manager {
     }
 
     /**
-     * Pobierz listę ID grup danego redaktora.
+     * Pobierz listę ID grup danego lokalnego koordynatora grup.
      *
      * @return int[]
      */
@@ -50,16 +55,181 @@ class Evoting_Role_Manager {
     }
 
     /**
+     * ID grupy "Administratorzy" (tylko jej członkowie mogą być administratorami WP).
+     *
+     * @return int|null
+     */
+    public static function get_administrators_group_id(): ?int {
+        global $wpdb;
+        $table = $wpdb->prefix . 'evoting_groups';
+        $name  = self::WP_ADMIN_GROUP_NAME;
+        $id    = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$table} WHERE name = %s LIMIT 1",
+            $name
+        ) );
+        return $id ? (int) $id : null;
+    }
+
+    /**
+     * Czy użytkownik należy do grupy "Administratorzy"?
+     */
+    public static function is_user_in_administrators_group( int $user_id ): bool {
+        $group_id = self::get_administrators_group_id();
+        if ( ! $group_id ) {
+            return false;
+        }
+        global $wpdb;
+        $gm_table = $wpdb->prefix . 'evoting_group_members';
+        $exists   = $wpdb->get_var( $wpdb->prepare(
+            "SELECT 1 FROM {$gm_table} WHERE group_id = %d AND user_id = %d LIMIT 1",
+            $group_id,
+            $user_id
+        ) );
+        return (bool) $exists;
+    }
+
+    /**
+     * Pobierz użytkowników należących do grupy "Administratorzy".
+     *
+     * @return \WP_User[]
+     */
+    public static function get_users_in_administrators_group(): array {
+        $group_id = self::get_administrators_group_id();
+        if ( ! $group_id ) {
+            return [];
+        }
+        global $wpdb;
+        $gm_table = $wpdb->prefix . 'evoting_group_members';
+        $ids      = $wpdb->get_col( $wpdb->prepare(
+            "SELECT user_id FROM {$gm_table} WHERE group_id = %d ORDER BY user_id ASC",
+            $group_id
+        ) );
+        if ( empty( $ids ) ) {
+            return [];
+        }
+        return get_users( [
+            'include' => array_map( 'absint', $ids ),
+            'orderby' => 'display_name',
+            'order'   => 'ASC',
+        ] );
+    }
+
+    /**
      * Pobierz wszystkich administratorów WordPress.
      *
-     * @return WP_User[]
+     * @return \WP_User[]
      */
     public static function get_wp_admins(): array {
         return get_users( [ 'role' => 'administrator' ] );
     }
 
     /**
-     * Pobierz wszystkich Administratorów Głosowań.
+     * Dodaj użytkownikowi rolę WordPress "administrator".
+     * Tylko użytkownicy z grupy "Administratorzy", limit 2.
+     *
+     * @return true|\WP_Error
+     */
+    public static function add_wp_admin( int $user_id ): true|\WP_Error {
+        $group_id = self::get_administrators_group_id();
+        if ( ! $group_id ) {
+            return new \WP_Error( 'no_group', __( 'Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy.', 'evoting' ) );
+        }
+        if ( ! self::is_user_in_administrators_group( $user_id ) ) {
+            return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z grupy „Administratorzy” mogą zostać administratorami WordPress.', 'evoting' ) );
+        }
+        $current = self::get_wp_admins();
+        if ( count( $current ) >= self::LIMIT_WP_ADMINS ) {
+            $names = implode( ', ', array_map( fn( $u ) => $u->display_name, $current ) );
+            return new \WP_Error(
+                'limit_reached',
+                sprintf(
+                    /* translators: 1: limit, 2: names */
+                    __( 'Limit Administratorów WordPress (%1$d) osiągnięty. Zajmują: %2$s.', 'evoting' ),
+                    self::LIMIT_WP_ADMINS,
+                    $names
+                )
+            );
+        }
+        $user = get_userdata( $user_id );
+        if ( ! $user ) {
+            return new \WP_Error( 'invalid_user', __( 'Nieprawidłowy użytkownik.', 'evoting' ) );
+        }
+        $user->set_role( 'administrator' );
+        return true;
+    }
+
+    /**
+     * Usuń użytkownikowi rolę WordPress "administrator".
+     * Nie można usunąć ostatniego administratora.
+     *
+     * @return true|\WP_Error
+     */
+    public static function remove_wp_admin( int $user_id, int $remover_id ): true|\WP_Error {
+        $admins = self::get_wp_admins();
+        if ( count( $admins ) <= 1 ) {
+            return new \WP_Error( 'last_admin', __( 'Nie można usunąć ostatniego Administratora WordPress.', 'evoting' ) );
+        }
+        $target = get_userdata( $user_id );
+        if ( ! $target || ! in_array( 'administrator', (array) $target->roles, true ) ) {
+            return new \WP_Error( 'not_admin', __( 'Ten użytkownik nie jest administratorem WordPress.', 'evoting' ) );
+        }
+        $remover = get_userdata( $remover_id );
+        if ( ! $remover || ! current_user_can( 'manage_options' ) ) {
+            return new \WP_Error( 'cannot_remove', __( 'Nie masz uprawnień do usunięcia tej roli.', 'evoting' ) );
+        }
+        $target->set_role( get_option( 'default_role', 'subscriber' ) );
+        return true;
+    }
+
+    /**
+     * Egzekwowanie: tylko użytkownicy z grupy "Administratorzy" mogą mieć rolę administrator.
+     * Wywołane po profile_update — jeśli użytkownik ma rolę administrator a nie jest w grupie, rola jest cofana.
+     *
+     * @param int      $user_id       ID użytkownika.
+     * @param \WP_User $old_user_data Dane przed aktualizacją.
+     */
+    public static function enforce_wp_admin_group( int $user_id, $old_user_data ): void {
+        if ( ! self::get_administrators_group_id() ) {
+            return;
+        }
+        $user = get_userdata( $user_id );
+        if ( ! $user || ! in_array( 'administrator', (array) $user->roles, true ) ) {
+            return;
+        }
+        if ( self::is_user_in_administrators_group( $user_id ) ) {
+            return;
+        }
+        $previous_role = ! empty( $old_user_data->roles ) && is_array( $old_user_data->roles )
+            ? (string) reset( $old_user_data->roles )
+            : get_option( 'default_role', 'subscriber' );
+        if ( 'administrator' === $previous_role ) {
+            $previous_role = 'subscriber';
+        }
+        $user->set_role( $previous_role );
+        set_transient( 'evoting_roles_error', __( 'Administratorem WordPress może zostać tylko użytkownik z grupy „Administratorzy”. Rola została cofnięta.', 'evoting' ), 30 );
+    }
+
+    /**
+     * Egzekwowanie przy rejestracji: jeśli nowy użytkownik dostał rolę administrator, a nie jest w grupie — ustaw rolę domyślną.
+     *
+     * @param int $user_id ID nowego użytkownika.
+     */
+    public static function enforce_wp_admin_group_on_register( int $user_id ): void {
+        if ( ! self::get_administrators_group_id() ) {
+            return;
+        }
+        $user = get_userdata( $user_id );
+        if ( ! $user || ! in_array( 'administrator', (array) $user->roles, true ) ) {
+            return;
+        }
+        if ( self::is_user_in_administrators_group( $user_id ) ) {
+            return;
+        }
+        $user->set_role( get_option( 'default_role', 'subscriber' ) );
+    }
+
+    /**
+     * Pobierz wszystkich Koordynatorów.
      *
      * @return WP_User[]
      */
@@ -71,7 +241,7 @@ class Evoting_Role_Manager {
     }
 
     /**
-     * Pobierz wszystkich Redaktorów Głosowań.
+     * Pobierz wszystkich Lokalnych Koordynatorów Grup.
      *
      * @return WP_User[]
      */
@@ -83,7 +253,7 @@ class Evoting_Role_Manager {
     }
 
     /**
-     * Ile redaktorów jest przypisanych do danej grupy?
+     * Ile lokalnych koordynatorów jest przypisanych do danej grupy?
      */
     public static function count_editors_in_group( int $group_id ): int {
         $editors = self::get_poll_editors();
@@ -99,7 +269,7 @@ class Evoting_Role_Manager {
     // ─── Nadawanie ról ───────────────────────────────────────────────────────
 
     /**
-     * Nadaj rolę Administratora Głosowań.
+     * Nadaj rolę Koordynatora.
      *
      * @return true|\WP_Error
      */
@@ -112,7 +282,7 @@ class Evoting_Role_Manager {
                 'limit_reached',
                 sprintf(
                     /* translators: 1: limit, 2: names */
-                    __( 'Limit Administratorów Głosowań (%1$d) osiągnięty. Zajmują: %2$s.', 'evoting' ),
+                    __( 'Limit Koordynatorów (%1$d) osiągnięty. Zajmują: %2$s.', 'evoting' ),
                     self::LIMIT_POLL_ADMINS,
                     $names
                 )
@@ -126,14 +296,14 @@ class Evoting_Role_Manager {
     }
 
     /**
-     * Nadaj rolę Redaktora Głosowań z przypisaniem do grup.
+     * Nadaj rolę Lokalnego Koordynatora Grup z przypisaniem do grup.
      *
      * @param int[] $group_ids
      * @return true|\WP_Error
      */
     public static function add_poll_editor( int $user_id, array $group_ids ): true|\WP_Error {
         if ( empty( $group_ids ) ) {
-            return new \WP_Error( 'no_groups', __( 'Redaktor musi mieć przypisaną co najmniej jedną grupę.', 'evoting' ) );
+            return new \WP_Error( 'no_groups', __( 'Lokalny Koordynator Grup musi mieć przypisaną co najmniej jedną grupę.', 'evoting' ) );
         }
 
         // Sprawdź limit per grupa.
@@ -141,7 +311,7 @@ class Evoting_Role_Manager {
             $group_id = absint( $group_id );
             $count    = self::count_editors_in_group( $group_id );
 
-            // Nie licz bieżącego użytkownika jeśli już jest redaktorem w tej grupie.
+            // Nie licz bieżącego użytkownika jeśli już jest lokalnym koordynatorem w tej grupie.
             if ( in_array( $group_id, self::get_user_groups( $user_id ), true ) ) {
                 continue;
             }
@@ -157,7 +327,7 @@ class Evoting_Role_Manager {
                     'limit_reached',
                     sprintf(
                         /* translators: 1: limit, 2: group ID, 3: names */
-                        __( 'Limit Redaktorów (%1$d) dla grupy #%2$d osiągnięty. Zajmują: %3$s.', 'evoting' ),
+                        __( 'Limit Lokalnych Koordynatorów (%1$d) dla grupy #%2$d osiągnięty. Zajmują: %3$s.', 'evoting' ),
                         self::LIMIT_EDITORS_PER_GROUP,
                         $group_id,
                         $names
@@ -198,7 +368,7 @@ class Evoting_Role_Manager {
     /**
      * Sprawdź czy remover może usunąć rolę od target.
      * - Admin WP może usunąć każdego.
-     * - Admin Głosowań może usunąć Redaktora i innego Admina Głosowań.
+     * - Koordynator może usunąć Lokalnego Koordynatora Grup i innego Koordynatora.
      * - Nie można usunąć ostatniego Administratora WordPress.
      */
     public static function can_remove( int $remover_id, int $target_id ): bool {
@@ -234,7 +404,7 @@ class Evoting_Role_Manager {
         }
 
         if ( $remover_is_poll_admin ) {
-            // Poll admin może usunąć redaktora lub innego poll admina.
+            // Koordynator może usunąć lokalnego koordynatora grup lub innego koordynatora.
             return in_array( $target_role, [ self::ROLE_POLL_ADMIN, self::ROLE_POLL_EDITOR ], true );
         }
 
