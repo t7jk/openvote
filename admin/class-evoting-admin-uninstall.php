@@ -43,11 +43,13 @@ class Evoting_Admin_Uninstall {
     public static function run_cleanup(): void {
         global $wpdb;
 
-        // Drop tables in dependency order (FK: votes → answers → questions → polls).
+        // Drop tables in dependency order (votes → answers → questions → polls; group_members → groups).
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_votes" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_answers" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_questions" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_polls" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_group_members" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_groups" );
 
         // Delete plugin options.
         delete_option( 'evoting_version' );
