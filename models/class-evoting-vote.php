@@ -103,11 +103,6 @@ class Evoting_Vote {
             return new \WP_Error( 'poll_not_active', __( 'Głosowanie nie jest aktywne.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        // Enforce anonymous mode.
-        if ( 'anonymous' === $poll->vote_mode ) {
-            $is_anonymous = true;
-        }
-
         $eligible = self::is_eligible( $poll_id, $user_id );
         if ( is_wp_error( $eligible ) ) {
             return $eligible;
@@ -270,25 +265,21 @@ class Evoting_Vote {
     }
 
     /**
-     * Get anonymous voter list — anonymized user_nicename only.
-     * For vote_mode = anonymous: returns empty array (no data at all).
+     * Get voter list for public results — one entry per voter.
+     * Each voter chose jawnie or anonimowo; anonymous voters shown as "Anonimowy".
      *
      * @return array<int, array{nicename: string}>
      */
     public static function get_voters_anonymous( int $poll_id ): array {
         global $wpdb;
 
-        $poll = Evoting_Poll::get( $poll_id );
-        if ( $poll && 'anonymous' === $poll->vote_mode ) {
-            return [];
-        }
-
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT v.user_id, u.user_nicename
+                "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, u.user_nicename
                  FROM %i v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
+                 GROUP BY v.user_id, u.user_nicename
                  ORDER BY u.user_nicename ASC",
                 self::table(),
                 $poll_id
@@ -298,7 +289,9 @@ class Evoting_Vote {
         $voters = [];
         foreach ( $rows as $row ) {
             $voters[] = [
-                'nicename' => self::anonymize_nicename( $row->user_nicename ),
+                'nicename' => (int) $row->is_anon
+                    ? __( 'Anonimowy', 'evoting' )
+                    : self::anonymize_nicename( $row->user_nicename ),
             ];
         }
 
@@ -316,11 +309,12 @@ class Evoting_Vote {
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT v.user_id, v.voted_at, u.user_email
+                "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, MIN(v.voted_at) AS voted_at, u.user_email
                  FROM %i v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
-                 ORDER BY v.voted_at ASC",
+                 GROUP BY v.user_id, u.user_email
+                 ORDER BY voted_at ASC",
                 self::table(),
                 $poll_id
             )
@@ -328,6 +322,16 @@ class Evoting_Vote {
 
         $voters = [];
         foreach ( $rows as $row ) {
+            $is_anon = (int) $row->is_anon;
+            if ( $is_anon ) {
+                $voters[] = [
+                    'name'       => __( 'Anonimowy', 'evoting' ),
+                    'email_anon' => '—',
+                    'voted_at'   => $row->voted_at,
+                ];
+                continue;
+            }
+
             $user = get_userdata( (int) $row->user_id );
             if ( ! $user ) {
                 continue;

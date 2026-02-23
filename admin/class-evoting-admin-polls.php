@@ -162,24 +162,13 @@ class Evoting_Admin_Polls {
         $raw_groups    = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
         $target_groups = ! empty( $raw_groups ) ? wp_json_encode( array_values( $raw_groups ) ) : '';
 
-        $join_mode = in_array( $_POST['join_mode'] ?? 'open', [ 'open', 'closed' ], true )
-            ? sanitize_text_field( $_POST['join_mode'] )
-            : 'open';
-
-        $vote_mode = in_array( $_POST['vote_mode'] ?? 'public', [ 'public', 'anonymous' ], true )
-            ? sanitize_text_field( $_POST['vote_mode'] )
-            : 'public';
-
         return [
             'title'         => $title,
             'description'   => sanitize_textarea_field( $_POST['poll_description'] ?? '' ),
             'date_start'    => $date_start,
             'date_end'      => $date_end,
-            'join_mode'     => $join_mode,
-            'vote_mode'     => $vote_mode,
             'target_groups' => $target_groups,
             'notify_start'  => ! empty( $_POST['notify_start'] ),
-            'notify_end'    => ! empty( $_POST['notify_end'] ),
             'questions'     => $questions,
         ];
     }

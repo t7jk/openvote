@@ -8,16 +8,21 @@ $desc         = $is_edit ? $poll->description : '';
 // Normalize to datetime-local value: Y-m-d\TH:i (DB stores Y-m-d H:i:s or legacy Y-m-d)
 $date_start = $is_edit ? $poll->date_start : '';
 $date_end   = $is_edit ? $poll->date_end : '';
-if ( $date_start && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_start, $m ) ) {
-    $date_start = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
+$force_default_dates = ! $is_edit || ( isset( $_GET['duplicated'] ) && $_GET['duplicated'] );
+if ( $force_default_dates ) {
+    $now_ts     = current_time( 'timestamp' );
+    $date_start = wp_date( 'Y-m-d\TH:i', $now_ts );
+    $date_end   = wp_date( 'Y-m-d\TH:i', $now_ts + 7 * DAY_IN_SECONDS );
+} elseif ( $date_start || $date_end ) {
+    // Normalize DB value (Y-m-d H:i:s or Y-m-d) to datetime-local: Y-m-d\TH:i
+    if ( $date_start && strpos( $date_start, 'T' ) === false && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_start, $m ) ) {
+        $date_start = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
+    }
+    if ( $date_end && strpos( $date_end, 'T' ) === false && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_end, $m ) ) {
+        $date_end = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
+    }
 }
-if ( $date_end && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_end, $m ) ) {
-    $date_end = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
-}
-$join_mode    = $is_edit ? ( $poll->join_mode ?? 'open' ) : 'open';
-$vote_mode    = $is_edit ? ( $poll->vote_mode ?? 'public' ) : 'public';
 $notify_start = $is_edit ? (bool) $poll->notify_start : false;
-$notify_end   = $is_edit ? (bool) $poll->notify_end : false;
 $questions    = $is_edit ? $poll->questions : [];
 
 // target_groups: stored as JSON array of group IDs
@@ -32,7 +37,7 @@ if ( $is_edit && ! empty( $poll->target_groups ) ) {
 // Get all groups for multiselect.
 global $wpdb;
 $groups_table = $wpdb->prefix . 'evoting_groups';
-$all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER BY name ASC" );
+$all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups_table} ORDER BY name ASC" );
 ?>
 <div class="wrap">
     <h1><?php
@@ -106,36 +111,6 @@ $all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER 
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e( 'Tryb dołączania', 'evoting' ); ?></th>
-                <td>
-                    <fieldset>
-                        <label>
-                            <input type="radio" name="join_mode" value="open" <?php checked( $join_mode, 'open' ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
-                            <?php esc_html_e( 'Otwarte — nowi użytkownicy mogą dołączyć do aktywnego głosowania', 'evoting' ); ?>
-                        </label><br>
-                        <label>
-                            <input type="radio" name="join_mode" value="closed" <?php checked( $join_mode, 'closed' ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
-                            <?php esc_html_e( 'Zamknięte — lista uprawnionych ustalana przy otwarciu (snapshot)', 'evoting' ); ?>
-                        </label>
-                    </fieldset>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Tryb głosowania', 'evoting' ); ?></th>
-                <td>
-                    <fieldset>
-                        <label>
-                            <input type="radio" name="vote_mode" value="public" <?php checked( $vote_mode, 'public' ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
-                            <?php esc_html_e( 'Jawne — zanonimizowane nicki widoczne w wynikach', 'evoting' ); ?>
-                        </label><br>
-                        <label>
-                            <input type="radio" name="vote_mode" value="anonymous" <?php checked( $vote_mode, 'anonymous' ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
-                            🔒 <?php esc_html_e( 'Anonimowe — UWAGA: decyzja jest nieodwracalna, zero danych osobowych w wynikach', 'evoting' ); ?>
-                        </label>
-                    </fieldset>
-                </td>
-            </tr>
-            <tr>
                 <th scope="row"><?php esc_html_e( 'Grupy docelowe', 'evoting' ); ?></th>
                 <td>
                     <?php if ( ! empty( $all_groups ) ) : ?>
@@ -143,7 +118,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER 
                             <?php foreach ( $all_groups as $group ) : ?>
                                 <option value="<?php echo esc_attr( $group->id ); ?>"
                                         <?php echo in_array( (int) $group->id, $selected_group_ids, true ) ? 'selected' : ''; ?>>
-                                    <?php echo esc_html( $group->name ); ?>
+                                    <?php echo esc_html( $group->name . ' (' . ( (int) ( $group->member_count ?? 0 ) ) . ')' ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -161,10 +136,6 @@ $all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER 
                     <label>
                         <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
                         <?php esc_html_e( 'Wyślij e-mail przy otwarciu głosowania', 'evoting' ); ?>
-                    </label><br>
-                    <label>
-                        <input type="checkbox" name="notify_end" value="1" <?php checked( $notify_end ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
-                        <?php esc_html_e( 'Wyślij e-mail przypomnienie 24h przed zakończeniem', 'evoting' ); ?>
                     </label>
                 </td>
             </tr>

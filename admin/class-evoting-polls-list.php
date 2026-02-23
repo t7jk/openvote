@@ -29,8 +29,6 @@ class Evoting_Polls_List extends WP_List_Table {
             'cb'         => '<input type="checkbox">',
             'title'      => __( 'Tytuł', 'evoting' ),
             'status'     => __( 'Status', 'evoting' ),
-            'vote_mode'  => __( 'Tryb', 'evoting' ),
-            'join_mode'  => __( 'Dołączanie', 'evoting' ),
             'questions'  => __( 'Pytania', 'evoting' ),
             'date_start' => __( 'Rozpoczęcie', 'evoting' ),
             'date_end'   => __( 'Zakończenie', 'evoting' ),
@@ -239,18 +237,6 @@ class Evoting_Polls_List extends WP_List_Table {
             esc_attr( $item->status ),
             esc_html( $label )
         );
-    }
-
-    protected function column_vote_mode( $item ): string {
-        return 'anonymous' === $item->vote_mode
-            ? '<span title="' . esc_attr__( 'Anonimowe', 'evoting' ) . '">🔒 ' . esc_html__( 'Anon.', 'evoting' ) . '</span>'
-            : esc_html__( 'Jawne', 'evoting' );
-    }
-
-    protected function column_join_mode( $item ): string {
-        return 'closed' === $item->join_mode
-            ? esc_html__( 'Zamknięte', 'evoting' )
-            : esc_html__( 'Otwarte', 'evoting' );
     }
 
     protected function column_questions( $item ): string {

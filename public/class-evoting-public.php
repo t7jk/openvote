@@ -33,9 +33,10 @@ class Evoting_Public {
             'restUrl' => esc_url_raw( rest_url( 'evoting/v1' ) ),
             'nonce'   => wp_create_nonce( 'wp_rest' ),
             'i18n'    => [
-                'voteSuccess'   => __( 'Twój głos został zapisany. Dziękujemy!', 'evoting' ),
-                'voteError'     => __( 'Wystąpił błąd. Spróbuj ponownie.', 'evoting' ),
-                'answerAll'     => __( 'Odpowiedz na wszystkie pytania.', 'evoting' ),
+                'voteSuccess'      => __( 'Twój głos został zapisany. Dziękujemy!', 'evoting' ),
+                'voteError'        => __( 'Wystąpił błąd. Spróbuj ponownie.', 'evoting' ),
+                'answerAll'        => __( 'Odpowiedz na wszystkie pytania.', 'evoting' ),
+                'chooseVisibility' => __( 'Wybierz sposób oddania głosu (jawnie lub anonimowo).', 'evoting' ),
                 'participation' => __( 'Frekwencja', 'evoting' ),
                 'totalEligible' => __( 'Uprawnionych do głosowania', 'evoting' ),
                 'totalVoters'   => __( 'Uczestniczyło w głosowaniu', 'evoting' ),

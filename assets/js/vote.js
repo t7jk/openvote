@@ -40,8 +40,15 @@
             answers[qId] = parseInt(checked.value, 10);
         });
 
+        var visibilityRadios = form.querySelectorAll('input[name="evoting_vote_visibility"]:checked');
+        var isAnonymous = visibilityRadios.length ? (parseInt(visibilityRadios[0].value, 10) === 1) : false;
+
         if (!allAnswered) {
             showMessage(msgEl, i18n.answerAll || 'Odpowiedz na wszystkie pytania.', 'error');
+            return;
+        }
+        if (!visibilityRadios.length) {
+            showMessage(msgEl, i18n.chooseVisibility || 'Wybierz sposób oddania głosu (jawnie lub anonimowo).', 'error');
             return;
         }
 
@@ -54,7 +61,7 @@
         fetch(restUrl + '/polls/' + pollId + '/vote', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
-            body:    JSON.stringify({ answers: answers }),
+            body:    JSON.stringify({ answers: answers, is_anonymous: isAnonymous }),
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {

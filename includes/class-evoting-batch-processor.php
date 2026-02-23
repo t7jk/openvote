@@ -12,8 +12,6 @@ defined( 'ABSPATH' ) || exit;
  *   sync_group          — synchronizuj jedną grupę (city lub custom) z usermeta
  *   sync_all_city_groups — odkryj wszystkie miasta i stwórz/synchronizuj grupy
  *   send_start_emails   — wyślij e-mail o otwarciu głosowania
- *   send_reminder_emails — wyślij e-mail przypomnienie (24h przed końcem)
- *   build_snapshot      — buduj snapshot uprawnionych (join_mode=closed)
  */
 class Evoting_Batch_Processor {
 
@@ -116,24 +114,14 @@ class Evoting_Batch_Processor {
                 );
 
             case 'send_start_emails':
-            case 'send_reminder_emails':
                 $poll_id = absint( $params['poll_id'] ?? 0 );
                 if ( ! $poll_id ) {
                     return 0;
                 }
-                // Policz uprawnionych użytkowników z adresem e-mail.
+                // Policz użytkowników z adresem e-mail.
                 return (int) $wpdb->get_var(
                     "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != ''"
                 );
-
-            case 'build_snapshot':
-                // Policz uprawnionych dla głosowania.
-                $poll_id = absint( $params['poll_id'] ?? 0 );
-                if ( ! $poll_id ) {
-                    return 0;
-                }
-                $poll = Evoting_Poll::get( $poll_id );
-                return $poll ? Evoting_Vote::get_eligible_count( $poll ) : 0;
 
             default:
                 return 0;
@@ -161,12 +149,7 @@ class Evoting_Batch_Processor {
                 break;
 
             case 'send_start_emails':
-            case 'send_reminder_emails':
-                $items = self::batch_send_emails( $params, $offset, $type );
-                break;
-
-            case 'build_snapshot':
-                $items = self::batch_build_snapshot( $params, $offset );
+                $items = self::batch_send_emails( $params, $offset );
                 break;
         }
 
@@ -335,9 +318,9 @@ class Evoting_Batch_Processor {
     }
 
     /**
-     * Wyślij e-mail do partii użytkowników.
+     * Wyślij e-mail o otwarciu głosowania do partii użytkowników.
      */
-    private static function batch_send_emails( array $params, int $offset, string $type ): array {
+    private static function batch_send_emails( array $params, int $offset ): array {
         global $wpdb;
 
         $poll_id = absint( $params['poll_id'] ?? 0 );
@@ -360,21 +343,11 @@ class Evoting_Batch_Processor {
             return [];
         }
 
-        if ( 'send_start_emails' === $type ) {
-            $subject = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $poll->title );
-            $message = sprintf(
-                __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby wziąć udział.", 'evoting' ),
-                $poll->title
-            );
-        } else {
-            $subject = sprintf( __( 'Przypomnienie: głosowanie kończy się wkrótce — %s', 'evoting' ), $poll->title );
-            $message = sprintf(
-                __( "Przypominamy, że głosowanie \"%s\" kończy się %s.\n\nZaloguj się i oddaj głos.", 'evoting' ),
-                $poll->title,
-                $poll->date_end
-            );
-        }
-
+        $subject = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $poll->title );
+        $message = sprintf(
+            __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby wziąć udział.", 'evoting' ),
+            $poll->title
+        );
         $headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
         $sent    = [];
 
@@ -386,61 +359,6 @@ class Evoting_Batch_Processor {
         }
 
         return $sent;
-    }
-
-    /**
-     * Buduj snapshot uprawnionych do głosowania (join_mode = closed).
-     * Snapshot zapisuje user_id w wp_evoting_group_members z source='snapshot_{poll_id}'.
-     */
-    private static function batch_build_snapshot( array $params, int $offset ): array {
-        global $wpdb;
-
-        $poll_id = absint( $params['poll_id'] ?? 0 );
-        $poll    = Evoting_Poll::get( $poll_id );
-
-        if ( ! $poll ) {
-            return [];
-        }
-
-        $snapshot_table = $wpdb->prefix . 'evoting_poll_snapshots';
-
-        // Użyj tymczasowej meta-opcji jako storage snapshotów (prostsze niż nowa tabela).
-        $map    = Evoting_Field_Map::get();
-        $params_with_map = array_merge( $params, [ 'map' => $map ] );
-
-        // Pobierz uprawnionych użytkowników w tej partii.
-        $city_key = Evoting_Field_Map::get_field( 'city' );
-        $group_ids = Evoting_Poll::get_target_group_ids( $poll );
-
-        if ( ! empty( $group_ids ) ) {
-            $gm_table     = $wpdb->prefix . 'evoting_group_members';
-            $g_holders    = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
-            $users = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT DISTINCT u.ID FROM {$wpdb->users} u
-                     INNER JOIN {$gm_table} gm ON u.ID = gm.user_id AND gm.group_id IN ({$g_holders})
-                     ORDER BY u.ID ASC LIMIT %d OFFSET %d",
-                    array_merge( $group_ids, [ self::BATCH_SIZE, $offset ] )
-                )
-            );
-        } else {
-            $users = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT ID FROM {$wpdb->users} ORDER BY ID ASC LIMIT %d OFFSET %d",
-                    self::BATCH_SIZE,
-                    $offset
-                )
-            );
-        }
-
-        // Zapisz snapshot jako JSON w opcji.
-        $option_key    = "evoting_snapshot_{$poll_id}";
-        $existing      = (array) get_option( $option_key, [] );
-        $new_user_ids  = array_column( $users, 'ID' );
-        $merged        = array_unique( array_merge( $existing, array_map( 'absint', $new_user_ids ) ) );
-        update_option( $option_key, $merged, false );
-
-        return $new_user_ids;
     }
 
     // ─── Pomocnicze ─────────────────────────────────────────────────────────
@@ -477,19 +395,4 @@ class Evoting_Batch_Processor {
         );
     }
 
-    /**
-     * Sprawdź czy użytkownik jest na snapshocie dla głosowania.
-     */
-    public static function is_in_snapshot( int $poll_id, int $user_id ): bool {
-        $option_key = "evoting_snapshot_{$poll_id}";
-        $snapshot   = (array) get_option( $option_key, [] );
-        return in_array( $user_id, $snapshot, false );
-    }
-
-    /**
-     * Usuń snapshot dla głosowania.
-     */
-    public static function delete_snapshot( int $poll_id ): void {
-        delete_option( "evoting_snapshot_{$poll_id}" );
-    }
 }

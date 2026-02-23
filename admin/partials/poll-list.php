@@ -31,7 +31,6 @@ $polls = Evoting_Poll::get_all();
             <tr>
                 <th scope="col"><?php esc_html_e( 'Tytuł', 'evoting' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Status', 'evoting' ); ?></th>
-                <th scope="col"><?php esc_html_e( 'Tryb', 'evoting' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Pytania', 'evoting' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Data rozpoczęcia', 'evoting' ); ?></th>
                 <th scope="col"><?php esc_html_e( 'Data zakończenia', 'evoting' ); ?></th>
@@ -41,7 +40,7 @@ $polls = Evoting_Poll::get_all();
         <tbody>
             <?php if ( empty( $polls ) ) : ?>
                 <tr>
-                    <td colspan="7"><?php esc_html_e( 'Brak głosowań.', 'evoting' ); ?></td>
+                    <td colspan="6"><?php esc_html_e( 'Brak głosowań.', 'evoting' ); ?></td>
                 </tr>
             <?php else : ?>
                 <?php foreach ( $polls as $poll ) :
@@ -51,9 +50,6 @@ $polls = Evoting_Poll::get_all();
                         'open'   => __( 'Rozpoczęte', 'evoting' ),
                         'closed' => __( 'Zakończone', 'evoting' ),
                     ];
-                    $mode_label = 'anonymous' === ( $poll->vote_mode ?? 'public' )
-                        ? __( '🔒 Anonim.', 'evoting' )
-                        : __( 'Jawne', 'evoting' );
                     ?>
                     <tr>
                         <td>
@@ -68,7 +64,6 @@ $polls = Evoting_Poll::get_all();
                                 <?php echo esc_html( $status_labels[ $poll->status ] ?? $poll->status ); ?>
                             </span>
                         </td>
-                        <td><?php echo esc_html( $mode_label ); ?></td>
                         <td><?php echo esc_html( count( $questions ) ); ?></td>
                         <td><?php echo esc_html( $poll->date_start ); ?></td>
                         <td><?php echo esc_html( $poll->date_end ); ?></td>

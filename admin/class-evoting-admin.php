@@ -132,7 +132,7 @@ class Evoting_Admin {
             check_admin_referer( 'evoting_duplicate_poll_' . $poll_id );
             $new_id = Evoting_Poll::duplicate( $poll_id );
             if ( false !== $new_id ) {
-                wp_safe_redirect( add_query_arg( [ 'duplicated' => 1, 'edit_poll_id' => $new_id ], admin_url( 'admin.php?page=evoting' ) ) );
+                wp_safe_redirect( add_query_arg( [ 'action' => 'edit', 'poll_id' => $new_id, 'duplicated' => 1 ], admin_url( 'admin.php?page=evoting' ) ) );
                 exit;
             }
             wp_safe_redirect( add_query_arg( 'duplicate_error', 1, admin_url( 'admin.php?page=evoting' ) ) );

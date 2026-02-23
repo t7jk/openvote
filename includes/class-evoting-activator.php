@@ -11,9 +11,6 @@ class Evoting_Activator {
         update_option( 'evoting_version', EVOTING_VERSION );
         update_option( 'evoting_db_version', self::DB_VERSION );
 
-        if ( ! wp_next_scheduled( 'evoting_check_reminders' ) ) {
-            wp_schedule_event( time(), 'daily', 'evoting_check_reminders' );
-        }
     }
 
     private static function create_tables(): void {

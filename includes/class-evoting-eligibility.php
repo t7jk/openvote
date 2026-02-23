@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Weryfikacja uprawnień do głosowania — 7 sprawdzeń w kolejności.
+ * Weryfikacja uprawnień do głosowania — 6 sprawdzeń w kolejności.
  *
  * Zwracana wartość: array{ eligible: bool, reason: string }
  *   eligible = true  → użytkownik może głosować
@@ -13,14 +13,16 @@ class Evoting_Eligibility {
     /**
      * Sprawdź czy dany użytkownik może oddać głos w danym głosowaniu.
      *
-     * Kolejność sprawdzeń:
-     *   1. Głosowanie istnieje i ma status 'open'
-     *   2. Bieżący moment (data i godzina) między date_start a date_end
-     *   3. Użytkownik jest zalogowany
-     *   4. Profil kompletny: Imię, Nazwisko, Nickname, E-mail, Miasto
-     *   5. Użytkownik należy do grupy docelowej (lub target_groups = null)
-     *   6. Użytkownik jeszcze nie głosował
-     *   7. Jeśli join_mode = 'closed' → użytkownik na liście snapshot
+ * Kolejność sprawdzeń:
+ *   1. Głosowanie istnieje i ma status 'open'
+ *   2. Bieżący moment (data i godzina) między date_start a date_end
+ *   3. Użytkownik jest zalogowany
+ *   4. Profil kompletny: Imię, Nazwisko, Nickname, E-mail, Miasto
+ *   5. Użytkownik należy do grupy docelowej (lub target_groups = null)
+ *   6. Użytkownik jeszcze nie głosował
+ *
+ * Każdy zarejestrowany użytkownik przypisany do grupy docelowej może głosować
+ * przez cały czas trwania głosowania (bez ograniczeń do momentu zakończenia).
      *
      * @param int $user_id  0 jeśli niezalogowany
      * @param int $poll_id
@@ -125,15 +127,6 @@ class Evoting_Eligibility {
         // ── 6. Użytkownik jeszcze nie głosował ─────────────────────────────
         if ( Evoting_Vote::has_voted( $poll_id, $user_id ) ) {
             return self::no( __( 'Już oddałeś głos w tym głosowaniu. Dziękujemy!', 'evoting' ) );
-        }
-
-        // ── 7. Tryb zamknięty → snapshot ───────────────────────────────────
-        if ( 'closed' === $poll->join_mode ) {
-            if ( ! Evoting_Batch_Processor::is_in_snapshot( $poll_id, $user_id ) ) {
-                return self::no(
-                    __( 'To głosowanie jest zamknięte. Lista uprawnionych została ustalona przy otwarciu głosowania i nie obejmuje Twojego konta.', 'evoting' )
-                );
-            }
         }
 
         return [ 'eligible' => true, 'reason' => '' ];

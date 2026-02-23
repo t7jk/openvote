@@ -3,7 +3,7 @@
   "apiVersion": 3,
   "name": "evoting/poll",
   "version": "1.0.0",
-  "title": "E-Voting Poll",
+  "title": "E-Głosowanie",
   "category": "widgets",
   "icon": "yes-alt",
   "description": "Wyświetl głosowanie e-voting na stronie.",

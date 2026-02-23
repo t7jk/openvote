@@ -27,11 +27,8 @@ class Evoting_Poll {
      *     status?: string,
      *     date_start: string,
      *     date_end: string,
-     *     join_mode?: string,
-     *     vote_mode?: string,
      *     target_groups?: string,
      *     notify_start?: bool,
-     *     notify_end?: bool,
      *     questions: array<array{text: string, answers: string[]}>
      * } $data
      * @return int|false Poll ID or false on failure.
@@ -45,17 +42,14 @@ class Evoting_Poll {
                 'title'         => sanitize_text_field( $data['title'] ),
                 'description'   => isset( $data['description'] ) ? sanitize_textarea_field( $data['description'] ) : null,
                 'status'        => in_array( $data['status'] ?? 'draft', [ 'draft', 'open', 'closed' ], true ) ? $data['status'] : 'draft',
-                'join_mode'     => in_array( $data['join_mode'] ?? 'open', [ 'open', 'closed' ], true ) ? $data['join_mode'] : 'open',
-                'vote_mode'     => in_array( $data['vote_mode'] ?? 'public', [ 'public', 'anonymous' ], true ) ? $data['vote_mode'] : 'public',
                 'target_groups' => isset( $data['target_groups'] ) && '' !== $data['target_groups'] ? sanitize_text_field( $data['target_groups'] ) : null,
                 'notify_start'  => ! empty( $data['notify_start'] ) ? 1 : 0,
-                'notify_end'    => ! empty( $data['notify_end'] ) ? 1 : 0,
                 'date_start'    => $data['date_start'],
                 'date_end'      => $data['date_end'],
                 'created_by'    => get_current_user_id(),
                 'created_at'    => current_time( 'mysql' ),
             ],
-            [ '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s' ]
+            [ '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s' ]
         );
 
         if ( false === $result ) {
@@ -92,14 +86,6 @@ class Evoting_Poll {
             $update['status'] = sanitize_text_field( $data['status'] );
             $format[]         = '%s';
         }
-        if ( isset( $data['join_mode'] ) ) {
-            $update['join_mode'] = in_array( $data['join_mode'], [ 'open', 'closed' ], true ) ? $data['join_mode'] : 'open';
-            $format[]            = '%s';
-        }
-        if ( isset( $data['vote_mode'] ) ) {
-            $update['vote_mode'] = in_array( $data['vote_mode'], [ 'public', 'anonymous' ], true ) ? $data['vote_mode'] : 'public';
-            $format[]            = '%s';
-        }
         if ( array_key_exists( 'target_groups', $data ) ) {
             $update['target_groups'] = ( '' !== $data['target_groups'] ) ? sanitize_text_field( $data['target_groups'] ) : null;
             $format[]                = '%s';
@@ -107,10 +93,6 @@ class Evoting_Poll {
         if ( isset( $data['notify_start'] ) ) {
             $update['notify_start'] = ! empty( $data['notify_start'] ) ? 1 : 0;
             $format[]               = '%d';
-        }
-        if ( isset( $data['notify_end'] ) ) {
-            $update['notify_end'] = ! empty( $data['notify_end'] ) ? 1 : 0;
-            $format[]             = '%d';
         }
         if ( isset( $data['date_start'] ) ) {
             $update['date_start'] = $data['date_start'];
@@ -330,7 +312,7 @@ class Evoting_Poll {
     }
 
     /**
-     * Duplicate a poll: new poll with status draft, date_start = today, date_end = original date_end.
+     * Duplicate a poll: new poll with status draft, date_start = now, date_end = now + 7 days (jak przy „Dodaj nowe”).
      * Questions and answers are copied. No votes.
      *
      * @return int|false New poll ID or false on failure.
@@ -341,8 +323,9 @@ class Evoting_Poll {
             return false;
         }
 
-        $today_date = current_time( 'Y-m-d' );
-        $today_start = $today_date . ' 00:00:00';
+        $now_ts     = current_time( 'timestamp' );
+        $date_start = current_time( 'Y-m-d H:i:s' );
+        $date_end   = wp_date( 'Y-m-d H:i:s', $now_ts + 7 * DAY_IN_SECONDS );
 
         $questions = [];
         foreach ( $poll->questions as $q ) {
@@ -369,17 +352,18 @@ class Evoting_Poll {
             'title'         => $poll->title,
             'description'   => $poll->description ?? '',
             'status'        => 'draft',
-            'date_start'    => $today_start,
-            'date_end'      => $poll->date_end ?: ( $today_date . ' 23:59:59' ),
-            'join_mode'     => $poll->join_mode ?? 'open',
-            'vote_mode'     => $poll->vote_mode ?? 'public',
+            'date_start'    => $date_start,
+            'date_end'      => $date_end,
             'target_groups' => $poll->target_groups ?? '',
             'notify_start'  => false,
-            'notify_end'    => false,
             'questions'     => $questions,
         ];
 
-        return self::create( $data );
+        $new_id = self::create( $data );
+        if ( $new_id ) {
+            self::update( $new_id, [ 'date_start' => $date_start, 'date_end' => $date_end ] );
+        }
+        return $new_id;
     }
 
     /**
@@ -487,5 +471,108 @@ class Evoting_Poll {
             return array_map( 'absint', $decoded );
         }
         return [];
+    }
+
+    /**
+     * Check if user belongs to the poll's target groups.
+     * If poll has no target groups, all users are considered "in group".
+     *
+     * @param int    $user_id
+     * @param object $poll Poll object (with target_groups).
+     * @return bool
+     */
+    public static function user_in_target_groups( int $user_id, object $poll ): bool {
+        $group_ids = self::get_target_group_ids( $poll );
+        if ( empty( $group_ids ) ) {
+            return true;
+        }
+        global $wpdb;
+        $gm_table     = $wpdb->prefix . 'evoting_group_members';
+        $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$gm_table}
+                 WHERE user_id = %d AND group_id IN ({$placeholders})",
+                array_merge( [ $user_id ], $group_ids )
+            )
+        );
+    }
+
+    /**
+     * Get polls that are currently active (status=open, now between date_start and date_end).
+     * Returns full poll objects with questions and answers.
+     *
+     * @return object[]
+     */
+    public static function get_active_polls(): array {
+        global $wpdb;
+
+        $now   = current_time( 'Y-m-d H:i:s' );
+        $table = self::polls_table();
+
+        $ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM %i WHERE status = 'open' AND date_start <= %s AND date_end >= %s ORDER BY date_end ASC",
+                $table,
+                $now,
+                $now
+            )
+        );
+
+        if ( empty( $ids ) ) {
+            return [];
+        }
+
+        $polls = [];
+        foreach ( array_map( 'absint', $ids ) as $id ) {
+            $poll = self::get( $id );
+            if ( $poll ) {
+                $polls[] = $poll;
+            }
+        }
+        return $polls;
+    }
+
+    /**
+     * Get ended polls for which the user was in target group but did not vote.
+     * Used to show "Głosowanie dobiegło końca dnia ..., zobacz wyniki."
+     *
+     * @param int $user_id
+     * @return object[] Polls with at least id, title, date_end.
+     */
+    public static function get_ended_polls_eligible_not_voted( int $user_id ): array {
+        global $wpdb;
+
+        $now   = current_time( 'Y-m-d H:i:s' );
+        $table = self::polls_table();
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, title, date_end FROM %i WHERE (status = 'closed' OR date_end < %s) ORDER BY date_end DESC",
+                $table,
+                $now
+            )
+        );
+
+        if ( empty( $rows ) ) {
+            return [];
+        }
+
+        $out = [];
+        foreach ( $rows as $row ) {
+            $poll = self::get( (int) $row->id );
+            if ( ! $poll ) {
+                continue;
+            }
+            if ( ! self::user_in_target_groups( $user_id, $poll ) ) {
+                continue;
+            }
+            if ( Evoting_Vote::has_voted( (int) $poll->id, $user_id ) ) {
+                continue;
+            }
+            $out[] = $poll;
+        }
+        return $out;
     }
 }

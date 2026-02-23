@@ -29,10 +29,14 @@ class Evoting_Rest_Controller {
             'callback'            => [ $this, 'cast_vote' ],
             'permission_callback' => fn() => is_user_logged_in(),
             'args'                => [
-                'id'      => [ 'sanitize_callback' => 'absint' ],
-                'answers' => [
+                'id'           => [ 'sanitize_callback' => 'absint' ],
+                'answers'      => [
                     'required'          => true,
                     'validate_callback' => fn( $p ) => is_array( $p ),
+                ],
+                'is_anonymous' => [
+                    'required' => true,
+                    'type'     => 'boolean',
                 ],
             ],
         ] );
@@ -89,8 +93,6 @@ class Evoting_Rest_Controller {
             'status'         => $poll->status,
             'date_start'     => $poll->date_start,
             'date_end'       => $poll->date_end,
-            'join_mode'      => $poll->join_mode,
-            'vote_mode'      => $poll->vote_mode,
             'is_active'      => $is_active,
             'is_ended'       => $is_ended,
             'has_voted'      => $has_voted,
@@ -108,9 +110,10 @@ class Evoting_Rest_Controller {
     }
 
     public function cast_vote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-        $poll_id = $request->get_param( 'id' );
-        $answers = $request->get_param( 'answers' );
-        $user_id = get_current_user_id();
+        $poll_id      = $request->get_param( 'id' );
+        $answers      = $request->get_param( 'answers' );
+        $is_anonymous = (bool) $request->get_param( 'is_anonymous' );
+        $user_id      = get_current_user_id();
 
         // Sanitize: question_id → int, answer_id → int.
         $clean_answers = [];
@@ -118,7 +121,7 @@ class Evoting_Rest_Controller {
             $clean_answers[ absint( $question_id ) ] = absint( $answer_id );
         }
 
-        $result = Evoting_Vote::cast( $poll_id, $user_id, $clean_answers );
+        $result = Evoting_Vote::cast( $poll_id, $user_id, $clean_answers, $is_anonymous );
 
         if ( is_wp_error( $result ) ) {
             return $result;
@@ -142,22 +145,17 @@ class Evoting_Rest_Controller {
             return new WP_Error( 'poll_not_ended', __( 'Wyniki dostępne po zakończeniu głosowania.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        $results   = Evoting_Vote::get_results( $poll_id );
-        $is_anon   = 'anonymous' === $poll->vote_mode;
-        $voters    = $is_anon ? [] : Evoting_Vote::get_voters_anonymous( $poll_id );
+        $results = Evoting_Vote::get_results( $poll_id );
+        $voters  = Evoting_Vote::get_voters_anonymous( $poll_id );
 
         return new WP_REST_Response( [
             'poll_id'        => $poll_id,
             'title'          => $poll->title,
-            'vote_mode'      => $poll->vote_mode,
             'total_eligible' => $results['total_eligible'],
             'total_voters'   => $results['total_voters'],
             'non_voters'     => $results['non_voters'],
             'questions'      => $results['questions'],
             'voters'         => $voters,
-            'anonymous_msg'  => $is_anon
-                ? __( 'Głosowanie odbyło się w trybie anonimowym. Wyświetlane są wyłącznie zbiorcze wyniki.', 'evoting' )
-                : null,
         ], 200 );
     }
 }
