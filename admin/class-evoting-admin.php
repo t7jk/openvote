@@ -37,8 +37,8 @@ class Evoting_Admin {
 
         add_submenu_page(
             'evoting',
-            __( 'Role i uprawnienia', 'evoting' ),
-            __( 'Role', 'evoting' ),
+            __( 'Koordynatorzy', 'evoting' ),
+            __( 'Koordynatorzy', 'evoting' ),
             self::CAP_MGR,
             'evoting-roles',
             [ $this, 'render_roles_page' ]

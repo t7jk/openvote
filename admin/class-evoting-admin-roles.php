@@ -19,51 +19,50 @@ class Evoting_Admin_Roles {
             wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
         }
 
-        $action  = sanitize_text_field( $_POST['evoting_roles_action'] ?? '' );
-        $user_id = absint( $_POST['target_user_id'] ?? 0 );
+        $action   = sanitize_text_field( $_POST['evoting_roles_action'] ?? '' );
+        $user_id  = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+        $group_id = isset( $_POST['group_id'] ) ? absint( $_POST['group_id'] ) : 0;
+        $current_user_id = get_current_user_id();
 
-        if ( ! $user_id ) {
-            $this->redirect_with_error( __( 'Nieprawidłowy użytkownik.', 'evoting' ) );
+        $result = null;
+
+        switch ( $action ) {
+            case 'remove_group':
+                if ( $user_id && $group_id ) {
+                    $result = Evoting_Role_Manager::remove_group_from_editor( $user_id, $group_id, $current_user_id );
+                }
+                break;
+            case 'add_poll_editor':
+                if ( ! $user_id ) {
+                    return;
+                }
+                $group_ids = array_map( 'absint', (array) ( $_POST['evoting_editor_groups'] ?? [] ) );
+                $group_ids = array_filter( $group_ids );
+                // Jeśli użytkownik jest już koordynatorem, dołącz nowe grupy do istniejących (można go dopisać do kolejnych grup).
+                if ( Evoting_Role_Manager::ROLE_POLL_EDITOR === Evoting_Role_Manager::get_user_role( $user_id ) ) {
+                    $existing = Evoting_Role_Manager::get_user_groups( $user_id );
+                    $group_ids = array_values( array_unique( array_merge( $existing, $group_ids ) ) );
+                }
+                $result = Evoting_Role_Manager::add_poll_editor( $user_id, $group_ids );
+                break;
+            case 'remove_role':
+                if ( ! $user_id ) {
+                    return;
+                }
+                $result = Evoting_Role_Manager::remove_role( $user_id, $current_user_id );
+                break;
+        }
+
+        if ( $result === null ) {
             return;
         }
 
-        $current_user_id = get_current_user_id();
-
-        switch ( $action ) {
-            case 'add_wp_admin':
-                $result = Evoting_Role_Manager::add_wp_admin( $user_id );
-                break;
-
-            case 'remove_wp_admin':
-                $result = Evoting_Role_Manager::remove_wp_admin( $user_id, $current_user_id );
-                break;
-
-            case 'add_poll_admin':
-                $result = Evoting_Role_Manager::add_poll_admin( $user_id );
-                break;
-
-            case 'add_poll_editor':
-                $group_ids = array_map( 'absint', (array) ( $_POST['editor_groups'] ?? [] ) );
-                $result    = Evoting_Role_Manager::add_poll_editor( $user_id, $group_ids );
-                break;
-
-            case 'remove_role':
-                $result = Evoting_Role_Manager::remove_role( $user_id, $current_user_id );
-                break;
-
-            default:
-                $result = new \WP_Error( 'unknown_action', __( 'Nieznana akcja.', 'evoting' ) );
-        }
-
-        if ( is_wp_error( $result ) ) {
-            $this->redirect_with_error( $result->get_error_message() );
-        } else {
+        if ( true === $result ) {
             wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-roles', 'saved' => '1' ], admin_url( 'admin.php' ) ) );
             exit;
         }
-    }
 
-    private function redirect_with_error( string $message ): void {
+        $message = $result instanceof \WP_Error ? $result->get_error_message() : __( 'Wystąpił błąd.', 'evoting' );
         set_transient( 'evoting_roles_error', $message, 30 );
         wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-roles' ], admin_url( 'admin.php' ) ) );
         exit;

@@ -10,7 +10,9 @@ class Evoting_Activator {
         self::run_migrations();
         update_option( 'evoting_version', EVOTING_VERSION );
         update_option( 'evoting_db_version', self::DB_VERSION );
-
+        require_once __DIR__ . '/class-evoting-vote-page.php';
+        Evoting_Vote_Page::add_rewrite_rule();
+        flush_rewrite_rules();
     }
 
     private static function create_tables(): void {

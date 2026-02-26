@@ -1,220 +1,98 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$wp_admins   = Evoting_Role_Manager::get_wp_admins();
-$poll_admins = Evoting_Role_Manager::get_poll_admins();
-$editors     = Evoting_Role_Manager::get_poll_editors();
-$all_users   = get_users( [ 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
-$current_uid = get_current_user_id();
-
-// Pobierz grupy do selecta lokalnego koordynatora.
 global $wpdb;
 $groups_table = $wpdb->prefix . 'evoting_groups';
-$all_groups   = $wpdb->get_results( "SELECT id, name FROM {$groups_table} ORDER BY name ASC" );
 
-// Użytkownicy z grupy "Administratorzy", którzy jeszcze nie są administratorami WordPress (do dropdownu).
-$wp_admin_group_users = Evoting_Role_Manager::get_users_in_administrators_group();
-$wp_admin_ids        = array_map( fn( $u ) => (int) $u->ID, $wp_admins );
-$available_wp_admins = array_filter( $wp_admin_group_users, fn( $u ) => ! in_array( (int) $u->ID, $wp_admin_ids, true ) );
+$poll_admins = Evoting_Role_Manager::get_poll_admins();
+$editors     = Evoting_Role_Manager::get_poll_editors();
+$current_uid = get_current_user_id();
 
-// Usuń z listy użytkowników tych, którzy już mają jakąś rolę evoting (dla uniknięcia duplikatów).
-$assigned_ids = array_merge(
-    array_map( fn( $u ) => $u->ID, $poll_admins ),
-    array_map( fn( $u ) => $u->ID, $editors )
-);
+// Lista zawiera wszystkich oprócz Koordynatorów Głosowania Polska — obecni koordynatorzy (edytorzy) zostają na liście, żeby można było dopisywać ich do kolejnych grup.
+$all_users_for_role = get_users( [
+    'orderby' => 'display_name',
+    'order'   => 'ASC',
+    'exclude' => array_map( fn( $u ) => $u->ID, $poll_admins ),
+] );
 
-$available_users = array_filter( $all_users, fn( $u ) => ! in_array( (int) $u->ID, $assigned_ids, true ) );
+$groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Role i uprawnienia', 'evoting' ); ?></h1>
+    <h1><?php esc_html_e( 'Koordynatorzy', 'evoting' ); ?></h1>
+    <p class="description" style="max-width:720px; margin:8px 0 16px;">
+        <?php esc_html_e( 'Dodanie użytkownika do grupy powoduje, że staje się koordynatorem tej grupy (jednej lub wielu) i może uruchamiać dla tych grup głosowania dla członków grupy. Jeden koordynator może być przypisany do jednej lub wielu grup.', 'evoting' ); ?>
+    </p>
 
     <?php if ( isset( $_GET['saved'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php esc_html_e( 'Zmiana ról została zapisana.', 'evoting' ); ?></p>
+            <p><?php esc_html_e( 'Zmiany zostały zapisane.', 'evoting' ); ?></p>
         </div>
     <?php endif; ?>
 
     <?php
     $role_error = get_transient( 'evoting_roles_error' );
-    if ( $role_error ) :
+    if ( $role_error ) {
         delete_transient( 'evoting_roles_error' );
         ?>
         <div class="notice notice-error is-dismissible">
             <p><?php echo esc_html( $role_error ); ?></p>
         </div>
-    <?php endif; ?>
+    <?php } ?>
 
-    <?php // ─── Administratorzy WordPress ──────────────────────────────────── ?>
-    <h2><?php esc_html_e( 'Administratorzy WordPress', 'evoting' ); ?>
-        <span class="evoting-badge evoting-badge--core"><?php echo esc_html( count( $wp_admins ) . ' / ' . Evoting_Role_Manager::LIMIT_WP_ADMINS ); ?></span>
-    </h2>
-    <p class="description"><?php esc_html_e( 'Użytkownicy z rolą WordPress "administrator". Limit: min. 1, maks. 2. Dodawanie i usuwanie na tym ekranie — tylko użytkownicy z grupy „Administratorzy”.', 'evoting' ); ?></p>
-    <p class="description"><?php esc_html_e( 'Administratorem WordPress może zostać tylko użytkownik należący do grupy „Administratorzy” (w sekcji Grupy). Użytkownik spoza tej grupy, któremu nadano rolę administratora, utraci ją przy zapisie profilu.', 'evoting' ); ?></p>
-    <?php if ( ! Evoting_Role_Manager::get_administrators_group_id() ) : ?>
-        <div class="notice notice-warning inline"><p><?php esc_html_e( 'Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy, aby móc przypisywać administratorów WordPress.', 'evoting' ); ?></p></div>
-    <?php endif; ?>
-
-    <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:16px;">
+    <table class="widefat striped" style="max-width: 800px;">
         <thead>
             <tr>
-                <th><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></th>
-                <th><?php esc_html_e( 'E-mail', 'evoting' ); ?></th>
-                <th style="width:100px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ( empty( $wp_admins ) ) : ?>
-                <tr><td colspan="3"><?php esc_html_e( 'Brak.', 'evoting' ); ?></td></tr>
-            <?php else : ?>
-                <?php foreach ( $wp_admins as $u ) : ?>
-                    <tr>
-                        <td><?php echo esc_html( $u->display_name ); ?></td>
-                        <td><?php echo esc_html( $u->user_email ); ?></td>
-                        <td>
-                            <?php if ( count( $wp_admins ) > 1 && current_user_can( 'manage_options' ) ) : ?>
-                                <form method="post" action="">
-                                    <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
-                                    <input type="hidden" name="evoting_roles_action" value="remove_wp_admin">
-                                    <input type="hidden" name="target_user_id" value="<?php echo esc_attr( $u->ID ); ?>">
-                                    <button type="submit" class="button button-small button-link-delete"
-                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć rolę Administratora WordPress?', 'evoting' ); ?>');">
-                                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
-
-    <?php if ( Evoting_Role_Manager::get_administrators_group_id() && count( $wp_admins ) < Evoting_Role_Manager::LIMIT_WP_ADMINS ) : ?>
-        <form method="post" action="" style="margin-bottom:30px;">
-            <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
-            <input type="hidden" name="evoting_roles_action" value="add_wp_admin">
-            <select name="target_user_id" required style="min-width:280px;">
-                <option value=""><?php esc_html_e( '— Wybierz użytkownika z grupy Administratorzy —', 'evoting' ); ?></option>
-                <?php foreach ( $available_wp_admins as $u ) : ?>
-                    <option value="<?php echo esc_attr( $u->ID ); ?>">
-                        <?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="button button-primary" style="margin-left:8px;">
-                <?php esc_html_e( 'Dodaj Administratora WordPress', 'evoting' ); ?>
-            </button>
-        </form>
-    <?php elseif ( count( $wp_admins ) >= Evoting_Role_Manager::LIMIT_WP_ADMINS ) : ?>
-        <p class="description" style="margin-bottom:30px;">
-            <?php esc_html_e( 'Osiągnięto limit Administratorów WordPress.', 'evoting' ); ?>
-        </p>
-    <?php endif; ?>
-
-    <?php // ─── Koordynatorzy ───────────────────────────────────────────────── ?>
-    <h2><?php esc_html_e( 'Koordynator Głosowania Polska', 'evoting' ); ?>
-        <span class="evoting-badge evoting-badge--meta"><?php echo esc_html( count( $poll_admins ) . ' / ' . Evoting_Role_Manager::LIMIT_POLL_ADMINS ); ?></span>
-    </h2>
-
-    <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:16px;">
-        <thead>
-            <tr>
-                <th><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></th>
-                <th><?php esc_html_e( 'E-mail', 'evoting' ); ?></th>
-                <th style="width:100px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ( empty( $poll_admins ) ) : ?>
-                <tr><td colspan="3"><?php esc_html_e( 'Brak.', 'evoting' ); ?></td></tr>
-            <?php else : ?>
-                <?php foreach ( $poll_admins as $u ) : ?>
-                    <tr>
-                        <td><?php echo esc_html( $u->display_name ); ?></td>
-                        <td><?php echo esc_html( $u->user_email ); ?></td>
-                        <td>
-                            <?php if ( Evoting_Role_Manager::can_remove( $current_uid, $u->ID ) ) : ?>
-                                <form method="post" action="">
-                                    <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
-                                    <input type="hidden" name="evoting_roles_action" value="remove_role">
-                                    <input type="hidden" name="target_user_id" value="<?php echo esc_attr( $u->ID ); ?>">
-                                    <button type="submit" class="button button-small button-link-delete"
-                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć tę rolę?', 'evoting' ); ?>');">
-                                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
-
-    <?php if ( count( $poll_admins ) < Evoting_Role_Manager::LIMIT_POLL_ADMINS ) : ?>
-        <form method="post" action="" style="margin-bottom:30px;">
-            <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
-            <input type="hidden" name="evoting_roles_action" value="add_poll_admin">
-            <select name="target_user_id" required style="min-width:280px;">
-                <option value=""><?php esc_html_e( '— Wybierz użytkownika —', 'evoting' ); ?></option>
-                <?php foreach ( $available_users as $u ) : ?>
-                    <option value="<?php echo esc_attr( $u->ID ); ?>">
-                        <?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <button type="submit" class="button button-primary" style="margin-left:8px;">
-                <?php esc_html_e( 'Dodaj Koordynatora', 'evoting' ); ?>
-            </button>
-        </form>
-    <?php else : ?>
-        <p class="description" style="margin-bottom:30px;">
-            <?php esc_html_e( 'Osiągnięto limit Koordynatorów.', 'evoting' ); ?>
-        </p>
-    <?php endif; ?>
-
-    <?php // ─── Lokalni Koordynatorzy Grup ─────────────────────────────────── ?>
-    <h2><?php esc_html_e( 'Lokalni Koordynatorzy Grup', 'evoting' ); ?>
-        <span class="evoting-badge evoting-badge--meta"><?php echo esc_html( count( $editors ) ); ?></span>
-    </h2>
-    <p class="description"><?php printf( esc_html__( 'Maks. %d lokalnych koordynatorów na grupę.', 'evoting' ), Evoting_Role_Manager::LIMIT_EDITORS_PER_GROUP ); ?></p>
-
-    <table class="wp-list-table widefat fixed striped" style="max-width:700px;margin-bottom:16px;">
-        <thead>
-            <tr>
-                <th><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></th>
-                <th><?php esc_html_e( 'E-mail', 'evoting' ); ?></th>
+                <th><?php esc_html_e( 'Koordynator', 'evoting' ); ?></th>
                 <th><?php esc_html_e( 'Grupy', 'evoting' ); ?></th>
-                <th style="width:100px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
+                <th style="width:120px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if ( empty( $editors ) ) : ?>
-                <tr><td colspan="4"><?php esc_html_e( 'Brak.', 'evoting' ); ?></td></tr>
+                <tr><td colspan="3"><?php esc_html_e( 'Brak Koordynatorów.', 'evoting' ); ?></td></tr>
             <?php else : ?>
                 <?php foreach ( $editors as $u ) :
+                    $nickname = Evoting_Field_Map::get_user_value( $u, 'nickname' );
+                    if ( $nickname === '' ) {
+                        $nickname = $u->user_login;
+                    }
+                    $city = Evoting_Field_Map::get_user_value( $u, 'city' );
+                    $city_label = ( $city !== '' ) ? $city : __( 'brak', 'evoting' );
                     $group_ids = Evoting_Role_Manager::get_user_groups( $u->ID );
-                    $group_names = [];
-                    foreach ( $all_groups as $g ) {
+                    $user_groups = [];
+                    foreach ( $groups as $g ) {
                         if ( in_array( (int) $g->id, $group_ids, true ) ) {
-                            $group_names[] = $g->name;
+                            $user_groups[] = $g;
                         }
                     }
-                ?>
+                    $can_remove = Evoting_Role_Manager::can_remove( $current_uid, $u->ID );
+                    ?>
                     <tr>
-                        <td><?php echo esc_html( $u->display_name ); ?></td>
-                        <td><?php echo esc_html( $u->user_email ); ?></td>
-                        <td><?php echo esc_html( ! empty( $group_names ) ? implode( ', ', $group_names ) : '—' ); ?></td>
+                        <td><?php echo esc_html( $nickname . ' (' . $city_label . ')' ); ?></td>
                         <td>
-                            <?php if ( Evoting_Role_Manager::can_remove( $current_uid, $u->ID ) ) : ?>
-                                <form method="post" action="">
+                            <?php
+                            if ( empty( $user_groups ) ) {
+                                echo '—';
+                            } else {
+                                $parts = [];
+                                foreach ( $user_groups as $g ) {
+                                    if ( $can_remove ) {
+                                        $parts[] = '<form method="post" action="" style="display:inline;">' . wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce', false, false ) . '<input type="hidden" name="evoting_roles_action" value="remove_group"><input type="hidden" name="user_id" value="' . esc_attr( $u->ID ) . '"><input type="hidden" name="group_id" value="' . esc_attr( $g->id ) . '"><button type="submit" class="button-link">' . esc_html( $g->name ) . '</button></form>';
+                                    } else {
+                                        $parts[] = esc_html( $g->name );
+                                    }
+                                }
+                                echo implode( ', ', $parts );
+                            }
+                            ?>
+                        </td>
+                        <td>
+                            <?php if ( $can_remove ) : ?>
+                                <form method="post" action="" style="display:inline;">
                                     <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
                                     <input type="hidden" name="evoting_roles_action" value="remove_role">
-                                    <input type="hidden" name="target_user_id" value="<?php echo esc_attr( $u->ID ); ?>">
-                                    <button type="submit" class="button button-small button-link-delete"
-                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć tę rolę?', 'evoting' ); ?>');">
-                                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
-                                    </button>
+                                    <input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">
+                                    <button type="submit" class="button button-small"><?php esc_html_e( 'Odłącz wszystko', 'evoting' ); ?></button>
                                 </form>
                             <?php endif; ?>
                         </td>
@@ -224,51 +102,43 @@ $available_users = array_filter( $all_users, fn( $u ) => ! in_array( (int) $u->I
         </tbody>
     </table>
 
-    <?php if ( ! empty( $all_groups ) ) : ?>
-        <form method="post" action="" style="max-width:700px;">
+    <?php if ( ! empty( $groups ) ) : ?>
+        <form method="post" action="" style="margin-top:12px;">
             <?php wp_nonce_field( 'evoting_roles_action', 'evoting_roles_nonce' ); ?>
             <input type="hidden" name="evoting_roles_action" value="add_poll_editor">
-            <table class="form-table" style="max-width:700px;">
-                <tr>
-                    <th scope="row"><label for="editor_user"><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></label></th>
-                    <td>
-                        <select name="target_user_id" id="editor_user" required style="min-width:280px;">
-                            <option value=""><?php esc_html_e( '— Wybierz użytkownika —', 'evoting' ); ?></option>
-                            <?php foreach ( $available_users as $u ) : ?>
-                                <option value="<?php echo esc_attr( $u->ID ); ?>">
-                                    <?php echo esc_html( $u->display_name . ' (' . $u->user_email . ')' ); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><?php esc_html_e( 'Grupy', 'evoting' ); ?></th>
-                    <td>
-                        <select name="editor_groups[]" multiple size="6" style="min-width:280px;">
-                            <?php foreach ( $all_groups as $g ) :
-                                $current_count = Evoting_Role_Manager::count_editors_in_group( (int) $g->id );
-                                $is_full       = $current_count >= Evoting_Role_Manager::LIMIT_EDITORS_PER_GROUP;
-                                ?>
-                                <option value="<?php echo esc_attr( $g->id ); ?>"
-                                        <?php echo $is_full ? 'disabled' : ''; ?>>
-                                    <?php echo esc_html( $g->name ); ?>
-                                    <?php echo $is_full ? esc_html( ' (' . __( 'pełna', 'evoting' ) . ')' ) : ''; ?>
-                                    (<?php echo esc_html( $current_count . '/' . Evoting_Role_Manager::LIMIT_EDITORS_PER_GROUP ); ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele grup.', 'evoting' ); ?></p>
-                    </td>
-                </tr>
-            </table>
-            <p>
-                <button type="submit" class="button button-primary">
-                    <?php esc_html_e( 'Dodaj Lokalnego Koordynatora Grup', 'evoting' ); ?>
-                </button>
-            </p>
+            <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
+                <div>
+                    <label for="evoting_add_editor_user"><?php esc_html_e( 'Koordynator:', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Przewiń listę, wybierz jedną osobę.', 'evoting' ); ?></p>
+                    <select name="user_id" id="evoting_add_editor_user" required size="15" style="min-width:280px; display:block;">
+                        <option value="">— <?php esc_html_e( 'Wybierz', 'evoting' ); ?> —</option>
+                        <?php foreach ( $all_users_for_role as $u ) :
+                            $nickname = Evoting_Field_Map::get_user_value( $u, 'nickname' );
+                            if ( $nickname === '' ) {
+                                $nickname = $u->user_login;
+                            }
+                            $city = Evoting_Field_Map::get_user_value( $u, 'city' );
+                            $city_label = ( $city !== '' ) ? $city : __( 'brak', 'evoting' );
+                            ?>
+                            <option value="<?php echo esc_attr( $u->ID ); ?>"><?php echo esc_html( $nickname . ' (' . $city_label . ')' ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div style="align-self:center;">
+                    <button type="submit" class="button" style="margin-top:24px;"><?php esc_html_e( 'Dodaj', 'evoting' ); ?></button>
+                </div>
+                <div>
+                    <label for="evoting_editor_groups"><?php esc_html_e( 'Grupy:', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele grup. Przewiń listę.', 'evoting' ); ?></p>
+                    <select name="evoting_editor_groups[]" id="evoting_editor_groups" multiple size="15" style="min-width:200px; display:block;">
+                        <?php foreach ( $groups as $g ) : ?>
+                            <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
         </form>
     <?php else : ?>
-        <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Lokalnych Koordynatorów Grup.', 'evoting' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Koordynatorów.', 'evoting' ); ?></p>
     <?php endif; ?>
 </div>

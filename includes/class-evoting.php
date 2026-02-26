@@ -50,6 +50,7 @@ class Evoting {
 
     private function define_public_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'public/class-evoting-public.php';
+        require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-vote-page.php';
 
         $public = new Evoting_Public();
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_styles' );

@@ -296,44 +296,14 @@ class Evoting_Role_Manager {
     }
 
     /**
-     * Nadaj rolę Lokalnego Koordynatora Grup z przypisaniem do grup.
+     * Nadaj rolę Koordynatora z przypisaniem do grup.
      *
      * @param int[] $group_ids
      * @return true|\WP_Error
      */
     public static function add_poll_editor( int $user_id, array $group_ids ): true|\WP_Error {
         if ( empty( $group_ids ) ) {
-            return new \WP_Error( 'no_groups', __( 'Lokalny Koordynator Grup musi mieć przypisaną co najmniej jedną grupę.', 'evoting' ) );
-        }
-
-        // Sprawdź limit per grupa.
-        foreach ( $group_ids as $group_id ) {
-            $group_id = absint( $group_id );
-            $count    = self::count_editors_in_group( $group_id );
-
-            // Nie licz bieżącego użytkownika jeśli już jest lokalnym koordynatorem w tej grupie.
-            if ( in_array( $group_id, self::get_user_groups( $user_id ), true ) ) {
-                continue;
-            }
-
-            if ( $count >= self::LIMIT_EDITORS_PER_GROUP ) {
-                $editors_in_group = array_filter(
-                    self::get_poll_editors(),
-                    fn( $u ) => in_array( $group_id, self::get_user_groups( $u->ID ), true )
-                );
-                $names = implode( ', ', array_map( fn( $u ) => $u->display_name, $editors_in_group ) );
-
-                return new \WP_Error(
-                    'limit_reached',
-                    sprintf(
-                        /* translators: 1: limit, 2: group ID, 3: names */
-                        __( 'Limit Lokalnych Koordynatorów (%1$d) dla grupy #%2$d osiągnięty. Zajmują: %3$s.', 'evoting' ),
-                        self::LIMIT_EDITORS_PER_GROUP,
-                        $group_id,
-                        $names
-                    )
-                );
-            }
+            return new \WP_Error( 'no_groups', __( 'Koordynator musi mieć przypisaną co najmniej jedną grupę.', 'evoting' ) );
         }
 
         update_user_meta( $user_id, self::META_ROLE, self::ROLE_POLL_EDITOR );
@@ -383,13 +353,8 @@ class Evoting_Role_Manager {
             return false;
         }
 
-        // Jeśli target jest Admin WP — tylko Admin WP może próbować usunąć,
-        // ale musimy sprawdzić czy nie jest ostatnim.
         $target_is_wp_admin = in_array( 'administrator', (array) $target_user->roles, true );
         if ( $target_is_wp_admin ) {
-            // Roli WP administrator nie usuwamy przez ten system.
-            // Można usunąć evoting_role od admin WP tylko jeśli nie ma roli evoting.
-            // Jeśli target nie ma evoting_role — nie ma co usuwać.
             if ( '' === $target_role ) {
                 return false;
             }
@@ -404,14 +369,41 @@ class Evoting_Role_Manager {
         }
 
         if ( $remover_is_poll_admin ) {
-            // Koordynator może usunąć lokalnego koordynatora grup lub innego koordynatora.
             return in_array( $target_role, [ self::ROLE_POLL_ADMIN, self::ROLE_POLL_EDITOR ], true );
         }
 
         return false;
     }
 
-    // ─── Walidacja limitów WP Admin ─────────────────────────────────────────
+    /**
+     * Odłącz koordynatora od jednej grupy (usuwa grupę z listy przypisań).
+     * Jeśli to była ostatnia grupa, usuwa rolę koordynatora.
+     *
+     * @param int $user_id    ID koordynatora.
+     * @param int $group_id   ID grupy do odłączenia.
+     * @param int $remover_id ID użytkownika wykonującego operację.
+     * @return true|\WP_Error
+     */
+    public static function remove_group_from_editor( int $user_id, int $group_id, int $remover_id ): true|\WP_Error {
+        if ( ! self::can_remove( $remover_id, $user_id ) ) {
+            return new \WP_Error( 'cannot_remove', __( 'Nie masz uprawnień do tej operacji.', 'evoting' ) );
+        }
+        if ( self::ROLE_POLL_EDITOR !== self::get_user_role( $user_id ) ) {
+            return new \WP_Error( 'not_editor', __( 'Ten użytkownik nie jest koordynatorem.', 'evoting' ) );
+        }
+
+        $current = self::get_user_groups( $user_id );
+        $new_ids = array_values( array_diff( $current, [ $group_id ] ) );
+
+        if ( empty( $new_ids ) ) {
+            delete_user_meta( $user_id, self::META_ROLE );
+            delete_user_meta( $user_id, self::META_GROUPS );
+        } else {
+            update_user_meta( $user_id, self::META_GROUPS, wp_json_encode( $new_ids ) );
+        }
+
+        return true;
+    }
 
     /**
      * Sprawdź czy liczba Administratorów WP mieści się w limicie (min 1, maks. 2).

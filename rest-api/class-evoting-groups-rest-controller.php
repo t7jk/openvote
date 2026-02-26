@@ -16,7 +16,7 @@ class Evoting_Groups_Rest_Controller {
 
     private const NAMESPACE = 'evoting/v1';
 
-    /** Uprawnienie do zarządzania grupami. */
+    /** Uprawnienie do zarządzania grupami (lista, członkowie). */
     private function can_manage(): bool {
         if ( current_user_can( 'manage_options' ) ) {
             return true;

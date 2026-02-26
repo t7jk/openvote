@@ -50,19 +50,50 @@ function evoting_settings_select( string $logical, string $current, array $core_
             <p><?php esc_html_e( 'Konfiguracja została zapisana.', 'evoting' ); ?></p>
         </div>
     <?php endif; ?>
-
-    <p class="description" style="max-width:700px;margin:12px 0 20px;">
-        <?php esc_html_e(
-            'Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych WordPress. '
-            . 'Dzięki temu wtyczka będzie działać poprawnie niezależnie od użytej wtyczki rejestracji '
-            . 'lub własnego schematu metadanych.',
-            'evoting'
-        ); ?>
-    </p>
+    <?php if ( isset( $_GET['page_created'] ) ) : ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php esc_html_e( 'Strona głosowania została utworzona. Możesz ją edytować w Strony lub przejść pod skonfigurowany adres.', 'evoting' ); ?></p>
+        </div>
+    <?php endif; ?>
 
     <form method="post" action="">
         <?php wp_nonce_field( 'evoting_save_settings', 'evoting_settings_nonce' ); ?>
 
+        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'URL strony głosowania', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Adres, pod którym użytkownicy wchodzą, aby zobaczyć i wypełnić głosowania. Domena jest pobierana automatycznie z adresu instalacji WordPress — podaj tylko końcówkę ścieżki (np. glosuj).', 'evoting' ); ?>
+        </p>
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><label for="evoting_vote_page_slug"><?php esc_html_e( 'Ścieżka (slug)', 'evoting' ); ?></label></th>
+                <td>
+                    <code style="margin-right:4px;"><?php echo esc_html( trailingslashit( home_url() ) ); ?></code>
+                    <input type="text" name="evoting_vote_page_slug" id="evoting_vote_page_slug" value="<?php echo esc_attr( evoting_get_vote_page_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="glosuj" />
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Pełny adres:', 'evoting' ); ?>
+                        <strong><a href="<?php echo esc_url( evoting_get_vote_page_url() ); ?>" target="_blank" rel="noopener"><?php echo esc_html( evoting_get_vote_page_url() ); ?></a></strong>
+                    </p>
+                    <?php if ( ! evoting_vote_page_exists() ) : ?>
+                        <p style="margin-top:10px;">
+                            <button type="submit" name="evoting_create_vote_page" value="1" class="button button-secondary">
+                                <?php esc_html_e( 'Dodaj podstronę', 'evoting' ); ?>
+                            </button>
+                            <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Utworzy stronę pod powyższym adresem z blokiem głosowań.', 'evoting' ); ?></span>
+                        </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e(
+                'Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych WordPress. '
+                . 'Dzięki temu wtyczka będzie działać poprawnie niezależnie od użytej wtyczki rejestracji '
+                . 'lub własnego schematu metadanych.',
+                'evoting'
+            ); ?>
+        </p>
         <table class="widefat fixed evoting-settings-table" style="max-width:780px;">
             <thead>
                 <tr>
