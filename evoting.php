@@ -89,49 +89,43 @@ function evoting_get_vote_page_url(): string {
 }
 
 /**
- * ID załącznika logo (do 32×32 px) z Konfiguracji.
+ * URL ikony witryny WordPress (Site Icon) w rozmiarze 32×32.
+ * Zastępuje dawne logo z Konfiguracji — teraz pobierane z Ustawienia → Ogólne.
  *
- * @return int 0 gdy nie ustawiono.
- */
-function evoting_get_logo_attachment_id(): int {
-	return (int) get_option( 'evoting_logo_attachment_id', 0 );
-}
-
-/**
- * ID załącznika banera (proporcja horyzontalna ok. 800×260 px) z Konfiguracji.
- *
- * @return int 0 gdy nie ustawiono.
- */
-function evoting_get_banner_attachment_id(): int {
-	return (int) get_option( 'evoting_banner_attachment_id', 0 );
-}
-
-/**
- * URL logo do wyświetlenia na stronie głosowania (mały rozmiar do 32×32).
- *
- * @return string URL lub pusty string.
+ * @return string URL lub pusty string gdy ikona nie jest ustawiona.
  */
 function evoting_get_logo_url(): string {
-	$id = evoting_get_logo_attachment_id();
-	if ( ! $id ) {
-		return '';
-	}
-	$url = wp_get_attachment_image_url( $id, [ 32, 32 ] );
+	$url = get_site_icon_url( 32 );
 	return is_string( $url ) ? $url : '';
 }
 
 /**
- * URL banera do wyświetlenia na stronie głosowania (proporcja horyzontalna).
+ * Zachowane dla kompatybilności wstecznej (m.in. klasa PDF).
+ * Ikona witryny pochodzi z WordPress, nie z opcji wtyczki.
  *
- * @return string URL lub pusty string.
+ * @return int Zawsze 0.
+ */
+function evoting_get_logo_attachment_id(): int {
+	return 0;
+}
+
+/**
+ * Zachowane dla kompatybilności wstecznej.
+ * Baner został usunięty — funkcja zwraca zawsze pusty string.
+ *
+ * @return string Zawsze ''.
  */
 function evoting_get_banner_url(): string {
-	$id = evoting_get_banner_attachment_id();
-	if ( ! $id ) {
-		return '';
-	}
-	$url = wp_get_attachment_image_url( $id, [ 800, 260 ] );
-	return is_string( $url ) ? $url : wp_get_attachment_image_url( $id, 'full' );
+	return '';
+}
+
+/**
+ * Zachowane dla kompatybilności wstecznej.
+ *
+ * @return int Zawsze 0.
+ */
+function evoting_get_banner_attachment_id(): int {
+	return 0;
 }
 
 /**
@@ -156,8 +150,8 @@ function evoting_get_brand_short_name(): string {
  * @return string
  */
 function evoting_get_brand_full_name(): string {
-	$v = get_option( 'evoting_brand_full_name', 'E-Parlament Wolnych Ludzi' );
-	return is_string( $v ) && trim( $v ) !== '' ? trim( $v ) : 'E-Parlament Wolnych Ludzi';
+	$title = get_bloginfo( 'name' );
+	return is_string( $title ) && trim( $title ) !== '' ? trim( $title ) : 'E-Głosowania';
 }
 
 /**
@@ -234,10 +228,14 @@ function evoting_get_smtp_config(): array {
 	];
 }
 
-// Wirtualna strona głosowania (np. /glosuj) — bez szablonu WordPress.
-add_filter( 'query_vars', [ 'Evoting_Vote_Page', 'register_query_var' ] );
-add_action( 'init', [ 'Evoting_Vote_Page', 'add_rewrite_rule' ] );
-add_action( 'template_redirect', [ 'Evoting_Vote_Page', 'maybe_serve_vote_page' ] );
+// Strona głosowania (np. /?glosuj) — renderowana przez aktywny motyw WordPress.
+add_filter( 'query_vars',          [ 'Evoting_Vote_Page', 'register_query_var' ] );
+add_action( 'init',                [ 'Evoting_Vote_Page', 'add_rewrite_rule' ] );
+add_filter( 'template_include',    [ 'Evoting_Vote_Page', 'filter_template' ] );
+add_action( 'wp_enqueue_scripts',  [ 'Evoting_Vote_Page', 'enqueue_assets' ] );
+add_filter( 'body_class',          [ 'Evoting_Vote_Page', 'add_body_class' ] );
+add_filter( 'pre_get_document_title', [ 'Evoting_Vote_Page', 'filter_document_title' ] );
+add_filter( 'the_title',              [ 'Evoting_Vote_Page', 'suppress_page_title' ], 10, 2 );
 
 /**
  * Zwraca przesunięcie czasu dla głosowań (w godzinach, od -12 do +12).
@@ -279,5 +277,22 @@ function evoting_vote_page_exists(): bool {
 	}
 	$page = get_page_by_path( $slug, OBJECT, 'page' );
 	return $page && $page->post_status === 'publish';
+}
+
+/**
+ * Sprawdza, czy istniejąca strona głosowania zawiera aktualny blok zakładek.
+ *
+ * @return bool true gdy strona istnieje i ma blok evoting/voting-tabs.
+ */
+function evoting_vote_page_has_tabs_block(): bool {
+	$slug = evoting_get_vote_page_slug();
+	if ( $slug === '' ) {
+		return false;
+	}
+	$page = get_page_by_path( $slug, OBJECT, 'page' );
+	if ( ! $page || $page->post_status !== 'publish' ) {
+		return false;
+	}
+	return str_contains( $page->post_content, 'wp:evoting/voting-tabs' );
 }
 

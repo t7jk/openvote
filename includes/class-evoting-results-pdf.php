@@ -266,14 +266,15 @@ class Evoting_Results_Pdf {
 	}
 
 	/**
-	 * Zwraca lokalną ścieżkę do pliku logo (jeśli ustawione w Konfiguracji).
+	 * Zwraca lokalną ścieżkę do ikony witryny WordPress (Site Icon).
+	 * Ikona przechowywana jest jako załącznik WordPress — pobieramy jej ścieżkę systemową.
 	 */
 	private static function get_logo_path(): string {
-		$id = evoting_get_logo_attachment_id();
-		if ( ! $id ) {
+		$site_icon_id = (int) get_option( 'site_icon', 0 );
+		if ( ! $site_icon_id ) {
 			return '';
 		}
-		$path = get_attached_file( $id );
+		$path = get_attached_file( $site_icon_id );
 		return ( $path && file_exists( $path ) ) ? $path : '';
 	}
 

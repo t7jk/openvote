@@ -551,6 +551,40 @@ class Evoting_Poll {
     }
 
     /**
+     * Zwraca zakończone głosowania, do których użytkownik był uprawniony
+     * (niezależnie od tego, czy głosował).
+     *
+     * @param int $user_id
+     * @return object[] Pełne obiekty głosowań (closed lub po dacie końca).
+     */
+    public static function get_closed_polls_for_user( int $user_id ): array {
+        global $wpdb;
+
+        $now   = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
+        $table = self::polls_table();
+
+        $ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM {$table} WHERE (status = 'closed' OR date_end < %s) ORDER BY date_end DESC",
+                $now
+            )
+        );
+
+        if ( empty( $ids ) ) {
+            return [];
+        }
+
+        $out = [];
+        foreach ( array_map( 'absint', $ids ) as $id ) {
+            $poll = self::get( $id );
+            if ( $poll && self::user_in_target_groups( $user_id, $poll ) ) {
+                $out[] = $poll;
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Get ended polls for which the user was in target group but did not vote.
      * Used to show "Głosowanie dobiegło końca dnia ..., zobacz wyniki."
      *

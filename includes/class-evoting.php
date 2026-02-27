@@ -82,7 +82,31 @@ class Evoting {
     }
 
     public function register_blocks(): void {
+        // Istniejący blok pojedynczego głosowania.
         register_block_type( EVOTING_PLUGIN_DIR . 'blocks/evoting-poll' );
+
+        // Nowy blok zakładek głosowań (bez procesu budowania — vanilla JS).
+        wp_register_script(
+            'evoting-voting-tabs-editor',
+            EVOTING_PLUGIN_URL . 'blocks/evoting-voting-tabs/editor.js',
+            [ 'wp-blocks', 'wp-element' ],
+            EVOTING_VERSION,
+            false
+        );
+
+        register_block_type( 'evoting/voting-tabs', [
+            'editor_script'   => 'evoting-voting-tabs-editor',
+            'render_callback' => [ $this, 'render_voting_tabs_block' ],
+        ] );
+    }
+
+    /**
+     * Server-side render callback dla bloku evoting/voting-tabs.
+     */
+    public function render_voting_tabs_block( array $attributes, string $content ): string {
+        ob_start();
+        include EVOTING_PLUGIN_DIR . 'blocks/evoting-voting-tabs/render.php';
+        return ob_get_clean();
     }
 
     public function run(): void {

@@ -34,10 +34,7 @@ class Evoting_Admin_Settings {
         $offset = max( -12, min( 12, $offset ) );
         update_option( 'evoting_time_offset_hours', $offset, false );
 
-        $logo_id   = isset( $_POST['evoting_logo_attachment_id'] ) ? absint( $_POST['evoting_logo_attachment_id'] ) : 0;
-        $banner_id = isset( $_POST['evoting_banner_attachment_id'] ) ? absint( $_POST['evoting_banner_attachment_id'] ) : 0;
-        update_option( 'evoting_logo_attachment_id', $logo_id, false );
-        update_option( 'evoting_banner_attachment_id', $banner_id, false );
+        // Logo i banner usunięte z konfiguracji — używane są Site Icon i Site Title z WordPress.
 
         $from_email = isset( $_POST['evoting_from_email'] ) ? sanitize_email( wp_unslash( $_POST['evoting_from_email'] ) ) : '';
         if ( $from_email === '' || ! is_email( $from_email ) ) {
@@ -82,12 +79,7 @@ class Evoting_Admin_Settings {
         }
         update_option( 'evoting_brand_short_name', $short_name, false );
 
-        $full_name = isset( $_POST['evoting_brand_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['evoting_brand_full_name'] ) ) : '';
-        $full_name = trim( $full_name );
-        if ( $full_name === '' ) {
-            $full_name = 'E-Parlament Wolnych Ludzi';
-        }
-        update_option( 'evoting_brand_full_name', $full_name, false );
+        // Pełna nazwa pobierana z WordPress Site Title — nie zapisujemy w opcjach wtyczki.
 
         flush_rewrite_rules();
 
@@ -100,8 +92,32 @@ class Evoting_Admin_Settings {
             }
         }
 
+        // Zaktualizuj istniejącą stronę do nowego bloku zakładek.
+        if ( ! empty( $_POST['evoting_update_vote_page'] ) ) {
+            $updated = self::update_vote_page_block( $slug );
+            if ( $updated ) {
+                $query_args['page_updated'] = '1';
+            }
+        }
+
         wp_safe_redirect( add_query_arg( $query_args, admin_url( 'admin.php' ) ) );
         exit;
+    }
+
+
+    /**
+     * Aktualizuje tresc istniejącej strony głosowania do bloku evoting/voting-tabs.
+     */
+    public static function update_vote_page_block( string $slug ): bool {
+        $page = get_page_by_path( $slug, OBJECT, 'page' );
+        if ( ! $page ) {
+            return false;
+        }
+        $result = wp_update_post( [
+            'ID'           => $page->ID,
+            'post_content' => '<!-- wp:evoting/voting-tabs /-->',
+        ] );
+        return $result && ! is_wp_error( $result );
     }
 
     /**
@@ -128,7 +144,8 @@ class Evoting_Admin_Settings {
      * @return int|WP_Error ID utworzonej strony lub błąd.
      */
     public static function create_vote_page( string $slug ) {
-        $block_content = '<!-- wp:evoting/poll {"pollId":0} /-->';
+        // Blok zakładek głosowań — dynamiczny, renderowany server-side.
+        $block_content = '<!-- wp:evoting/voting-tabs /-->';
         return wp_insert_post(
             [
                 'post_type'    => 'page',

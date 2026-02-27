@@ -27,8 +27,6 @@ if ( $is_logged ) {
     <?php wp_head(); ?>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem auto; max-width: 720px; padding: 0 1rem; }
-        .evoting-vote-page-banner { text-align: center; margin-bottom: 0.75rem; }
-        .evoting-vote-page-banner img { margin: 0 auto; display: block; max-width: 100%; max-height: 260px; object-fit: contain; }
         .evoting-vote-page-brand { text-align: center; margin-bottom: 1.5rem; font-size: 1rem; color: #333; display: flex; align-items: center; justify-content: center; gap: 0.4rem; flex-wrap: wrap; min-height: 1.5em; }
         .evoting-vote-page-header { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
         .evoting-page-title { margin: 0; }
@@ -42,21 +40,15 @@ if ( $is_logged ) {
 </head>
 <body class="evoting-vote-page">
     <?php
-    $banner_url  = evoting_get_banner_url();
     $logo_url    = evoting_get_logo_url();
     $brand_short = evoting_get_brand_short_name();
-    $brand_full  = evoting_get_brand_full_name();
+    $site_title  = get_bloginfo( 'name' );
     ?>
-    <?php if ( $banner_url !== '' ) : ?>
-        <div class="evoting-vote-page-banner">
-            <img src="<?php echo esc_url( $banner_url ); ?>" alt="" />
-        </div>
-    <?php endif; ?>
     <p class="evoting-vote-page-brand">
         <?php if ( $logo_url !== '' ) : ?>
             <img src="<?php echo esc_url( $logo_url ); ?>" alt="" class="evoting-vote-page-logo" style="width:32px;height:32px;object-fit:contain;" />
         <?php endif; ?>
-        <?php echo esc_html( $brand_short . ' — ' . $brand_full ); ?>
+        <?php echo esc_html( $brand_short . ' — ' . $site_title ); ?>
     </p>
     <header class="evoting-vote-page-header">
         <h1 class="evoting-page-title"><?php esc_html_e( 'Trwające głosowania', 'evoting' ); ?></h1>
