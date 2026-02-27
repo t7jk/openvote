@@ -46,7 +46,7 @@ class Evoting_Eligibility {
         }
 
         // ── 2. Bieżący moment mieści się między date_start a date_end ───────
-        $now = current_time( 'Y-m-d H:i:s' );
+        $now = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
         $start = self::normalize_poll_datetime( $poll->date_start, true );
         $end   = self::normalize_poll_datetime( $poll->date_end, false );
 
@@ -88,6 +88,9 @@ class Evoting_Eligibility {
             'email'      => Evoting_Field_Map::LABELS['email'],
             'city'       => Evoting_Field_Map::LABELS['city'],
         ];
+        if ( Evoting_Field_Map::is_city_disabled() ) {
+            unset( $required['city'] );
+        }
 
         foreach ( $required as $logical => $label ) {
             if ( '' === Evoting_Field_Map::get_user_value( $user, $logical ) ) {
@@ -105,6 +108,13 @@ class Evoting_Eligibility {
         $group_ids = Evoting_Poll::get_target_group_ids( $poll );
 
         if ( ! empty( $group_ids ) ) {
+            if ( Evoting_Field_Map::is_city_disabled() ) {
+                $wszyscy_id = self::get_wszyscy_group_id();
+                if ( $wszyscy_id && [ $wszyscy_id ] === array_map( 'intval', $group_ids ) ) {
+                    return [ 'eligible' => true, 'reason' => '' ];
+                }
+            }
+
             global $wpdb;
             $gm_table     = $wpdb->prefix . 'evoting_group_members';
             $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
@@ -130,6 +140,18 @@ class Evoting_Eligibility {
         }
 
         return [ 'eligible' => true, 'reason' => '' ];
+    }
+
+    /**
+     * ID grupy "Wszyscy" (gdy opcja "Nie używaj miast" jest włączona).
+     *
+     * @return int|null
+     */
+    private static function get_wszyscy_group_id(): ?int {
+        global $wpdb;
+        $table = $wpdb->prefix . 'evoting_groups';
+        $id    = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE name = %s", Evoting_Field_Map::WSZYSCY_NAME ) );
+        return $id ? (int) $id : null;
     }
 
     /**

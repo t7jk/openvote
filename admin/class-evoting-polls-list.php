@@ -29,7 +29,7 @@ class Evoting_Polls_List extends WP_List_Table {
             'cb'         => '<input type="checkbox">',
             'title'      => __( 'Tytuł', 'evoting' ),
             'status'     => __( 'Status', 'evoting' ),
-            'questions'  => __( 'Pytania', 'evoting' ),
+            'groups'     => __( 'Grupy', 'evoting' ),
             'date_start' => __( 'Rozpoczęcie', 'evoting' ),
             'date_end'   => __( 'Zakończenie', 'evoting' ),
         ];
@@ -115,6 +115,8 @@ class Evoting_Polls_List extends WP_List_Table {
         $this->items = self::get_polls_with_search( $args );
         $total_items = self::count_polls_with_search( $args );
 
+        $this->attach_group_names_to_items();
+
         $this->set_pagination_args( [
             'total_items' => $total_items,
             'per_page'    => $per_page,
@@ -127,6 +129,41 @@ class Evoting_Polls_List extends WP_List_Table {
             $this->get_sortable_columns(),
             'title',
         ];
+    }
+
+    /**
+     * Pobiera nazwy grup dla target_groups każdego głosowania i dopisuje je do item->group_names.
+     */
+    private function attach_group_names_to_items(): void {
+        global $wpdb;
+
+        $group_ids = [];
+        foreach ( $this->items as $item ) {
+            $ids = Evoting_Poll::get_target_group_ids( $item );
+            $group_ids = array_merge( $group_ids, $ids );
+        }
+        $group_ids = array_unique( array_filter( $group_ids ) );
+        $groups_map = [];
+        if ( ! empty( $group_ids ) ) {
+            $table        = $wpdb->prefix . 'evoting_groups';
+            $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $rows         = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, name FROM {$table} WHERE id IN ({$placeholders})",
+                    $group_ids
+                )
+            );
+            foreach ( $rows as $r ) {
+                $groups_map[ (int) $r->id ] = $r->name;
+            }
+        }
+        foreach ( $this->items as $item ) {
+            $ids   = Evoting_Poll::get_target_group_ids( $item );
+            $names = array_filter( array_map( function ( $id ) use ( $groups_map ) {
+                return $groups_map[ $id ] ?? '';
+            }, $ids ) );
+            $item->group_names = array_values( $names );
+        }
     }
 
     // ─── Renderowanie kolumn ──────────────────────────────────────────────
@@ -239,16 +276,19 @@ class Evoting_Polls_List extends WP_List_Table {
         );
     }
 
-    protected function column_questions( $item ): string {
-        return esc_html( (string) $item->question_count );
+    protected function column_groups( $item ): string {
+        $names = $item->group_names ?? [];
+        return esc_html( implode( ', ', $names ) );
     }
 
     protected function column_date_start( $item ): string {
-        return esc_html( $item->date_start );
+        $ts = strtotime( $item->date_start );
+        $formatted = $ts ? date_i18n( 'Y-m-d H:i', $ts ) : $item->date_start;
+        return esc_html( $formatted );
     }
 
     protected function column_date_end( $item ): string {
-        $now = current_time( 'Y-m-d H:i:s' );
+        $now = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
         $end = $item->date_end;
         if ( strlen( $end ) === 10 ) {
             $end .= ' 23:59:59';
@@ -256,7 +296,9 @@ class Evoting_Polls_List extends WP_List_Table {
         $style = ( $end < $now && 'open' === $item->status )
             ? ' style="color:#d63638;font-weight:600;"'
             : '';
-        return sprintf( '<span%s>%s</span>', $style, esc_html( $item->date_end ) );
+        $ts       = strtotime( $item->date_end );
+        $formatted = $ts ? date_i18n( 'Y-m-d H:i', $ts ) : $item->date_end;
+        return sprintf( '<span%s>%s</span>', $style, esc_html( $formatted ) );
     }
 
     protected function column_default( $item, $column_name ): string {

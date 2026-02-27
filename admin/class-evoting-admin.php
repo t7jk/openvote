@@ -46,7 +46,7 @@ class Evoting_Admin {
 
         add_submenu_page(
             'evoting',
-            __( 'Konfiguracja bazy danych', 'evoting' ),
+            __( 'Konfiguracja', 'evoting' ),
             __( 'Konfiguracja', 'evoting' ),
             self::CAP_MGR,
             'evoting-settings',

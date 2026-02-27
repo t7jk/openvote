@@ -70,7 +70,7 @@ foreach ( $tables as $table ) {
                         </tr>
                     <?php endforeach; ?>
                     <tr>
-                        <td><code>evoting_version</code>, <code>evoting_db_version</code>, <code>evoting_field_map</code>, <code>evoting_vote_page_slug</code></td>
+                        <td><code>evoting_version</code>, <code>evoting_db_version</code>, <code>evoting_field_map</code>, <code>evoting_vote_page_slug</code>, <code>evoting_time_offset_hours</code></td>
                         <td><?php esc_html_e( 'Opcje WordPress', 'evoting' ); ?></td>
                     </tr>
                 </tbody>

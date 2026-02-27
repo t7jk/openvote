@@ -56,5 +56,6 @@ class Evoting_Admin_Uninstall {
         delete_option( 'evoting_db_version' );
         delete_option( 'evoting_field_map' );
         delete_option( 'evoting_vote_page_slug' );
+        delete_option( 'evoting_time_offset_hours' );
     }
 }

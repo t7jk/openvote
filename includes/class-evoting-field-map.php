@@ -9,7 +9,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class Evoting_Field_Map {
 
-    const OPTION_KEY = 'evoting_field_map';
+    const OPTION_KEY   = 'evoting_field_map';
+    const NO_CITY_KEY  = '__evoting_no_city__';
+    const WSZYSCY_NAME = 'Wszyscy';
 
     /**
      * Logical field identifiers and their factory defaults.
@@ -74,6 +76,14 @@ class Evoting_Field_Map {
     }
 
     /**
+     * Whether city field is disabled (option "Nie używaj miast").
+     * Wszyscy użytkownicy są w jednej grupie "Wszyscy".
+     */
+    public static function is_city_disabled(): bool {
+        return self::get_field( 'city' ) === self::NO_CITY_KEY;
+    }
+
+    /**
      * Read a user field value regardless of whether it is a core
      * column or a usermeta entry.
      *
@@ -82,6 +92,10 @@ class Evoting_Field_Map {
      */
     public static function get_user_value( \WP_User $user, string $logical ): string {
         $actual = self::get_field( $logical );
+
+        if ( 'city' === $logical && $actual === self::NO_CITY_KEY ) {
+            return self::WSZYSCY_NAME;
+        }
 
         if ( self::is_core_field( $actual ) ) {
             return (string) ( $user->{$actual} ?? '' );

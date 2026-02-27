@@ -99,6 +99,9 @@ class Evoting_Batch_Processor {
                 return self::count_users_for_group( $params );
 
             case 'sync_all_city_groups':
+                if ( Evoting_Field_Map::is_city_disabled() ) {
+                    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
+                }
                 // Policz unikalne wartości pola city.
                 $city_key = Evoting_Field_Map::get_field( 'city' );
                 if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
@@ -238,10 +241,14 @@ class Evoting_Batch_Processor {
 
     /**
      * Synchronizuj wszystkie grupy-miasta — odkryj miasta, stwórz grupy, uruchom sync per miasto.
-     * Jeden batch = jedno miasto.
+     * Gdy "Nie używaj miast": jedna grupa "Wszyscy", batch = 100 użytkowników dodanych do niej.
      */
     private static function batch_sync_all_city_groups( array $params, int $offset ): array {
         global $wpdb;
+
+        if ( Evoting_Field_Map::is_city_disabled() ) {
+            return self::batch_sync_wszyscy( $offset );
+        }
 
         $city_key      = Evoting_Field_Map::get_field( 'city' );
         $groups_table  = $wpdb->prefix . 'evoting_groups';
@@ -295,6 +302,57 @@ class Evoting_Batch_Processor {
         }
 
         return $processed;
+    }
+
+    /**
+     * Jedna partia: dodaj 100 użytkowników do grupy "Wszyscy" (tryb bez miast).
+     */
+    private static function batch_sync_wszyscy( int $offset ): array {
+        global $wpdb;
+
+        $groups_table = $wpdb->prefix . 'evoting_groups';
+        $gm_table     = $wpdb->prefix . 'evoting_group_members';
+        $name         = Evoting_Field_Map::WSZYSCY_NAME;
+
+        $wszyscy_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s", $name ) );
+        if ( ! $wszyscy_id ) {
+            $wpdb->insert(
+                $groups_table,
+                [ 'name' => $name, 'type' => 'custom', 'description' => null, 'member_count' => 0 ],
+                [ '%s', '%s', '%s', '%d' ]
+            );
+            $wszyscy_id = $wpdb->insert_id;
+        }
+        $wszyscy_id = (int) $wszyscy_id;
+
+        $user_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->users} ORDER BY ID ASC LIMIT %d OFFSET %d",
+                self::BATCH_SIZE,
+                $offset
+            )
+        );
+
+        $now = current_time( 'mysql' );
+        foreach ( $user_ids as $uid ) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'auto', %s)",
+                    $wszyscy_id,
+                    (int) $uid,
+                    $now
+                )
+            );
+        }
+
+        if ( ! empty( $user_ids ) ) {
+            $count = (int) $wpdb->get_var(
+                $wpdb->prepare( "SELECT COUNT(*) FROM {$gm_table} WHERE group_id = %d", $wszyscy_id )
+            );
+            $wpdb->update( $groups_table, [ 'member_count' => $count ], [ 'id' => $wszyscy_id ], [ '%d' ], [ '%d' ] );
+        }
+
+        return array_map( 'intval', $user_ids );
     }
 
     /**

@@ -19,17 +19,14 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
 
     if ( 'add' === $action ) {
         $name = sanitize_text_field( $_POST['group_name'] ?? '' );
-        $desc = sanitize_textarea_field( $_POST['group_description'] ?? '' );
-        $type = in_array( $_POST['group_type'] ?? 'custom', [ 'city', 'custom' ], true )
-            ? sanitize_text_field( $_POST['group_type'] )
-            : 'custom';
+        $type = 'custom'; // Grupy dodawane ręcznie są zawsze typu „własna”.
 
         if ( '' === $name ) {
             $error = __( 'Nazwa grupy jest wymagana.', 'evoting' );
         } else {
             $inserted = $wpdb->insert(
                 $groups_table,
-                [ 'name' => $name, 'type' => $type, 'description' => $desc ],
+                [ 'name' => $name, 'type' => $type, 'description' => null ],
                 [ '%s', '%s', '%s' ]
             );
             if ( $inserted ) {
@@ -66,8 +63,61 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
             $wpdb->delete( $gm_table, [ 'group_id' => $group_id, 'user_id' => $user_id ], [ '%d', '%d' ] );
             $message = __( 'Członek usunięty.', 'evoting' );
         }
+    } elseif ( 'add_user_to_groups' === $action ) {
+        $user_id   = absint( $_POST['evoting_add_user_id'] ?? 0 );
+        $group_ids = array_map( 'absint', (array) ( $_POST['evoting_user_groups'] ?? [] ) );
+        $group_ids = array_filter( $group_ids );
+        if ( $user_id && ! empty( $group_ids ) ) {
+            $added = 0;
+            foreach ( $group_ids as $gid ) {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
+                        $gid,
+                        $user_id,
+                        current_time( 'mysql' )
+                    )
+                );
+                if ( $wpdb->rows_affected ) {
+                    ++$added;
+                }
+            }
+            if ( $added > 0 ) {
+                $message = sprintf(
+                    /* translators: %d: number of groups */
+                    _n( 'Użytkownik dodany do %d grupy.', 'Użytkownik dodany do %d grup.', $added, 'evoting' ),
+                    $added
+                );
+            }
+            // Gdy użytkownik ma brak miasta w profilu i wybrano dokładnie jedną grupę — nadpisz pole „miasto” nazwą grupy.
+            if ( count( $group_ids ) === 1 ) {
+                $user = get_userdata( $user_id );
+                if ( $user instanceof WP_User ) {
+                    $current_city = Evoting_Field_Map::get_user_value( $user, 'city' );
+                    $current_city = trim( (string) $current_city );
+                    if ( '' === $current_city ) {
+                        $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_ids[0] ) );
+                        if ( $group_row && $group_row->name !== '' ) {
+                            $city_key = Evoting_Field_Map::get_field( 'city' );
+                            if ( ! Evoting_Field_Map::is_core_field( $city_key ) ) {
+                                update_user_meta( $user_id, $city_key, $group_row->name );
+                            } else {
+                                wp_update_user( [ 'ID' => $user_id, $city_key => $group_row->name ] );
+                            }
+                            $message = ( $message ? $message . ' ' : '' ) . __( 'Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania.', 'evoting' );
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
+// Lista użytkowników do ręcznego dodawania do grup (jak przy Koordynatorach).
+$all_users_for_groups = get_users( [
+    'orderby' => 'display_name',
+    'order'   => 'ASC',
+] );
 
 // Aktualizuj liczniki i pobierz grupy.
 $groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
@@ -104,63 +154,35 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $error ); ?></p></div>
     <?php endif; ?>
 
-    <?php // ─── Sync-all ────────────────────────────────────────────────────── ?>
-    <div style="margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-        <strong><?php esc_html_e( 'Synchronizacja grup-miast', 'evoting' ); ?></strong>
-        <p class="description" style="margin:4px 0 8px;">
-            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie (partiami po 100).', 'evoting' ); ?>
-        </p>
-        <button type="button" id="evoting-sync-all-btn" class="button button-primary">
-            <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'evoting' ); ?>
-        </button>
-        <div id="evoting-sync-all-progress" style="margin-top:10px;"></div>
-    </div>
-
     <?php // ─── Tabela grup ─────────────────────────────────────────────────── ?>
     <table class="wp-list-table widefat fixed striped" style="max-width:900px;margin-bottom:30px;">
         <thead>
             <tr>
                 <th style="width:250px;"><?php esc_html_e( 'Nazwa grupy', 'evoting' ); ?></th>
-                <th style="width:100px;"><?php esc_html_e( 'Typ', 'evoting' ); ?></th>
                 <th style="width:100px;"><?php esc_html_e( 'Członkowie', 'evoting' ); ?></th>
-                <th><?php esc_html_e( 'Opis', 'evoting' ); ?></th>
-                <th style="width:240px;"><?php esc_html_e( 'Akcje', 'evoting' ); ?></th>
+                <th style="width:120px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if ( empty( $groups ) ) : ?>
-                <tr><td colspan="5"><?php esc_html_e( 'Brak grup.', 'evoting' ); ?></td></tr>
+                <tr><td colspan="3"><?php esc_html_e( 'Brak grup.', 'evoting' ); ?></td></tr>
             <?php else : ?>
-                <?php foreach ( $groups as $group ) :
-                    $type_label = 'city' === $group->type ? __( 'Miasto', 'evoting' ) : __( 'Własna', 'evoting' );
-                ?>
+                <?php foreach ( $groups as $group ) : ?>
                     <tr>
                         <td><strong><?php echo esc_html( $group->name ); ?></strong></td>
-                        <td><?php echo esc_html( $type_label ); ?></td>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $group->id ) ); ?>">
                                 <?php echo esc_html( $group->member_count ); ?>
                             </a>
                         </td>
-                        <td><?php echo esc_html( $group->description ?: '—' ); ?></td>
                         <td>
-                            <?php if ( 'city' === $group->type ) : ?>
-                                <button type="button"
-                                        class="button button-small evoting-sync-group-btn"
-                                        data-group-id="<?php echo esc_attr( $group->id ); ?>">
-                                    <?php esc_html_e( 'Sync', 'evoting' ); ?>
-                                </button>
-                                <div id="evoting-sync-progress-<?php echo esc_attr( $group->id ); ?>"
-                                     style="display:inline-block;margin-left:8px;vertical-align:middle;min-width:160px;"></div>
-                            <?php endif; ?>
-                            &nbsp;
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
                                 <input type="hidden" name="evoting_groups_action" value="delete">
                                 <input type="hidden" name="group_id" value="<?php echo esc_attr( $group->id ); ?>">
                                 <button type="submit" class="button button-small button-link-delete"
-                                        onclick="return confirm('<?php esc_attr_e( 'Usunąć grupę? Członkowie nie zostaną usunięci z WordPress.', 'evoting' ); ?>');">
-                                    <?php esc_html_e( 'Usuń', 'evoting' ); ?>
+                                        onclick="return confirm('<?php echo esc_js( __( 'Usunąć tę grupę? Zostaną usunięci wszyscy jej członkowie (przypisania).', 'evoting' ) ); ?>');">
+                                    <?php esc_html_e( 'Usuń grupę', 'evoting' ); ?>
                                 </button>
                             </form>
                         </td>
@@ -261,6 +283,46 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
         <?php endif; // if $group ?>
     <?php endif; // if 'members' === $view_action ?>
 
+    <?php if ( 'members' !== $view_action && ! empty( $groups ) ) : ?>
+        <?php // ─── Dodaj użytkownika do grup (ręcznie, np. do testów) ───────── ?>
+        <hr>
+        <h2><?php esc_html_e( 'Dodaj użytkownika do grup', 'evoting' ); ?></h2>
+        <p class="description" style="margin:4px 0 12px;"><?php esc_html_e( 'Ręczne przypisanie użytkownika do jednej lub wielu grup (niezależnie od automatycznego przyporządkowania). Przydatne przy testach.', 'evoting' ); ?></p>
+        <form method="post" action="">
+            <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
+            <input type="hidden" name="evoting_groups_action" value="add_user_to_groups">
+            <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
+                <div>
+                    <label for="evoting_add_user_id"><?php esc_html_e( 'Użytkownik:', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Przewiń listę, wybierz jedną osobę.', 'evoting' ); ?></p>
+                    <select name="evoting_add_user_id" id="evoting_add_user_id" required size="15" style="min-width:280px; display:block;">
+                        <option value="">— <?php esc_html_e( 'Wybierz', 'evoting' ); ?> —</option>
+                        <?php foreach ( $all_users_for_groups as $u ) :
+                            $city = Evoting_Field_Map::get_user_value( $u, 'city' );
+                            $city_label = ( $city !== '' ) ? $city : __( 'brak', 'evoting' );
+                            $nick = Evoting_Field_Map::get_user_value( $u, 'nickname' );
+                            if ( $nick === '' ) { $nick = $u->user_login; }
+                        ?>
+                            <option value="<?php echo esc_attr( $u->ID ); ?>"><?php echo esc_html( $nick . ' (' . $city_label . ')' ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div style="align-self:center;">
+                    <button type="submit" class="button" style="margin-top:24px;"><?php esc_html_e( 'Dodaj', 'evoting' ); ?></button>
+                </div>
+                <div>
+                    <label for="evoting_user_groups"><?php esc_html_e( 'Grupy:', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele grup. Przewiń listę.', 'evoting' ); ?></p>
+                    <select name="evoting_user_groups[]" id="evoting_user_groups" multiple size="15" style="min-width:200px; display:block;">
+                        <?php foreach ( $groups as $g ) : ?>
+                            <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </form>
+    <?php endif; ?>
+
     <?php // ─── Dodaj grupę ─────────────────────────────────────────────────── ?>
     <hr>
     <h2><?php esc_html_e( 'Dodaj grupę', 'evoting' ); ?></h2>
@@ -272,22 +334,22 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
                 <th scope="row"><label for="group_name"><?php esc_html_e( 'Nazwa', 'evoting' ); ?> *</label></th>
                 <td><input type="text" id="group_name" name="group_name" class="regular-text" required maxlength="255"></td>
             </tr>
-            <tr>
-                <th scope="row"><label for="group_type"><?php esc_html_e( 'Typ', 'evoting' ); ?></label></th>
-                <td>
-                    <select id="group_type" name="group_type">
-                        <option value="city"><?php esc_html_e( 'Miasto (synchronizowana automatycznie)', 'evoting' ); ?></option>
-                        <option value="custom"><?php esc_html_e( 'Własna (ręczne zarządzanie)', 'evoting' ); ?></option>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><label for="group_description"><?php esc_html_e( 'Opis', 'evoting' ); ?></label></th>
-                <td><textarea id="group_description" name="group_description" rows="3" class="regular-text"></textarea></td>
-            </tr>
         </table>
         <?php submit_button( __( 'Dodaj grupę', 'evoting' ), 'primary', 'submit', false ); ?>
     </form>
+
+    <?php // ─── Synchronizacja grup-miast (na dole strony) ───────────────────── ?>
+    <hr>
+    <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
+        <strong><?php esc_html_e( 'Synchronizacja grup-miast', 'evoting' ); ?></strong>
+        <p class="description" style="margin:4px 0 8px;">
+            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie (partiami po 100).', 'evoting' ); ?>
+        </p>
+        <button type="button" id="evoting-sync-all-btn" class="button button-primary">
+            <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'evoting' ); ?>
+        </button>
+        <div id="evoting-sync-all-progress" style="margin-top:10px;"></div>
+    </div>
 </div>
 
 <style>

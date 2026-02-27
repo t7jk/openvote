@@ -89,6 +89,35 @@ add_action( 'init', [ 'Evoting_Vote_Page', 'add_rewrite_rule' ] );
 add_action( 'template_redirect', [ 'Evoting_Vote_Page', 'maybe_serve_vote_page' ] );
 
 /**
+ * Zwraca przesunięcie czasu dla głosowań (w godzinach, od -12 do +12).
+ * Używane, gdy strefa czasowa serwera różni się od strefy administratora.
+ */
+function evoting_get_time_offset_hours(): int {
+	$offset = (int) get_option( 'evoting_time_offset_hours', 0 );
+	return max( -12, min( 12, $offset ) );
+}
+
+/**
+ * Zwraca aktualny czas z uwzględnieniem przesunięcia z Konfiguracji.
+ * Używaj przy sprawdzaniu okresu głosowania i licznikach.
+ *
+ * @param string $format Format daty (np. 'Y-m-d H:i:s' lub 'mysql').
+ * @return string
+ */
+function evoting_current_time_for_voting( string $format = 'Y-m-d H:i:s' ): string {
+	$offset_h = evoting_get_time_offset_hours();
+	$wp_now   = current_time( 'Y-m-d H:i:s' );
+	$tz       = wp_timezone();
+	$dt       = date_create( $wp_now, $tz );
+	if ( ! $dt ) {
+		return $wp_now;
+	}
+	$dt->modify( ( $offset_h >= 0 ? '+' : '' ) . $offset_h . ' hours' );
+	$fmt = ( $format === 'mysql' ) ? 'Y-m-d H:i:s' : $format;
+	return $dt->format( $fmt );
+}
+
+/**
  * Sprawdza, czy istnieje opublikowana strona o slugu strony głosowania.
  * Używane do pokazywania przycisku „Dodaj podstronę” w konfiguracji.
  */

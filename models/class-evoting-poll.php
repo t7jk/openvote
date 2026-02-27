@@ -400,7 +400,7 @@ class Evoting_Poll {
             return false;
         }
 
-        $now = current_time( 'Y-m-d H:i:s' );
+        $now   = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
         $start = $poll->date_start;
         $end   = $poll->date_end;
         if ( strlen( $start ) === 10 ) {
@@ -425,7 +425,7 @@ class Evoting_Poll {
             return true;
         }
 
-        return current_time( 'Y-m-d H:i:s' ) > $end;
+        return evoting_current_time_for_voting( 'Y-m-d H:i:s' ) > $end;
     }
 
     /**
@@ -486,6 +486,18 @@ class Evoting_Poll {
         if ( empty( $group_ids ) ) {
             return true;
         }
+        if ( Evoting_Field_Map::is_city_disabled() ) {
+            global $wpdb;
+            $wszyscy_id = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}evoting_groups WHERE name = %s",
+                    Evoting_Field_Map::WSZYSCY_NAME
+                )
+            );
+            if ( $wszyscy_id && [ (int) $wszyscy_id ] === array_map( 'intval', $group_ids ) ) {
+                return true;
+            }
+        }
         global $wpdb;
         $gm_table     = $wpdb->prefix . 'evoting_group_members';
         $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
@@ -508,13 +520,12 @@ class Evoting_Poll {
     public static function get_active_polls(): array {
         global $wpdb;
 
-        $now   = current_time( 'Y-m-d H:i:s' );
+        $now   = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
         $table = self::polls_table();
 
         $ids = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT id FROM %i WHERE status = 'open' AND date_start <= %s AND date_end >= %s ORDER BY date_end ASC",
-                $table,
+                "SELECT id FROM {$table} WHERE status = 'open' AND date_start <= %s AND date_end >= %s ORDER BY date_end ASC",
                 $now,
                 $now
             )
@@ -544,13 +555,12 @@ class Evoting_Poll {
     public static function get_ended_polls_eligible_not_voted( int $user_id ): array {
         global $wpdb;
 
-        $now   = current_time( 'Y-m-d H:i:s' );
+        $now   = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
         $table = self::polls_table();
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, title, date_end FROM %i WHERE (status = 'closed' OR date_end < %s) ORDER BY date_end DESC",
-                $table,
+                "SELECT id, title, date_end FROM {$table} WHERE (status = 'closed' OR date_end < %s) ORDER BY date_end DESC",
                 $now
             )
         );

@@ -17,6 +17,12 @@ function evoting_settings_select( string $logical, string $current, array $core_
     $name = 'evoting_field_map[' . esc_attr( $logical ) . ']';
     echo '<select name="' . $name . '" id="evoting_field_' . esc_attr( $logical ) . '" class="evoting-settings-select">';
 
+    if ( 'city' === $logical ) {
+        echo '<option value="' . esc_attr( Evoting_Field_Map::NO_CITY_KEY ) . '"' . selected( $current, Evoting_Field_Map::NO_CITY_KEY, false ) . '>';
+        echo esc_html__( 'Nie używaj miast (wszyscy w grupie Wszyscy)', 'evoting' );
+        echo '</option>';
+    }
+
     echo '<optgroup label="' . esc_attr__( 'Pola wbudowane WordPress (wp_users)', 'evoting' ) . '">';
     foreach ( $core_keys as $key ) {
         printf(
@@ -43,7 +49,7 @@ function evoting_settings_select( string $logical, string $current, array $core_
 }
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Konfiguracja bazy danych', 'evoting' ); ?></h1>
+    <h1><?php esc_html_e( 'Konfiguracja', 'evoting' ); ?></h1>
 
     <?php if ( isset( $_GET['saved'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
@@ -81,6 +87,44 @@ function evoting_settings_select( string $logical, string $current, array $core_
                             <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Utworzy stronę pod powyższym adresem z blokiem głosowań.', 'evoting' ); ?></span>
                         </p>
                     <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania liczników.', 'evoting' ); ?>
+        </p>
+        <?php
+        $current_offset = evoting_get_time_offset_hours();
+        $server_time    = current_time( 'Y-m-d H:i:s' );
+        $voting_time    = evoting_current_time_for_voting( 'Y-m-d H:i:s' );
+        ?>
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><label for="evoting_time_offset_hours"><?php esc_html_e( 'Przesunięcie czasu', 'evoting' ); ?></label></th>
+                <td>
+                    <select name="evoting_time_offset_hours" id="evoting_time_offset_hours">
+                        <?php for ( $h = -12; $h <= 12; $h++ ) : ?>
+                            <option value="<?php echo (int) $h; ?>" <?php selected( $current_offset, $h ); ?>>
+                                <?php echo esc_html( $h === 0 ? __( '0 (bez zmiany)', 'evoting' ) : sprintf( __( '%+d h', 'evoting' ), $h ) ); ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Czas na serwerze', 'evoting' ); ?></th>
+                <td>
+                    <code id="evoting-server-time"><?php echo esc_html( $server_time ); ?></code>
+                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Aktualny czas według ustawień WordPress (strefa z Ustawienia → Ogólne).', 'evoting' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Czas dla głosowań', 'evoting' ); ?></th>
+                <td>
+                    <strong id="evoting-voting-time"><?php echo esc_html( $voting_time ); ?></strong>
+                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Czas używany przy sprawdzaniu rozpoczęcia i zakończenia głosowania (serwer + przesunięcie).', 'evoting' ); ?></p>
                 </td>
             </tr>
         </table>
@@ -125,15 +169,20 @@ function evoting_settings_select( string $logical, string $current, array $core_
                         ); ?>
                     </td>
                     <td>
-                        <code><?php echo esc_html( $current_val ); ?></code>
-                        <?php if ( $is_core ) : ?>
-                            <br><span class="evoting-badge evoting-badge--core">
-                                <?php esc_html_e( 'wbudowane', 'evoting' ); ?>
-                            </span>
+                        <?php if ( 'city' === $logical && $current_val === Evoting_Field_Map::NO_CITY_KEY ) : ?>
+                            <code><?php esc_html_e( 'Nie używaj miast', 'evoting' ); ?></code>
+                            <br><span class="evoting-badge evoting-badge--meta"><?php esc_html_e( 'grupa Wszyscy', 'evoting' ); ?></span>
                         <?php else : ?>
-                            <br><span class="evoting-badge evoting-badge--meta">
-                                <?php esc_html_e( 'usermeta', 'evoting' ); ?>
-                            </span>
+                            <code><?php echo esc_html( $current_val ); ?></code>
+                            <?php if ( $is_core ) : ?>
+                                <br><span class="evoting-badge evoting-badge--core">
+                                    <?php esc_html_e( 'wbudowane', 'evoting' ); ?>
+                                </span>
+                            <?php else : ?>
+                                <br><span class="evoting-badge evoting-badge--meta">
+                                    <?php esc_html_e( 'usermeta', 'evoting' ); ?>
+                                </span>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </td>
                 </tr>

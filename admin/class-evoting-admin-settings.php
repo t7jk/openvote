@@ -22,9 +22,18 @@ class Evoting_Admin_Settings {
         $raw_map = (array) ( $_POST['evoting_field_map'] ?? [] );
         Evoting_Field_Map::save( $raw_map );
 
+        if ( Evoting_Field_Map::is_city_disabled() ) {
+            self::ensure_wszyscy_group_exists();
+        }
+
         $slug = isset( $_POST['evoting_vote_page_slug'] ) ? sanitize_title( wp_unslash( $_POST['evoting_vote_page_slug'] ) ) : '';
         $slug = $slug !== '' ? $slug : 'glosuj';
         update_option( 'evoting_vote_page_slug', $slug, false );
+
+        $offset = isset( $_POST['evoting_time_offset_hours'] ) ? (int) $_POST['evoting_time_offset_hours'] : 0;
+        $offset = max( -12, min( 12, $offset ) );
+        update_option( 'evoting_time_offset_hours', $offset, false );
+
         flush_rewrite_rules();
 
         $query_args = [ 'page' => 'evoting-settings', 'saved' => '1' ];
@@ -38,6 +47,23 @@ class Evoting_Admin_Settings {
 
         wp_safe_redirect( add_query_arg( $query_args, admin_url( 'admin.php' ) ) );
         exit;
+    }
+
+    /**
+     * Tworzy grupę "Wszyscy" jeśli nie istnieje (tryb "Nie używaj miast").
+     */
+    public static function ensure_wszyscy_group_exists(): void {
+        global $wpdb;
+        $table = $wpdb->prefix . 'evoting_groups';
+        $name  = Evoting_Field_Map::WSZYSCY_NAME;
+        $id    = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE name = %s", $name ) );
+        if ( ! $id ) {
+            $wpdb->insert(
+                $table,
+                [ 'name' => $name, 'type' => 'custom', 'description' => null, 'member_count' => 0 ],
+                [ '%s', '%s', '%s', '%d' ]
+            );
+        }
     }
 
     /**
