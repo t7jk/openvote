@@ -282,8 +282,10 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
         <?php if ( $is_read_only ) : ?>
             <p class="submit">
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting' ) ); ?>" class="button"><?php esc_html_e( 'Wróć do listy', 'evoting' ); ?></a>
+                <?php if ( 'closed' === ( $poll->status ?? '' ) ) : ?>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $poll->id ) ); ?>"
                    class="button button-primary"><?php esc_html_e( 'Zobacz wyniki', 'evoting' ); ?></a>
+                <?php endif; ?>
             </p>
         <?php else : ?>
             <p class="submit evoting-poll-actions">

@@ -175,9 +175,10 @@ class Evoting_Polls_List extends WP_List_Table {
     }
 
     protected function column_title( $item ): string {
-        $edit_url    = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $item->id );
-        $results_url = admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $item->id );
-        $view_url    = admin_url( 'admin.php?page=evoting&action=view&poll_id=' . $item->id );
+        $edit_url         = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $item->id );
+        $results_url      = admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $item->id );
+        $view_url         = admin_url( 'admin.php?page=evoting&action=view&poll_id=' . $item->id );
+        $invitations_url  = admin_url( 'admin.php?page=evoting&action=invitations&poll_id=' . $item->id );
 
         $actions = [];
 
@@ -198,11 +199,20 @@ class Evoting_Polls_List extends WP_List_Table {
             );
         }
 
-        if ( in_array( $item->status, [ 'open', 'closed' ], true ) ) {
+        if ( 'open' === $item->status ) {
             $actions['view'] = sprintf(
                 '<a href="%s">%s</a>',
                 esc_url( $view_url ),
                 esc_html__( 'Podgląd', 'evoting' )
+            );
+        }
+
+        // Zaproszenia — status wysyłki e-mail, dostępny dla open i closed.
+        if ( in_array( $item->status, [ 'open', 'closed' ], true ) ) {
+            $actions['invitations'] = sprintf(
+                '<a href="%s">%s</a>',
+                esc_url( $invitations_url ),
+                esc_html__( 'Zaproszenia', 'evoting' )
             );
         }
 

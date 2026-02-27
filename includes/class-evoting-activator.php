@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Activator {
 
-    const DB_VERSION = '3.3.0';
+    const DB_VERSION = '3.5.0';
 
     public static function activate(): void {
         self::create_tables();
@@ -13,6 +13,29 @@ class Evoting_Activator {
         require_once __DIR__ . '/class-evoting-vote-page.php';
         Evoting_Vote_Page::add_rewrite_rule();
         flush_rewrite_rules();
+    }
+
+    /**
+     * Automatyczna aktualizacja schematu DB gdy wersja w opcjach jest starsza niż DB_VERSION.
+     * Wywoływana z admin_init żeby brakujące tabele były tworzone bez konieczności
+     * ręcznego deaktywowania i aktywowania wtyczki.
+     */
+    public static function maybe_upgrade(): void {
+        global $wpdb;
+
+        $installed    = get_option( 'evoting_db_version', '1.0.0' );
+        $version_old  = version_compare( $installed, self::DB_VERSION, '<' );
+
+        // Sprawdź czy tabela kolejki email fizycznie istnieje (może jej nie być
+        // gdy wtyczka była aktywna przed jej dodaniem do schematu).
+        $eq_table     = $wpdb->prefix . 'evoting_email_queue';
+        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $eq_table ) ) === $eq_table;
+
+        if ( $version_old || ! $table_exists ) {
+            self::create_tables();
+            self::run_migrations();
+            update_option( 'evoting_db_version', self::DB_VERSION );
+        }
     }
 
     private static function create_tables(): void {
@@ -25,6 +48,7 @@ class Evoting_Activator {
         $votes         = $wpdb->prefix . 'evoting_votes';
         $groups        = $wpdb->prefix . 'evoting_groups';
         $group_members = $wpdb->prefix . 'evoting_group_members';
+        $email_queue   = $wpdb->prefix . 'evoting_email_queue';
 
         $sql = "CREATE TABLE {$polls} (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -101,6 +125,23 @@ class Evoting_Activator {
             UNIQUE KEY unique_member (group_id,user_id),
             KEY group_id (group_id),
             KEY user_id (user_id)
+        ) {$charset_collate};
+
+        CREATE TABLE {$email_queue} (
+            id        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            job_id    VARCHAR(64) NOT NULL,
+            poll_id   BIGINT UNSIGNED NOT NULL,
+            user_id   BIGINT UNSIGNED NOT NULL,
+            email     VARCHAR(255) NOT NULL,
+            name      VARCHAR(255) NOT NULL DEFAULT '',
+            status    ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+            error_msg VARCHAR(512) NULL DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            sent_at   DATETIME NULL DEFAULT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY unique_poll_user (poll_id,user_id),
+            KEY job_status (job_id,status),
+            KEY poll_status (poll_id,status)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -214,6 +255,24 @@ class Evoting_Activator {
             $polls = $wpdb->prefix . 'evoting_polls';
             $wpdb->query( "UPDATE {$polls} SET status = 'draft' WHERE status = 'scheduled'" );
             $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN status ENUM('draft','open','closed') NOT NULL DEFAULT 'draft'" );
+        }
+
+        // ── 3.3.0 → 3.4.0 : tabela kolejki e-maili ───────────────────────────
+        // Tworzona przez dbDelta (powyżej) — migracja nie wymaga ALTER.
+
+        // ── 3.4.0 → 3.5.0 : UNIQUE KEY (poll_id, user_id) w tabeli kolejki ──
+        if ( version_compare( $installed, '3.5.0', '<' ) ) {
+            $eq = $wpdb->prefix . 'evoting_email_queue';
+            $indexes = $wpdb->get_col( "SHOW INDEX FROM {$eq}" );  // phpcs:ignore
+            if ( ! in_array( 'unique_poll_user', (array) $indexes, true ) ) {
+                // Usuń duplikaty przed dodaniem klucza (zostaw najnowszy wpis).
+                $wpdb->query(
+                    "DELETE e1 FROM {$eq} e1
+                     INNER JOIN {$eq} e2
+                     ON e1.poll_id = e2.poll_id AND e1.user_id = e2.user_id AND e1.id < e2.id"
+                ); // phpcs:ignore
+                $wpdb->query( "ALTER TABLE {$eq} ADD UNIQUE KEY unique_poll_user (poll_id, user_id)" ); // phpcs:ignore
+            }
         }
     }
 }

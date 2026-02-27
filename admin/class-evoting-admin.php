@@ -191,6 +191,18 @@ class Evoting_Admin {
     }
 
     /**
+     * Bulk actions (POST) na liście głosowań — wykonywane w admin_init,
+     * zanim cokolwiek zostanie wysłane, żeby wp_safe_redirect() działał.
+     */
+    public function handle_bulk_polls_action(): void {
+        if ( ! isset( $_GET['page'] ) || 'evoting' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+        $list_table = new Evoting_Polls_List();
+        $list_table->process_bulk_action();
+    }
+
+    /**
      * Akcje GET (duplikat, zakończ, uruchom, usuń) — wykonywane w admin_init,
      * zanim cokolwiek zostanie wysłane, żeby przekierowanie działało.
      */
@@ -201,6 +213,15 @@ class Evoting_Admin {
 
         $action  = sanitize_text_field( $_GET['action'] ?? '' );
         $poll_id = isset( $_GET['poll_id'] ) ? absint( $_GET['poll_id'] ) : 0;
+
+        if ( 'edit' === $action && $poll_id ) {
+            $poll = Evoting_Poll::get( $poll_id );
+            if ( $poll && 'draft' !== $poll->status ) {
+                wp_safe_redirect( add_query_arg( 'edit_locked', 1, admin_url( 'admin.php?page=evoting' ) ) );
+                exit;
+            }
+            return;
+        }
 
         if ( ! $poll_id || ! in_array( $action, [ 'delete', 'end', 'start', 'duplicate' ], true ) ) {
             return;
@@ -273,11 +294,7 @@ class Evoting_Admin {
 
         if ( 'edit' === $action && $poll_id ) {
             $poll = Evoting_Poll::get( $poll_id );
-            if ( $poll ) {
-                if ( 'draft' !== $poll->status ) {
-                    wp_safe_redirect( add_query_arg( 'edit_locked', 1, admin_url( 'admin.php?page=evoting' ) ) );
-                    exit;
-                }
+            if ( $poll && 'draft' === $poll->status ) {
                 include EVOTING_PLUGIN_DIR . 'admin/partials/poll-form.php';
                 return;
             }
@@ -303,11 +320,19 @@ class Evoting_Admin {
             }
         }
 
+        if ( 'invitations' === $action && $poll_id ) {
+            $poll = Evoting_Poll::get( $poll_id );
+            if ( $poll ) {
+                include EVOTING_PLUGIN_DIR . 'admin/partials/poll-invitations.php';
+                return;
+            }
+        }
+
         // Akcje GET (delete, end, start, duplicate) są obsługiwane w admin_init — handle_evoting_get_actions().
+        // Bulk POST actions są obsługiwane w admin_init — handle_bulk_polls_action().
 
         // WP_List_Table — polls listing.
         $list_table = new Evoting_Polls_List();
-        $list_table->process_bulk_action();
         $list_table->prepare_items();
         ?>
         <div class="wrap">
@@ -499,8 +524,8 @@ class Evoting_Admin {
             true
         );
 
-        // Batch progress — tylko na stronie Grup.
-        if ( str_contains( $hook, 'evoting-groups' ) ) {
+        // Batch progress — na stronie Grup oraz na głównej stronie evoting (zaproszenia, wyniki).
+        if ( str_contains( $hook, 'evoting' ) ) {
             wp_enqueue_script(
                 'evoting-batch-progress',
                 EVOTING_PLUGIN_URL . 'assets/js/batch-progress.js',
@@ -509,8 +534,9 @@ class Evoting_Admin {
                 true
             );
             wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
-                'apiRoot' => esc_url_raw( rest_url( 'evoting/v1' ) ),
-                'nonce'   => wp_create_nonce( 'wp_rest' ),
+                'apiRoot'    => esc_url_raw( rest_url( 'evoting/v1' ) ),
+                'nonce'      => wp_create_nonce( 'wp_rest' ),
+                'emailDelay' => evoting_get_email_batch_delay(),
             ] );
         }
 

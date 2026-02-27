@@ -2,6 +2,7 @@
  * EP-RWL — Pasek postępu operacji masowych (batch jobs).
  *
  * Używa: window.evotingBatch.nonce i window.evotingBatch.apiRoot
+ * Opcjonalnie: window.evotingBatch.emailDelay (ms między partiami e-mail)
  */
 
 /**
@@ -11,10 +12,12 @@
  * @param {Function} onProgress  Callback(processed, total, pct).
  * @param {Function} onComplete  Callback(jobData).
  * @param {Function} onError     Callback(error).
+ * @param {number}   [delayMs]   Opóźnienie między partiami w ms (nadpisuje evotingBatch.emailDelay).
  */
-async function evotingRunBatchJob( jobId, onProgress, onComplete, onError ) {
-	const apiRoot = window.evotingBatch?.apiRoot || '/wp-json/evoting/v1';
-	const nonce   = window.evotingBatch?.nonce   || '';
+async function evotingRunBatchJob( jobId, onProgress, onComplete, onError, delayMs ) {
+	const apiRoot    = window.evotingBatch?.apiRoot    || '/wp-json/evoting/v1';
+	const nonce      = window.evotingBatch?.nonce      || '';
+	const emailDelay = delayMs ?? ( window.evotingBatch?.emailDelay ?? 300 );
 
 	const headers = {
 		'Content-Type':  'application/json',
@@ -48,8 +51,8 @@ async function evotingRunBatchJob( jobId, onProgress, onComplete, onError ) {
 				throw new Error( err.message || `HTTP ${nextRes.status}` );
 			}
 
-			// 3. Poczekaj 300ms, powtórz
-			setTimeout( poll, 300 );
+			// 3. Odczekaj emailDelay ms, powtórz (throttle)
+			setTimeout( poll, emailDelay );
 
 		} catch ( err ) {
 			if ( typeof onError === 'function' ) {
@@ -61,6 +64,43 @@ async function evotingRunBatchJob( jobId, onProgress, onComplete, onError ) {
 	};
 
 	poll();
+}
+
+/**
+ * Zapisz job_id w localStorage — umożliwia wznowienie po zamknięciu karty.
+ *
+ * @param {string} pollId  ID głosowania (klucz lokalny).
+ * @param {string} jobId   ID zadania.
+ */
+function evotingSaveJobId( pollId, jobId ) {
+	try {
+		localStorage.setItem( 'evoting_job_' + pollId, jobId );
+	} catch ( e ) { /* ignoruj — prywatny tryb przeglądarki */ }
+}
+
+/**
+ * Odczytaj zapisany job_id dla danego głosowania.
+ *
+ * @param {string} pollId
+ * @return {string|null}
+ */
+function evotingGetSavedJobId( pollId ) {
+	try {
+		return localStorage.getItem( 'evoting_job_' + pollId );
+	} catch ( e ) {
+		return null;
+	}
+}
+
+/**
+ * Usuń zapisany job_id po zakończeniu wysyłki.
+ *
+ * @param {string} pollId
+ */
+function evotingClearJobId( pollId ) {
+	try {
+		localStorage.removeItem( 'evoting_job_' + pollId );
+	} catch ( e ) { /* ignoruj */ }
 }
 
 /**

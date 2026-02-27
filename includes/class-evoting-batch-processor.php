@@ -9,18 +9,23 @@ defined( 'ABSPATH' ) || exit;
  * do momentu, aż status = 'done'.
  *
  * Typy zadań:
- *   sync_group          — synchronizuj jedną grupę (city lub custom) z usermeta
+ *   sync_group           — synchronizuj jedną grupę (city lub custom) z usermeta
  *   sync_all_city_groups — odkryj wszystkie miasta i stwórz/synchronizuj grupy
- *   send_start_emails   — wyślij e-mail o otwarciu głosowania
+ *   send_start_emails    — wyślij e-mail o otwarciu głosowania (bez kolejki)
+ *   send_invitations     — wyślij zaproszenia z kolejki wp_evoting_email_queue
  */
 class Evoting_Batch_Processor {
 
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE              = 100;
+    const EMAIL_BATCH_SIZE_DEFAULT = 20;  // WP/SMTP
+    const EMAIL_SENDGRID_BATCH_DEFAULT = 100; // SendGrid
 
     // ─── Publiczne API ───────────────────────────────────────────────────────
 
     /**
      * Uruchom nowe zadanie.
+     *
+     * Dla `send_invitations` wypełnia tabelę wp_evoting_email_queue przed startem.
      *
      * @param string $type   Typ zadania (np. 'sync_group').
      * @param array  $params Parametry zadania.
@@ -29,13 +34,18 @@ class Evoting_Batch_Processor {
     public static function start_job( string $type, array $params ): string {
         $job_id = uniqid( 'evoting_job_', true );
 
-        $total = self::count_total( $type, $params );
+        // Dla wysyłki zaproszeń: najpierw wypełnij kolejkę w bazie.
+        if ( 'send_invitations' === $type ) {
+            self::fill_email_queue( $job_id, $params );
+        }
+
+        $total = self::count_total( $type, array_merge( $params, [ 'job_id' => $job_id ] ) );
 
         set_transient(
             $job_id,
             [
                 'type'      => $type,
-                'params'    => $params,
+                'params'    => array_merge( $params, [ 'job_id' => $job_id ] ),
                 'offset'    => 0,
                 'total'     => $total,
                 'processed' => 0,
@@ -121,9 +131,21 @@ class Evoting_Batch_Processor {
                 if ( ! $poll_id ) {
                     return 0;
                 }
-                // Policz użytkowników z adresem e-mail.
                 return (int) $wpdb->get_var(
                     "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != ''"
+                );
+
+            case 'send_invitations':
+                $poll_id_ci = absint( $params['poll_id'] ?? 0 );
+                if ( ! $poll_id_ci ) {
+                    return 0;
+                }
+                $eq = $wpdb->prefix . 'evoting_email_queue';
+                return (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$eq} WHERE poll_id = %d AND status = 'pending'",
+                        $poll_id_ci
+                    )
                 );
 
             default:
@@ -154,12 +176,28 @@ class Evoting_Batch_Processor {
             case 'send_start_emails':
                 $items = self::batch_send_emails( $params, $offset );
                 break;
+
+            case 'send_invitations':
+                $items = self::batch_send_invitations( $params );
+                break;
         }
 
-        $count            = count( $items );
-        $job['offset']   += $count > 0 ? self::BATCH_SIZE : $job['total']; // przesuń do przodu
+        $count             = count( $items );
         $job['processed'] += $count;
-        $job['results']   = array_merge( $job['results'], $items );
+
+        if ( 'send_invitations' === $job['type'] ) {
+            // Dla kolejki DB: offset = liczba wierszy, które już nie są pending (dynamicznie z DB).
+            global $wpdb;
+            $eq      = $wpdb->prefix . 'evoting_email_queue';
+            $pid_run = absint( $job['params']['poll_id'] ?? 0 );
+            $job['offset'] = $pid_run
+                ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$eq} WHERE poll_id = %d AND status != 'pending'", $pid_run ) )
+                : $job['total'];
+        } else {
+            $job['offset'] += $count > 0 ? self::BATCH_SIZE : $job['total'];
+        }
+
+        $job['results'] = array_merge( $job['results'], $items );
 
         return [ 'job' => $job, 'items' => $items ];
     }
@@ -401,12 +439,17 @@ class Evoting_Batch_Processor {
             return [];
         }
 
-        $subject = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $poll->title );
-        $message = sprintf(
+        $from_email = evoting_get_from_email();
+        $from_name  = evoting_get_brand_short_name();
+        $subject    = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $poll->title );
+        $message    = sprintf(
             __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby wziąć udział.", 'evoting' ),
             $poll->title
         );
-        $headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . $from_name . ' <' . $from_email . '>',
+        ];
         $sent    = [];
 
         foreach ( $users as $user ) {
@@ -414,6 +457,224 @@ class Evoting_Batch_Processor {
                 wp_mail( $user->user_email, $subject, $message, $headers );
                 $sent[] = $user->user_email;
             }
+        }
+
+        return $sent;
+    }
+
+    // ─── Wysyłka zaproszeń z kolejki DB ─────────────────────────────────────
+
+    /**
+     * Wypełnij kolejkę e-maili dla danego głosowania.
+     * Wstawiamy każdego uprawnionego użytkownika z danej grupy.
+     *
+     * @param string $job_id  ID zadania.
+     * @param array  $params  ['poll_id' => int]
+     */
+    private static function fill_email_queue( string $job_id, array $params ): void {
+        global $wpdb;
+
+        $poll_id = absint( $params['poll_id'] ?? 0 );
+        if ( ! $poll_id ) {
+            return;
+        }
+
+        $poll = Evoting_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return;
+        }
+
+        $eq = $wpdb->prefix . 'evoting_email_queue';
+
+        // Pobierz uprawnionych — użytkownicy z grup docelowych (lub wszyscy jeśli brak grupy).
+        $target_groups = $poll->target_groups ? json_decode( $poll->target_groups, true ) : [];
+
+        if ( ! empty( $target_groups ) ) {
+            $gm_table   = $wpdb->prefix . 'evoting_group_members';
+            $ids        = implode( ',', array_map( 'absint', (array) $target_groups ) );
+            $users      = $wpdb->get_results(
+                "SELECT u.ID, u.user_email, u.display_name
+                 FROM {$wpdb->users} u
+                 INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                 WHERE gm.group_id IN ({$ids}) AND u.user_email != ''
+                 GROUP BY u.ID"
+            );
+        } else {
+            $users = $wpdb->get_results(
+                "SELECT ID, user_email, display_name FROM {$wpdb->users} WHERE user_email != '' ORDER BY ID ASC"
+            );
+        }
+
+        if ( empty( $users ) ) {
+            return;
+        }
+
+        $now    = current_time( 'mysql' );
+        $values = [];
+        $fmt    = [];
+
+        foreach ( $users as $u ) {
+            if ( ! is_email( $u->user_email ) ) {
+                continue;
+            }
+            $values[] = $job_id;
+            $values[] = $poll_id;
+            $values[] = (int) $u->ID;
+            $values[] = sanitize_email( $u->user_email );
+            $values[] = sanitize_text_field( $u->display_name );
+            $values[] = $now;
+            $fmt[]    = "(%s, %d, %d, %s, %s, %s)";
+        }
+
+        if ( empty( $fmt ) ) {
+            return;
+        }
+
+        $suppress = $wpdb->suppress_errors( true );
+
+        // Wstawiamy partiami po 500 — INSERT IGNORE pomija duplikaty (UNIQUE KEY poll_id+user_id).
+        $chunk_size = 500;
+        $chunk_fmt  = array_chunk( $fmt, $chunk_size );
+        $chunk_val  = array_chunk( $values, $chunk_size * 6 );
+
+        foreach ( $chunk_fmt as $idx => $chunk ) {
+            $sql = "INSERT IGNORE INTO {$eq} (job_id, poll_id, user_id, email, name, created_at) VALUES "
+                   . implode( ',', $chunk );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            $wpdb->query( $wpdb->prepare( $sql, ...$chunk_val[ $idx ] ) );
+        }
+
+        // Reset wierszy 'failed' → 'pending' (ponowna próba wysyłki).
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$eq} SET status = 'pending', job_id = %s, error_msg = NULL WHERE poll_id = %d AND status = 'failed'",
+                $job_id,
+                $poll_id
+            )
+        );
+
+        // Przypisz nowy job_id do wszystkich oczekujących wierszy.
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$eq} SET job_id = %s WHERE poll_id = %d AND status = 'pending'",
+                $job_id,
+                $poll_id
+            )
+        );
+
+        $wpdb->suppress_errors( $suppress );
+    }
+
+    /**
+     * Wyślij jedną partię z kolejki dla zadania `send_invitations`.
+     *
+     * @param array $params ['job_id' => string, 'poll_id' => int]
+     * @return array Lista wysłanych adresów e-mail.
+     */
+    private static function batch_send_invitations( array $params ): array {
+        global $wpdb;
+
+        $job_id  = sanitize_text_field( $params['job_id'] ?? '' );
+        $poll_id = absint( $params['poll_id'] ?? 0 );
+
+        if ( $job_id === '' || ! $poll_id ) {
+            return [];
+        }
+
+        $poll = Evoting_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return [];
+        }
+
+        $method     = evoting_get_mail_method();
+        $batch_size = evoting_get_email_batch_size();
+        $eq         = $wpdb->prefix . 'evoting_email_queue';
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, email, name FROM {$eq} WHERE poll_id = %d AND status = 'pending' LIMIT %d",
+                $poll_id,
+                $batch_size
+            )
+        );
+
+        if ( empty( $rows ) ) {
+            return [];
+        }
+
+        $subject = sprintf(
+            /* translators: %s: poll title */
+            __( 'Zaproszenie do głosowania: %s', 'evoting' ),
+            $poll->title
+        );
+        $vote_url = evoting_get_vote_page_url();
+        $message  = sprintf(
+            /* translators: 1: poll title, 2: voting URL */
+            __( "Zostało otwarte nowe głosowanie: %1\$s\n\nZaloguj się i oddaj swój głos:\n%2\$s", 'evoting' ),
+            $poll->title,
+            $vote_url
+        );
+
+        $sent   = [];
+        $failed = [];
+
+        if ( 'sendgrid' === $method ) {
+            $recipients = [];
+            foreach ( $rows as $row ) {
+                $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
+            }
+            $result = Evoting_Mailer::send_via_sendgrid( $recipients, $subject, $message );
+            foreach ( $rows as $row ) {
+                if ( $result['sent'] > 0 ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            }
+        } else {
+            $from_email = evoting_get_from_email();
+            $from_name  = evoting_get_brand_short_name();
+            $headers    = [
+                'Content-Type: text/plain; charset=UTF-8',
+                'From: ' . $from_name . ' <' . $from_email . '>',
+            ];
+            foreach ( $rows as $row ) {
+                $ok = wp_mail( $row->email, $subject, $message, $headers );
+                if ( $ok ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = 'wp_mail error';
+                }
+            }
+        }
+
+        $now = current_time( 'mysql' );
+
+        // Oznacz wysłane.
+        if ( ! empty( $sent ) ) {
+            $sent_ids = array_column(
+                array_filter( $rows, fn( $r ) => in_array( $r->email, $sent, true ) ),
+                'id'
+            );
+            if ( $sent_ids ) {
+                $placeholders = implode( ',', array_fill( 0, count( $sent_ids ), '%d' ) );
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+                $wpdb->query( $wpdb->prepare(
+                    "UPDATE {$eq} SET status = 'sent', sent_at = %s WHERE id IN ({$placeholders})",
+                    array_merge( [ $now ], $sent_ids )
+                ) );
+            }
+        }
+
+        // Oznacz nieudane.
+        foreach ( $failed as $row_id => $error_msg ) {
+            $wpdb->update(
+                $eq,
+                [ 'status' => 'failed', 'error_msg' => mb_substr( $error_msg, 0, 512 ) ],
+                [ 'id' => $row_id ],
+                [ '%s', '%s' ],
+                [ '%d' ]
+            );
         }
 
         return $sent;

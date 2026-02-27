@@ -50,6 +50,7 @@ class Evoting_Admin_Uninstall {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_polls" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_group_members" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_groups" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_email_queue" );
 
         // Delete plugin options.
         delete_option( 'evoting_version' );
@@ -61,5 +62,15 @@ class Evoting_Admin_Uninstall {
         delete_option( 'evoting_banner_attachment_id' );
         delete_option( 'evoting_brand_short_name' );
         delete_option( 'evoting_brand_full_name' );
+        delete_option( 'evoting_from_email' );
+        delete_option( 'evoting_mail_method' );
+        delete_option( 'evoting_smtp_host' );
+        delete_option( 'evoting_smtp_port' );
+        delete_option( 'evoting_smtp_encryption' );
+        delete_option( 'evoting_smtp_username' );
+        delete_option( 'evoting_smtp_password' );
+        delete_option( 'evoting_sendgrid_api_key' );
+        delete_option( 'evoting_email_batch_size' );
+        delete_option( 'evoting_email_batch_delay' );
     }
 }

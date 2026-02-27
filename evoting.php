@@ -160,6 +160,80 @@ function evoting_get_brand_full_name(): string {
 	return is_string( $v ) && trim( $v ) !== '' ? trim( $v ) : 'E-Parlament Wolnych Ludzi';
 }
 
+/**
+ * Adres e-mail nadawcy zaproszeń do głosowań.
+ * Opcja: evoting_from_email, domyślnie noreply@<domena>.
+ *
+ * @return string Prawidłowy adres e-mail.
+ */
+function evoting_get_from_email(): string {
+	$saved = get_option( 'evoting_from_email', '' );
+	if ( is_string( $saved ) && is_email( trim( $saved ) ) ) {
+		return trim( $saved );
+	}
+	$domain = wp_parse_url( home_url(), PHP_URL_HOST );
+	return 'noreply@' . ( $domain ?: 'example.com' );
+}
+
+/**
+ * Metoda wysyłki e-maili: 'wordpress' (domyślna), 'smtp' lub 'sendgrid'.
+ */
+function evoting_get_mail_method(): string {
+	$v = get_option( 'evoting_mail_method', 'wordpress' );
+	return in_array( $v, [ 'wordpress', 'smtp', 'sendgrid' ], true ) ? $v : 'wordpress';
+}
+
+/**
+ * Klucz API SendGrid.
+ *
+ * @return string Pusty string gdy nie skonfigurowano.
+ */
+function evoting_get_sendgrid_api_key(): string {
+	return (string) get_option( 'evoting_sendgrid_api_key', '' );
+}
+
+/**
+ * Liczba e-maili wysyłanych w jednej partii.
+ * Domyślnie: 20 dla WP/SMTP, 100 dla SendGrid.
+ *
+ * @return int
+ */
+function evoting_get_email_batch_size(): int {
+	$saved   = (int) get_option( 'evoting_email_batch_size', 0 );
+	if ( $saved > 0 ) {
+		return $saved;
+	}
+	return evoting_get_mail_method() === 'sendgrid' ? 100 : 20;
+}
+
+/**
+ * Opóźnienie między partiami e-maili w sekundach.
+ * Domyślnie: 2 s dla SendGrid, 3 s dla WP/SMTP.
+ *
+ * @return int
+ */
+function evoting_get_email_batch_delay(): int {
+	$saved = (int) get_option( 'evoting_email_batch_delay', 0 );
+	if ( $saved > 0 ) {
+		return $saved;
+	}
+	return evoting_get_mail_method() === 'sendgrid' ? 2 : 3;
+}
+
+/**
+ * Konfiguracja SMTP (tablica lub wartość jednego klucza).
+ * Klucze: host, port, encryption (tls|ssl|none), username, password.
+ */
+function evoting_get_smtp_config(): array {
+	return [
+		'host'       => (string) get_option( 'evoting_smtp_host', '' ),
+		'port'       => (int)    get_option( 'evoting_smtp_port', 587 ),
+		'encryption' => (string) get_option( 'evoting_smtp_encryption', 'tls' ),
+		'username'   => (string) get_option( 'evoting_smtp_username', '' ),
+		'password'   => (string) get_option( 'evoting_smtp_password', '' ),
+	];
+}
+
 // Wirtualna strona głosowania (np. /glosuj) — bez szablonu WordPress.
 add_filter( 'query_vars', [ 'Evoting_Vote_Page', 'register_query_var' ] );
 add_action( 'init', [ 'Evoting_Vote_Page', 'add_rewrite_rule' ] );

@@ -50,6 +50,16 @@ class Evoting_Rest_Controller {
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
         ] );
+
+        // Send invitations (start batch job).
+        register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/send-invitations', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'send_invitations' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ) || current_user_can( 'evoting_admin' ),
+            'args'                => [
+                'id' => [ 'sanitize_callback' => 'absint' ],
+            ],
+        ] );
     }
 
     public function get_polls( WP_REST_Request $request ): WP_REST_Response {
@@ -159,5 +169,41 @@ class Evoting_Rest_Controller {
             'voters'           => $voters,
             'non_voters_list'  => $non_voters,
         ], 200 );
+    }
+
+    /**
+     * POST /polls/{id}/send-invitations
+     * Uruchamia zadanie wsadowej wysyłki zaproszeń i zwraca job_id.
+     */
+    public function send_invitations( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $poll_id = absint( $request->get_param( 'id' ) );
+        $poll    = Evoting_Poll::get( $poll_id );
+
+        if ( ! $poll ) {
+            return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'evoting' ), [ 'status' => 404 ] );
+        }
+
+        if ( ! in_array( $poll->status, [ 'open', 'closed' ], true ) ) {
+            return new WP_Error(
+                'poll_not_active',
+                __( 'Zaproszenia można wysyłać tylko do otwartych lub zakończonych głosowań.', 'evoting' ),
+                [ 'status' => 400 ]
+            );
+        }
+
+        // Tłumimy wyjście DB podczas tworzenia zadania — błędy SQL nie mogą trafić do odpowiedzi JSON.
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+
+        try {
+            $job_id = Evoting_Batch_Processor::start_job( 'send_invitations', [ 'poll_id' => $poll_id ] );
+        } catch ( \Throwable $e ) {
+            $wpdb->suppress_errors( $suppress );
+            return new WP_Error( 'job_error', $e->getMessage(), [ 'status' => 500 ] );
+        }
+
+        $wpdb->suppress_errors( $suppress );
+
+        return new WP_REST_Response( [ 'job_id' => $job_id ], 200 );
     }
 }

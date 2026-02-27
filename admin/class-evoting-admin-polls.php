@@ -82,9 +82,9 @@ class Evoting_Admin_Polls {
                 : admin_url( 'admin.php?page=evoting&created=1' );
         }
 
-        // Send start notifications when poll is set to open.
+        // Automatyczna wysyłka zaproszeń przez system kolejki batch.
         if ( ! empty( $data['notify_start'] ) && 'open' === $data['status'] && ! $was_open ) {
-            $this->send_notifications( $poll_id, $data['title'] );
+            $redirect = add_query_arg( 'autostart', '1', admin_url( 'admin.php?page=evoting&action=invitations&poll_id=' . $poll_id ) );
         }
 
         wp_safe_redirect( $redirect );

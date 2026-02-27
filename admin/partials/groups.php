@@ -140,8 +140,9 @@ wp_enqueue_script(
     true
 );
 wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
-    'apiRoot' => esc_url_raw( rest_url( 'evoting/v1' ) ),
-    'nonce'   => wp_create_nonce( 'wp_rest' ),
+    'apiRoot'    => esc_url_raw( rest_url( 'evoting/v1' ) ),
+    'nonce'      => wp_create_nonce( 'wp_rest' ),
+    'emailDelay' => evoting_get_email_batch_delay(),
 ] );
 ?>
 <div class="wrap">

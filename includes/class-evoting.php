@@ -7,6 +7,7 @@ class Evoting {
 
     public function __construct() {
         $this->loader = new Evoting_Loader();
+        add_action( 'admin_init', [ 'Evoting_Activator', 'maybe_upgrade' ], 1 );
         $this->set_locale();
         $this->define_admin_hooks();
         $this->define_public_hooks();
@@ -20,6 +21,9 @@ class Evoting {
     }
 
     private function define_admin_hooks(): void {
+        require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-mailer.php';
+        Evoting_Mailer::register_hooks();
+
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-polls-list.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-polls.php';
@@ -34,6 +38,7 @@ class Evoting {
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_menu_restrict_script' );
         $this->loader->add_action( 'admin_init', $admin, 'handle_results_pdf_download', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_evoting_get_actions', 5 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_polls_action', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'redirect_evoting_new' );
         $this->loader->add_action( 'admin_notices', $admin, 'render_brand_header' );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );
