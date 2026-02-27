@@ -14,7 +14,7 @@ class Evoting_Admin_Polls {
             return;
         }
 
-        if ( ! current_user_can( self::CAP ) ) {
+        if ( ! current_user_can( self::CAP ) && ! Evoting_Admin::user_can_access_coordinators() ) {
             wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
         }
 
@@ -44,23 +44,31 @@ class Evoting_Admin_Polls {
             exit;
         }
 
-        // Status wyłącznie sterowany przez program: nowe/duplikat = draft, Uruchom = open, Zakończ = closed.
+        // Status i data_start wg przycisku: Zapisz jako szkic / Wystartuj / Zaplanuj.
+        $submit_action = sanitize_text_field( $_POST['evoting_submit_action'] ?? '' );
         if ( $poll_id ) {
             $existing   = Evoting_Poll::get( $poll_id );
-            $data['status'] = $existing ? $existing->status : 'draft';
+            $was_open   = $existing && 'open' === $existing->status;
+            if ( 'start_now' === $submit_action ) {
+                $data['status']     = 'open';
+                $data['date_start'] = current_time( 'Y-m-d H:i:s' );
+                if ( $data['date_end'] < $data['date_start'] ) {
+                    $data['date_end'] = $data['date_start'];
+                }
+            } else {
+                $data['status'] = 'draft';
+            }
         } else {
-            $data['status'] = 'draft';
-        }
-
-        $was_open = false;
-        if ( $poll_id ) {
-            $existing = Evoting_Poll::get( $poll_id );
-            $was_open = $existing && 'open' === $existing->status;
+            $data['status'] = ( 'start_now' === $submit_action ) ? 'open' : 'draft';
+            $was_open       = false;
         }
 
         if ( $poll_id ) {
             Evoting_Poll::update( $poll_id, $data );
             $redirect = add_query_arg( 'updated', 1, admin_url( 'admin.php?page=evoting' ) );
+            if ( 'start_now' === $submit_action ) {
+                $redirect = add_query_arg( 'started', 1, $redirect );
+            }
         } else {
             $new_id = Evoting_Poll::create( $data );
             if ( false === $new_id ) {
@@ -69,7 +77,9 @@ class Evoting_Admin_Polls {
                 exit;
             }
             $poll_id  = $new_id;
-            $redirect = admin_url( 'admin.php?page=evoting&action=edit&poll_id=' . $new_id . '&created=1' );
+            $redirect = ( 'start_now' === $submit_action )
+                ? add_query_arg( 'started', 1, admin_url( 'admin.php?page=evoting' ) )
+                : admin_url( 'admin.php?page=evoting&created=1' );
         }
 
         // Send start notifications when poll is set to open.
@@ -93,23 +103,21 @@ class Evoting_Admin_Polls {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'evoting' ) );
         }
 
-        $date_start_raw = sanitize_text_field( $_POST['date_start'] ?? '' );
-        $date_end_raw   = sanitize_text_field( $_POST['date_end'] ?? '' );
-
-        if ( '' === $date_start_raw || '' === $date_end_raw ) {
-            return new \WP_Error( 'missing_dates', __( 'Data i godzina rozpoczęcia oraz zakończenia są wymagane.', 'evoting' ) );
+        $duration_key = sanitize_text_field( $_POST['poll_duration'] ?? '7d' );
+        $duration_seconds = [
+            '1h'  => 3600,
+            '1d'  => DAY_IN_SECONDS,
+            '2d'  => 2 * DAY_IN_SECONDS,
+            '3d'  => 3 * DAY_IN_SECONDS,
+            '7d'  => 7 * DAY_IN_SECONDS,
+            '14d' => 14 * DAY_IN_SECONDS,
+            '21d' => 21 * DAY_IN_SECONDS,
+        ];
+        if ( ! isset( $duration_seconds[ $duration_key ] ) ) {
+            return new \WP_Error( 'invalid_duration', __( 'Wybierz poprawny czas trwania głosowania.', 'evoting' ) );
         }
-
-        $date_start = self::normalize_datetime_for_db( $date_start_raw );
-        $date_end   = self::normalize_datetime_for_db( $date_end_raw );
-
-        if ( ! $date_start || ! $date_end ) {
-            return new \WP_Error( 'invalid_date_format', __( 'Format: data (RRRR-MM-DD) i godzina (GG:MM).', 'evoting' ) );
-        }
-
-        if ( $date_end < $date_start ) {
-            return new \WP_Error( 'invalid_dates', __( 'Data zakończenia musi być taka sama lub późniejsza niż data rozpoczęcia.', 'evoting' ) );
-        }
+        $date_start = current_time( 'Y-m-d H:i:s' );
+        $date_end   = gmdate( 'Y-m-d H:i:s', strtotime( $date_start ) + $duration_seconds[ $duration_key ] );
 
         // Parse questions with nested answers.
         $raw_questions = (array) ( $_POST['questions'] ?? [] );

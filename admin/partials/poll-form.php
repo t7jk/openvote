@@ -5,24 +5,44 @@ $is_read_only = ! empty( $is_read_only );
 $is_edit      = isset( $poll ) && $poll;
 $title        = $is_edit ? $poll->title : '';
 $desc         = $is_edit ? $poll->description : '';
-// Normalize to datetime-local value: Y-m-d\TH:i (DB stores Y-m-d H:i:s or legacy Y-m-d)
-$date_start = $is_edit ? $poll->date_start : '';
-$date_end   = $is_edit ? $poll->date_end : '';
-$force_default_dates = ! $is_edit || ( isset( $_GET['duplicated'] ) && $_GET['duplicated'] );
-if ( $force_default_dates ) {
-    $now_ts     = current_time( 'timestamp' );
-    $date_start = wp_date( 'Y-m-d\TH:i', $now_ts );
-    $date_end   = wp_date( 'Y-m-d\TH:i', $now_ts + 7 * DAY_IN_SECONDS );
-} elseif ( $date_start || $date_end ) {
-    // Normalize DB value (Y-m-d H:i:s or Y-m-d) to datetime-local: Y-m-d\TH:i
-    if ( $date_start && strpos( $date_start, 'T' ) === false && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_start, $m ) ) {
-        $date_start = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
-    }
-    if ( $date_end && strpos( $date_end, 'T' ) === false && preg_match( '/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?/', $date_end, $m ) ) {
-        $date_end = $m[1] . ( isset( $m[2] ) ? 'T' . $m[2] : 'T00:00' );
+// Data rozpoczęcia: zawsze „teraz” (wyszarzona). Czas trwania: menu wyboru.
+$now_ts       = current_time( 'timestamp' );
+$date_start_display = wp_date( 'Y-m-d\TH:i', $now_ts );
+$duration_options  = [
+    '1h'   => __( '1h', 'evoting' ),
+    '1d'   => __( '1 dzień', 'evoting' ),
+    '2d'   => __( '2 dni', 'evoting' ),
+    '3d'   => __( '3 dni', 'evoting' ),
+    '7d'   => __( '7 dni', 'evoting' ),
+    '14d'  => __( '14 dni', 'evoting' ),
+    '21d'  => __( '21 dni', 'evoting' ),
+];
+$selected_duration = '7d';
+if ( $is_edit && ! empty( $poll->date_start ) && ! empty( $poll->date_end ) ) {
+    $start_ts = strtotime( $poll->date_start );
+    $end_ts   = strtotime( $poll->date_end );
+    if ( $start_ts && $end_ts && $end_ts > $start_ts ) {
+        $diff = $end_ts - $start_ts;
+        $hours = $diff / 3600;
+        $days  = $diff / 86400;
+        if ( $hours <= 1.1 ) {
+            $selected_duration = '1h';
+        } elseif ( $days <= 1.1 ) {
+            $selected_duration = '1d';
+        } elseif ( $days <= 2.1 ) {
+            $selected_duration = '2d';
+        } elseif ( $days <= 3.1 ) {
+            $selected_duration = '3d';
+        } elseif ( $days <= 7.1 ) {
+            $selected_duration = '7d';
+        } elseif ( $days <= 14.1 ) {
+            $selected_duration = '14d';
+        } else {
+            $selected_duration = '21d';
+        }
     }
 }
-$notify_start = $is_edit ? (bool) $poll->notify_start : false;
+$notify_start = $is_edit ? (bool) $poll->notify_start : true;
 $questions    = $is_edit ? $poll->questions : [];
 
 // target_groups: stored as JSON array of group IDs
@@ -97,26 +117,32 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                 <td><textarea id="poll_description" name="poll_description" rows="4" class="large-text" <?php echo $is_read_only ? 'readonly disabled' : ''; ?>><?php echo esc_textarea( $desc ); ?></textarea></td>
             </tr>
             <tr>
-                <th scope="row"><label for="date_start"><?php esc_html_e( 'Data i godzina rozpoczęcia', 'evoting' ); ?> <span class="required">*</span></label></th>
+                <th scope="row"><label for="date_start_display"><?php esc_html_e( 'Data i godzina rozpoczęcia', 'evoting' ); ?></label></th>
                 <td>
-                    <input type="datetime-local" id="date_start" name="date_start"
-                           value="<?php echo esc_attr( $date_start ); ?>" <?php echo $is_read_only ? 'readonly disabled' : 'required'; ?>>
+                    <input type="datetime-local" id="date_start_display" value="<?php echo esc_attr( $date_start_display ); ?>"
+                           disabled readonly class="evoting-date-readonly">
+                    <p class="description"><?php esc_html_e( 'Zawsze „teraz”. Przy „Wystartuj głosowanie” data startu ustawiana jest na bieżący moment.', 'evoting' ); ?></p>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label for="date_end"><?php esc_html_e( 'Data i godzina zakończenia', 'evoting' ); ?> <span class="required">*</span></label></th>
+                <th scope="row"><label for="poll_duration"><?php esc_html_e( 'Czas trwania głosowania', 'evoting' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <input type="datetime-local" id="date_end" name="date_end"
-                           value="<?php echo esc_attr( $date_end ); ?>" <?php echo $is_read_only ? 'readonly disabled' : 'required'; ?>>
+                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? 'disabled' : 'required'; ?>>
+                        <?php foreach ( $duration_options as $val => $label ) : ?>
+                            <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $selected_duration, $val ); ?>><?php echo esc_html( $label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description"><?php esc_html_e( 'Od momentu startu głosowania.', 'evoting' ); ?></p>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><?php esc_html_e( 'Grupy docelowe', 'evoting' ); ?></th>
                 <td>
                     <?php if ( ! empty( $all_groups ) ) : ?>
-                        <select name="target_groups[]" multiple size="6" style="min-width:280px;" <?php echo $is_read_only ? 'disabled' : ''; ?>>
+                        <select name="target_groups[]" id="evoting-target-groups" multiple size="6" style="min-width:280px;" <?php echo $is_read_only ? 'disabled' : ''; ?>>
                             <?php foreach ( $all_groups as $group ) : ?>
                                 <option value="<?php echo esc_attr( $group->id ); ?>"
+                                        data-member-count="<?php echo esc_attr( (int) ( $group->member_count ?? 0 ) ); ?>"
                                         <?php echo in_array( (int) $group->id, $selected_group_ids, true ) ? 'selected' : ''; ?>>
                                     <?php echo esc_html( $group->name . ' (' . ( (int) ( $group->member_count ?? 0 ) ) . ')' ); ?>
                                 </option>
@@ -137,6 +163,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                         <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
                         <?php esc_html_e( 'Wyślij e-mail przy otwarciu głosowania', 'evoting' ); ?>
                     </label>
+                    <p class="description"><?php esc_html_e( 'Zaznaczone domyślnie.', 'evoting' ); ?></p>
                 </td>
             </tr>
         </table>
@@ -258,24 +285,25 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $poll->id ) ); ?>"
                    class="button button-primary"><?php esc_html_e( 'Zobacz wyniki', 'evoting' ); ?></a>
             </p>
-        <?php elseif ( $is_edit ) : ?>
-            <p class="submit">
-                <?php submit_button( __( 'Zapisz zmiany', 'evoting' ), 'primary', 'submit', false ); ?>
-                <?php if ( in_array( $poll->status ?? '', [ 'open', 'closed' ], true ) ) : ?>
-                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=results&poll_id=' . $poll->id ) ); ?>"
-                       class="button"><?php esc_html_e( 'Zobacz wyniki', 'evoting' ); ?></a>
-                <?php endif; ?>
-            </p>
-            <hr>
-            <h3><?php esc_html_e( 'Usuń głosowanie', 'evoting' ); ?></h3>
-            <p>
-                <button type="submit" name="evoting_action" value="delete" class="button button-link-delete"
-                        onclick="return confirm('<?php esc_attr_e( 'Czy na pewno chcesz usunąć to głosowanie?', 'evoting' ); ?>');">
-                    <?php esc_html_e( 'Usuń głosowanie', 'evoting' ); ?>
+        <?php else : ?>
+            <p class="submit evoting-poll-actions">
+                <button type="submit" name="evoting_submit_action" value="save_draft" class="button button-primary">
+                    <?php esc_html_e( 'Zapisz jako szkic', 'evoting' ); ?>
+                </button>
+                <button type="submit" name="evoting_submit_action" value="start_now" id="evoting-btn-start-poll" class="button evoting-btn-start-poll" disabled>
+                    <?php esc_html_e( 'Wystartuj głosowanie', 'evoting' ); ?>
                 </button>
             </p>
-        <?php else : ?>
-            <?php submit_button( __( 'Utwórz głosowanie', 'evoting' ) ); ?>
+            <?php if ( $is_edit ) : ?>
+                <hr>
+                <h3><?php esc_html_e( 'Usuń głosowanie', 'evoting' ); ?></h3>
+                <p>
+                    <button type="submit" name="evoting_action" value="delete" class="button button-link-delete"
+                            onclick="return confirm('<?php echo esc_js( __( 'Czy na pewno chcesz usunąć to głosowanie?', 'evoting' ) ); ?>');">
+                        <?php esc_html_e( 'Usuń głosowanie', 'evoting' ); ?>
+                    </button>
+                </p>
+            <?php endif; ?>
         <?php endif; ?>
     </form>
 </div>

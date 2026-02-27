@@ -1,15 +1,22 @@
 /**
- * E-Voting Admin JS – dynamic questions + answers management
+ * E-Voting Admin JS – dynamic questions + answers management + create-poll validation
  */
 (function () {
     'use strict';
 
     var MAX_QUESTIONS = 24;
     var MAX_ANSWERS   = 12;
+    var MAX_POLL_DAYS = 31;
 
     document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById('evoting-questions-container');
         var addQBtn   = document.getElementById('evoting-add-question');
+        var form      = document.getElementById('evoting-poll-form');
+        var startBtn  = document.getElementById('evoting-btn-start-poll');
+
+        if (form && startBtn) {
+            initStartButtonValidation(form, startBtn, container);
+        }
 
         if (!container || !addQBtn) return;
 
@@ -29,6 +36,7 @@
             var newBlock = buildQuestionBlock(blocks.length);
             container.appendChild(newBlock);
             newBlock.querySelector('input[type="text"]').focus();
+            if (form) form.dispatchEvent(new Event('input'));
         });
 
         // Delegated events on container.
@@ -39,6 +47,7 @@
                 if (blocks.length <= 1) return;
                 e.target.closest('.evoting-question-block').remove();
                 reindexAll();
+                if (form) form.dispatchEvent(new Event('input'));
                 return;
             }
 
@@ -57,6 +66,7 @@
                 answersCtr.insertBefore(newRow, lastRow);
                 reindexAll();
                 newRow.querySelector('input').focus();
+                if (form) form.dispatchEvent(new Event('input'));
                 return;
             }
 
@@ -70,6 +80,7 @@
                 }
                 e.target.closest('.evoting-answer-row').remove();
                 reindexAll();
+                if (form) form.dispatchEvent(new Event('input'));
             }
         });
 
@@ -149,5 +160,75 @@
         function escapeAttr(str) {
             return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
+
+        function initStartButtonValidation(form, startBtn, container) {
+            function isFormValid() {
+                var titleEl = form.querySelector('#poll_title');
+                var durationEl = form.querySelector('#poll_duration');
+                if (!titleEl || titleEl.value.trim() === '') return false;
+                if (!durationEl || !durationEl.value) return false;
+
+                if (container) {
+                    var blocks = container.querySelectorAll('.evoting-question-block');
+                    var hasQuestion = false;
+                    for (var i = 0; i < blocks.length; i++) {
+                        var qInput = blocks[i].querySelector('.evoting-question-header input[type="text"]');
+                        var qText = qInput ? qInput.value.trim() : '';
+                        if (qText !== '') {
+                            hasQuestion = true;
+                            var answerInputs = blocks[i].querySelectorAll('.evoting-answers-container input[type="text"]');
+                            if (answerInputs.length < 3) return false;
+                            for (var j = 0; j < answerInputs.length; j++) {
+                                var inp = answerInputs[j];
+                                if (inp.getAttribute('data-abstain') !== '1' && inp.value.trim() === '') return false;
+                            }
+                        }
+                    }
+                    if (!hasQuestion) return false;
+                }
+                return true;
+            }
+
+            function updateButton() {
+                startBtn.disabled = !isFormValid();
+            }
+
+            updateButton();
+            form.addEventListener('input', updateButton);
+            form.addEventListener('change', updateButton);
+        }
+
+        initLoadMore();
     });
+
+    function initLoadMore() {
+        document.querySelectorAll('.evoting-load-more').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tableId  = btn.getAttribute('data-table');
+                var pageSize = parseInt(btn.getAttribute('data-page-size'), 10) || 100;
+                var table    = document.getElementById(tableId);
+                if (!table) return;
+
+                var hidden = Array.prototype.slice.call(
+                    table.querySelectorAll('tbody tr.evoting-row-hidden')
+                ).slice(0, pageSize);
+
+                hidden.forEach(function (row) {
+                    row.style.display = '';
+                    row.classList.remove('evoting-row-hidden');
+                });
+
+                var remaining = table.querySelectorAll('tbody tr.evoting-row-hidden').length;
+                var visible   = table.querySelectorAll('tbody tr').length - remaining;
+                var total     = table.querySelectorAll('tbody tr').length;
+
+                if (remaining === 0) {
+                    btn.parentNode.removeChild(btn.parentNode.contains(btn) ? btn : btn);
+                    btn.remove();
+                } else {
+                    btn.textContent = 'Załaduj więcej (pokazano ' + visible + ' z ' + total + ')';
+                }
+            });
+        });
+    }
 })();

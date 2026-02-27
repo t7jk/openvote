@@ -23,17 +23,44 @@ if ( $is_logged ) {
 <head>
     <meta charset="<?php bloginfo( 'charset' ); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php esc_html_e( 'Oddaj głos', 'evoting' ); ?></title>
+    <title><?php esc_html_e( 'Trwające głosowania', 'evoting' ); ?></title>
     <?php wp_head(); ?>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem; max-width: 720px; }
-        .evoting-page-title { margin-bottom: 1.5rem; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 2rem auto; max-width: 720px; padding: 0 1rem; }
+        .evoting-vote-page-banner { text-align: center; margin-bottom: 0.75rem; }
+        .evoting-vote-page-banner img { margin: 0 auto; display: block; max-width: 100%; max-height: 260px; object-fit: contain; }
+        .evoting-vote-page-brand { text-align: center; margin-bottom: 1.5rem; font-size: 1rem; color: #333; display: flex; align-items: center; justify-content: center; gap: 0.4rem; flex-wrap: wrap; min-height: 1.5em; }
+        .evoting-vote-page-header { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .evoting-page-title { margin: 0; }
         .evoting-poll-block { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #ddd; }
         .evoting-poll-block:last-child { border-bottom: 0; }
+        .evoting-poll__vote-mode { font-size: 0.75rem !important; margin-top: 12px; }
+        .evoting-poll__vote-mode legend { font-size: 1em !important; font-weight: 600; }
+        .evoting-poll__vote-mode .evoting-poll__option { font-size: 1em !important; }
+        .evoting-poll__question { background-color: #e8f4f8; border: 1px solid #e2e4e7; border-radius: 6px; }
     </style>
 </head>
 <body class="evoting-vote-page">
-    <h1 class="evoting-page-title"><?php esc_html_e( 'Oddaj głos', 'evoting' ); ?></h1>
+    <?php
+    $banner_url  = evoting_get_banner_url();
+    $logo_url    = evoting_get_logo_url();
+    $brand_short = evoting_get_brand_short_name();
+    $brand_full  = evoting_get_brand_full_name();
+    ?>
+    <?php if ( $banner_url !== '' ) : ?>
+        <div class="evoting-vote-page-banner">
+            <img src="<?php echo esc_url( $banner_url ); ?>" alt="" />
+        </div>
+    <?php endif; ?>
+    <p class="evoting-vote-page-brand">
+        <?php if ( $logo_url !== '' ) : ?>
+            <img src="<?php echo esc_url( $logo_url ); ?>" alt="" class="evoting-vote-page-logo" style="width:32px;height:32px;object-fit:contain;" />
+        <?php endif; ?>
+        <?php echo esc_html( $brand_short . ' — ' . $brand_full ); ?>
+    </p>
+    <header class="evoting-vote-page-header">
+        <h1 class="evoting-page-title"><?php esc_html_e( 'Trwające głosowania', 'evoting' ); ?></h1>
+    </header>
 
     <?php if ( ! $is_logged ) : ?>
         <p class="evoting-poll__login-notice">

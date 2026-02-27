@@ -145,17 +145,19 @@ class Evoting_Rest_Controller {
             return new WP_Error( 'poll_not_ended', __( 'Wyniki dostępne po zakończeniu głosowania.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        $results = Evoting_Vote::get_results( $poll_id );
-        $voters  = Evoting_Vote::get_voters_anonymous( $poll_id );
+        $results    = Evoting_Vote::get_results( $poll_id );
+        $voters     = Evoting_Vote::get_voters_anonymous( $poll_id );
+        $non_voters = Evoting_Vote::get_non_voters( $poll_id );
 
         return new WP_REST_Response( [
-            'poll_id'        => $poll_id,
-            'title'          => $poll->title,
-            'total_eligible' => $results['total_eligible'],
-            'total_voters'   => $results['total_voters'],
-            'non_voters'     => $results['non_voters'],
-            'questions'      => $results['questions'],
-            'voters'         => $voters,
+            'poll_id'          => $poll_id,
+            'title'            => $poll->title,
+            'total_eligible'   => $results['total_eligible'],
+            'total_voters'     => $results['total_voters'],
+            'non_voters'       => $results['non_voters'],
+            'questions'        => $results['questions'],
+            'voters'           => $voters,
+            'non_voters_list'  => $non_voters,
         ], 200 );
     }
 }

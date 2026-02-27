@@ -22,9 +22,6 @@ foreach ( $tables as $table ) {
     $table_rows[ $table ] = $count;
 }
 ?>
-<div class="wrap">
-    <h1><?php esc_html_e( 'Odinstaluj wtyczkę', 'evoting' ); ?></h1>
-
     <?php if ( $error ) : ?>
         <div class="notice notice-error is-dismissible">
             <p><?php echo esc_html( $error ); ?></p>
@@ -103,7 +100,6 @@ foreach ( $tables as $table ) {
             </form>
         </div>
     </div>
-</div>
 
 <script>
 (function () {

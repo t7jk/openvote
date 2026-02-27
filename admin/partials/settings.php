@@ -65,28 +65,94 @@ function evoting_settings_select( string $logical, string $current, array $core_
     <form method="post" action="">
         <?php wp_nonce_field( 'evoting_save_settings', 'evoting_settings_nonce' ); ?>
 
-        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'URL strony głosowania', 'evoting' ); ?></h2>
+        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Nazwa systemu', 'evoting' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
-            <?php esc_html_e( 'Adres, pod którym użytkownicy wchodzą, aby zobaczyć i wypełnić głosowania. Domena jest pobierana automatycznie z adresu instalacji WordPress — podaj tylko końcówkę ścieżki (np. glosuj).', 'evoting' ); ?>
+            <?php esc_html_e( 'Skrót i pełna nazwa wyświetlane w menu panelu, nagłówkach oraz w eksportach (np. PDF).', 'evoting' ); ?>
         </p>
         <table class="form-table" role="presentation" style="max-width:780px;">
             <tr>
-                <th scope="row"><label for="evoting_vote_page_slug"><?php esc_html_e( 'Ścieżka (slug)', 'evoting' ); ?></label></th>
+                <th scope="row"><label for="evoting_brand_short_name"><?php esc_html_e( 'Skrót nazwy', 'evoting' ); ?></label></th>
                 <td>
-                    <code style="margin-right:4px;"><?php echo esc_html( trailingslashit( home_url() ) ); ?></code>
+                    <input type="text" name="evoting_brand_short_name" id="evoting_brand_short_name" value="<?php echo esc_attr( evoting_get_brand_short_name() ); ?>" class="regular-text" style="width:120px;" maxlength="6" placeholder="EP-RWL" />
+                    <p class="description" style="margin-top:6px;"><?php esc_html_e( 'Do 6 znaków. Domyślnie: EP-RWL.', 'evoting' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="evoting_brand_full_name"><?php esc_html_e( 'Pełna nazwa', 'evoting' ); ?></label></th>
+                <td>
+                    <input type="text" name="evoting_brand_full_name" id="evoting_brand_full_name" value="<?php echo esc_attr( evoting_get_brand_full_name() ); ?>" class="regular-text" style="max-width:400px;" placeholder="<?php esc_attr_e( 'E-Parlament Wolnych Ludzi', 'evoting' ); ?>" />
+                    <p class="description" style="margin-top:6px;"><?php esc_html_e( 'Domyślnie: E-Parlament Wolnych Ludzi.', 'evoting' ); ?></p>
+                </td>
+            </tr>
+        </table>
+
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony głosowania', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Adres ma postać: adres instalacji + ? + parametr (np. glosuj). Użytkownicy wchodzą pod link pokazany poniżej.', 'evoting' ); ?>
+        </p>
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><label for="evoting_vote_page_slug"><?php esc_html_e( 'Nazwa parametru', 'evoting' ); ?></label></th>
+                <td>
+                    <code style="margin-right:4px;"><?php echo esc_html( home_url( '/?' ) ); ?></code>
                     <input type="text" name="evoting_vote_page_slug" id="evoting_vote_page_slug" value="<?php echo esc_attr( evoting_get_vote_page_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="glosuj" />
+                    <?php
+                    $slug_param   = evoting_get_vote_page_slug();
+                    $vote_page_url = home_url( '/?' . $slug_param );
+                    ?>
                     <p class="description" style="margin-top:6px;">
-                        <?php esc_html_e( 'Pełny adres:', 'evoting' ); ?>
-                        <strong><a href="<?php echo esc_url( evoting_get_vote_page_url() ); ?>" target="_blank" rel="noopener"><?php echo esc_html( evoting_get_vote_page_url() ); ?></a></strong>
+                        <?php esc_html_e( 'Adres strony głosowania:', 'evoting' ); ?>
+                        <strong><a href="<?php echo esc_url( $vote_page_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $vote_page_url ); ?></a></strong>
                     </p>
-                    <?php if ( ! evoting_vote_page_exists() ) : ?>
-                        <p style="margin-top:10px;">
-                            <button type="submit" name="evoting_create_vote_page" value="1" class="button button-secondary">
-                                <?php esc_html_e( 'Dodaj podstronę', 'evoting' ); ?>
-                            </button>
-                            <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Utworzy stronę pod powyższym adresem z blokiem głosowań.', 'evoting' ); ?></span>
-                        </p>
-                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Logo i banner', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Logo i banner wyświetlane na stronie głosowania. Wybierz pliki z biblioteki mediów WordPress.', 'evoting' ); ?>
+        </p>
+        <?php
+        $logo_id   = evoting_get_logo_attachment_id();
+        $banner_id = evoting_get_banner_attachment_id();
+        $logo_url  = $logo_id ? wp_get_attachment_image_url( $logo_id, [ 32, 32 ] ) : '';
+        $banner_url = $banner_id ? wp_get_attachment_image_url( $banner_id, [ 400, 130 ] ) : '';
+        ?>
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Logo', 'evoting' ); ?></th>
+                <td>
+                    <input type="hidden" name="evoting_logo_attachment_id" id="evoting_logo_attachment_id" value="<?php echo (int) $logo_id; ?>" />
+                    <button type="button" class="button evoting-media-picker" data-target="evoting_logo_attachment_id" data-preview="evoting_logo_preview" data-size="32,32">
+                        <?php esc_html_e( 'Wybierz z biblioteki', 'evoting' ); ?>
+                    </button>
+                    <button type="button" class="button evoting-media-remove<?php echo $logo_id ? '' : ' hidden'; ?>" data-target="evoting_logo_attachment_id" data-preview="evoting_logo_preview">
+                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
+                    </button>
+                    <p class="description" style="margin-top:8px;"><?php esc_html_e( 'Mały obrazek do 32×32 px (np. w nagłówku strony głosowania).', 'evoting' ); ?></p>
+                    <div class="evoting-media-preview" id="evoting_logo_preview" style="margin-top:8px;">
+                        <?php if ( $logo_url ) : ?>
+                            <img src="<?php echo esc_url( $logo_url ); ?>" alt="" style="max-width:32px;max-height:32px;display:block;" />
+                        <?php endif; ?>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Banner', 'evoting' ); ?></th>
+                <td>
+                    <input type="hidden" name="evoting_banner_attachment_id" id="evoting_banner_attachment_id" value="<?php echo (int) $banner_id; ?>" />
+                    <button type="button" class="button evoting-media-picker" data-target="evoting_banner_attachment_id" data-preview="evoting_banner_preview" data-size="800,260">
+                        <?php esc_html_e( 'Wybierz z biblioteki', 'evoting' ); ?>
+                    </button>
+                    <button type="button" class="button evoting-media-remove<?php echo $banner_id ? '' : ' hidden'; ?>" data-target="evoting_banner_attachment_id" data-preview="evoting_banner_preview">
+                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
+                    </button>
+                    <p class="description" style="margin-top:8px;"><?php esc_html_e( 'Proporcja horyzontalna, ok. 800×260 px. Wyświetlany na górze strony głosowania.', 'evoting' ); ?></p>
+                    <div class="evoting-media-preview" id="evoting_banner_preview" style="margin-top:8px;">
+                        <?php if ( $banner_url ) : ?>
+                            <img src="<?php echo esc_url( $banner_url ); ?>" alt="" style="max-width:400px;max-height:130px;display:block;" />
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -204,4 +270,8 @@ function evoting_settings_select( string $logical, string $current, array $core_
         <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'evoting' ); ?></li>
         <li><?php esc_html_e( 'Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają nowych kluczy.', 'evoting' ); ?></li>
     </ul>
+
+    <hr style="margin-top:32px;margin-bottom:20px;">
+    <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'evoting' ); ?></h2>
+    <?php include EVOTING_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
 </div>

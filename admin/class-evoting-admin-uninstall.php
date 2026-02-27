@@ -22,7 +22,7 @@ class Evoting_Admin_Uninstall {
         // Require explicit confirmation checkbox.
         if ( empty( $_POST['evoting_confirm_uninstall'] ) ) {
             set_transient( 'evoting_uninstall_error', __( 'Zaznacz pole potwierdzenia przed usunięciem.', 'evoting' ), 30 );
-            wp_safe_redirect( admin_url( 'admin.php?page=evoting-uninstall' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting-settings' ) );
             exit;
         }
 
@@ -57,5 +57,9 @@ class Evoting_Admin_Uninstall {
         delete_option( 'evoting_field_map' );
         delete_option( 'evoting_vote_page_slug' );
         delete_option( 'evoting_time_offset_hours' );
+        delete_option( 'evoting_logo_attachment_id' );
+        delete_option( 'evoting_banner_attachment_id' );
+        delete_option( 'evoting_brand_short_name' );
+        delete_option( 'evoting_brand_full_name' );
     }
 }

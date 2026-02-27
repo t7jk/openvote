@@ -220,14 +220,10 @@ class Evoting_Vote {
 
             $answers     = [];
             $total_votes = 0;
-            $abstain_idx = null;
 
-            foreach ( $question->answers as $idx => $answer ) {
-                $cnt = $count_map[ (int) $answer->id ] ?? 0;
-                if ( $answer->is_abstain ) {
-                    $abstain_idx = $idx;
-                }
-                $answers[] = [
+            foreach ( $question->answers as $answer ) {
+                $cnt          = $count_map[ (int) $answer->id ] ?? 0;
+                $answers[]    = [
                     'id'         => (int) $answer->id,
                     'text'       => $answer->body,
                     'is_abstain' => (bool) $answer->is_abstain,
@@ -236,13 +232,7 @@ class Evoting_Vote {
                 $total_votes += $cnt;
             }
 
-            // Add non-voters to the abstain answer.
-            if ( null !== $abstain_idx ) {
-                $answers[ $abstain_idx ]['count'] += $non_voters;
-                $total_votes                      += $non_voters;
-            }
-
-            // Add percentages.
+            // Percentages relative to actual votes cast (non-voters are NOT counted).
             foreach ( $answers as &$a ) {
                 $a['pct'] = $total_votes > 0 ? round( $a['count'] / $total_votes * 100, 1 ) : 0.0;
             }
@@ -296,6 +286,90 @@ class Evoting_Vote {
         }
 
         return $voters;
+    }
+
+    /**
+     * Returns list of eligible users who did NOT vote in the given poll.
+     * Each entry contains anonymized nicename (same rules as voters list).
+     *
+     * @return array<int, array{nicename: string}>
+     */
+    public static function get_non_voters( int $poll_id ): array {
+        global $wpdb;
+
+        $poll = Evoting_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return [];
+        }
+
+        $map    = Evoting_Field_Map::get();
+        $joins  = '';
+        $where  = [ '1=1' ];
+        $params = [];
+
+        // Email field.
+        $email_key = $map['email'] ?? 'user_email';
+        if ( Evoting_Field_Map::is_core_field( $email_key ) ) {
+            $where[] = "u.{$email_key} != ''";
+        } else {
+            $key_safe = sanitize_key( $email_key );
+            $joins   .= " INNER JOIN {$wpdb->usermeta} um_email"
+                      . " ON u.ID = um_email.user_id AND um_email.meta_key = %s AND um_email.meta_value != ''";
+            $params[] = $key_safe;
+        }
+
+        // Meta fields: nickname, first_name, last_name, city.
+        $meta_fields = [
+            'nickname'   => 'um_nick',
+            'first_name' => 'um_fn',
+            'last_name'  => 'um_ln',
+            'city'       => 'um_city',
+        ];
+        foreach ( $meta_fields as $logical => $alias ) {
+            $actual = sanitize_key( $map[ $logical ] ?? $logical );
+            if ( Evoting_Field_Map::is_core_field( $actual ) ) {
+                $where[] = "u.{$actual} != ''";
+            } else {
+                $joins   .= " INNER JOIN {$wpdb->usermeta} {$alias}"
+                          . " ON u.ID = {$alias}.user_id AND {$alias}.meta_key = %s AND {$alias}.meta_value != ''";
+                $params[] = $actual;
+            }
+        }
+
+        // Group filter.
+        $group_ids = Evoting_Poll::get_target_group_ids( $poll );
+        if ( ! empty( $group_ids ) ) {
+            $gm_table  = $wpdb->prefix . 'evoting_group_members';
+            $holders   = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $joins    .= " INNER JOIN {$gm_table} gm ON u.ID = gm.user_id AND gm.group_id IN ({$holders})";
+            $params    = array_merge( $params, $group_ids );
+        }
+
+        // Exclude users who have voted.
+        $votes_table = self::table();
+        $joins      .= " LEFT JOIN {$votes_table} vt"
+                     . " ON u.ID = vt.user_id AND vt.poll_id = %d";
+        $where[]     = 'vt.user_id IS NULL';
+        $params[]    = $poll_id;
+
+        $sql = "SELECT DISTINCT u.ID, u.user_nicename
+                FROM {$wpdb->users} u
+                {$joins}
+                WHERE " . implode( ' AND ', $where ) . "
+                ORDER BY u.user_nicename ASC";
+
+        if ( ! empty( $params ) ) {
+            $rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$params ) );
+        } else {
+            $rows = $wpdb->get_results( $sql );
+        }
+
+        $result = [];
+        foreach ( $rows as $row ) {
+            $result[] = [ 'nicename' => self::anonymize_nicename( $row->user_nicename ) ];
+        }
+
+        return $result;
     }
 
     /**
@@ -364,7 +438,9 @@ class Evoting_Vote {
     }
 
     /**
-     * "jan@gmail.com" → "jan.........@g....com"
+     * Kropkowanie email: każdy człon (segment przed/po kropce w loginie, segmenty w domenie)
+     * ma tylko pierwsze 2 litery, potem tyle kropek ile reszta znaków.
+     * Np. Janusz.Kowalski@uniwersytet.edu.pl → ja.....Ko.....@un........ed..pl
      */
     public static function anonymize_email( string $email ): string {
         if ( ! str_contains( $email, '@' ) ) {
@@ -373,13 +449,19 @@ class Evoting_Vote {
 
         [ $local, $domain ] = explode( '@', $email, 2 );
 
-        $local_anon = mb_substr( $local, 0, min( 3, mb_strlen( $local ) ) )
-                    . '.........' ;
+        $mask_segment = function ( string $segment ): string {
+            $len = mb_strlen( $segment );
+            if ( $len <= 2 ) {
+                return $segment;
+            }
+            return mb_substr( $segment, 0, 2 ) . str_repeat( '.', $len - 2 );
+        };
 
-        $dot_pos     = strrpos( $domain, '.' );
-        $domain_name = $dot_pos !== false ? substr( $domain, 0, $dot_pos ) : $domain;
-        $tld         = $dot_pos !== false ? substr( $domain, $dot_pos + 1 ) : '';
-        $domain_anon = mb_substr( $domain_name, 0, 1 ) . '....' . '.' . $tld;
+        $local_parts  = explode( '.', $local );
+        $local_anon   = implode( '.', array_map( $mask_segment, $local_parts ) );
+
+        $domain_parts = explode( '.', $domain );
+        $domain_anon  = implode( '.', array_map( $mask_segment, $domain_parts ) );
 
         return $local_anon . '@' . $domain_anon;
     }

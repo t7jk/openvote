@@ -46,7 +46,6 @@ class Evoting_Polls_List extends WP_List_Table {
 
     protected function get_bulk_actions(): array {
         return [
-            'start'  => __( 'Rozpocznij', 'evoting' ),
             'end'    => __( 'Zakończ', 'evoting' ),
             'delete' => __( 'Usuń', 'evoting' ),
         ];
@@ -63,9 +62,9 @@ class Evoting_Polls_List extends WP_List_Table {
         ];
 
         $labels = [
-            ''       => __( 'Wszystkie', 'evoting' ),
-            'draft'  => __( 'Szkic', 'evoting' ),
-            'open'   => __( 'Rozpoczęte', 'evoting' ),
+            ''      => __( 'Wszystkie', 'evoting' ),
+            'draft' => __( 'Szkic', 'evoting' ),
+            'open'  => __( 'Rozpoczęte', 'evoting' ),
             'closed' => __( 'Zakończone', 'evoting' ),
         ];
 
@@ -220,15 +219,7 @@ class Evoting_Polls_List extends WP_List_Table {
         }
 
         if ( 'draft' === $item->status ) {
-            $actions['start'] = sprintf(
-                '<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
-                esc_url( wp_nonce_url(
-                    admin_url( 'admin.php?page=evoting&action=start&poll_id=' . $item->id ),
-                    'evoting_start_poll_' . $item->id
-                ) ),
-                esc_js( __( 'Uruchomić głosowanie? Data rozpoczęcia zostanie ustawiona na dziś i rozpocznie się zbieranie głosów.', 'evoting' ) ),
-                esc_html__( 'Uruchom', 'evoting' )
-            );
+            unset( $actions['start'] );
         }
 
         $actions['duplicate'] = sprintf(
@@ -323,30 +314,8 @@ class Evoting_Polls_List extends WP_List_Table {
             return;
         }
 
-        if ( 'start' === $action ) {
-            if ( ! current_user_can( 'edit_others_posts' ) ) {
-                return;
-            }
-            $now = current_time( 'Y-m-d H:i:s' );
-            $count = 0;
-            foreach ( $ids as $id ) {
-                $poll = Evoting_Poll::get( $id );
-                if ( $poll && 'draft' === $poll->status ) {
-                    $date_end = ( $poll->date_end && $poll->date_end >= $now ) ? $poll->date_end : $now;
-                    Evoting_Poll::update( $id, [
-                        'status'     => 'open',
-                        'date_start' => $now,
-                        'date_end'   => $date_end,
-                    ] );
-                    ++$count;
-                }
-            }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting', 'bulk_started' => $count ], admin_url( 'admin.php' ) ) );
-            exit;
-        }
-
         if ( 'end' === $action ) {
-            if ( ! current_user_can( 'edit_others_posts' ) ) {
+            if ( ! current_user_can( 'edit_others_posts' ) && ! Evoting_Admin::user_can_access_coordinators() ) {
                 return;
             }
             $now = current_time( 'Y-m-d H:i:s' );

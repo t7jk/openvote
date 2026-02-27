@@ -3,6 +3,8 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Poll {
 
+    private const ALLOWED_STATUSES = [ 'draft', 'open', 'closed' ];
+
     private static function polls_table(): string {
         global $wpdb;
         return $wpdb->prefix . 'evoting_polls';
@@ -41,7 +43,7 @@ class Evoting_Poll {
             [
                 'title'         => sanitize_text_field( $data['title'] ),
                 'description'   => isset( $data['description'] ) ? sanitize_textarea_field( $data['description'] ) : null,
-                'status'        => in_array( $data['status'] ?? 'draft', [ 'draft', 'open', 'closed' ], true ) ? $data['status'] : 'draft',
+                'status'        => in_array( $data['status'] ?? 'draft', self::ALLOWED_STATUSES, true ) ? $data['status'] : 'draft',
                 'target_groups' => isset( $data['target_groups'] ) && '' !== $data['target_groups'] ? sanitize_text_field( $data['target_groups'] ) : null,
                 'notify_start'  => ! empty( $data['notify_start'] ) ? 1 : 0,
                 'date_start'    => $data['date_start'],
@@ -83,8 +85,11 @@ class Evoting_Poll {
             $format[]              = '%s';
         }
         if ( isset( $data['status'] ) ) {
-            $update['status'] = sanitize_text_field( $data['status'] );
-            $format[]         = '%s';
+            $status = sanitize_text_field( $data['status'] );
+            if ( in_array( $status, self::ALLOWED_STATUSES, true ) ) {
+                $update['status'] = $status;
+                $format[]        = '%s';
+            }
         }
         if ( array_key_exists( 'target_groups', $data ) ) {
             $update['target_groups'] = ( '' !== $data['target_groups'] ) ? sanitize_text_field( $data['target_groups'] ) : null;

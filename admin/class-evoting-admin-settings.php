@@ -34,6 +34,25 @@ class Evoting_Admin_Settings {
         $offset = max( -12, min( 12, $offset ) );
         update_option( 'evoting_time_offset_hours', $offset, false );
 
+        $logo_id   = isset( $_POST['evoting_logo_attachment_id'] ) ? absint( $_POST['evoting_logo_attachment_id'] ) : 0;
+        $banner_id = isset( $_POST['evoting_banner_attachment_id'] ) ? absint( $_POST['evoting_banner_attachment_id'] ) : 0;
+        update_option( 'evoting_logo_attachment_id', $logo_id, false );
+        update_option( 'evoting_banner_attachment_id', $banner_id, false );
+
+        $short_name = isset( $_POST['evoting_brand_short_name'] ) ? sanitize_text_field( wp_unslash( $_POST['evoting_brand_short_name'] ) ) : '';
+        $short_name = mb_substr( trim( $short_name ), 0, 6 );
+        if ( $short_name === '' ) {
+            $short_name = 'EP-RWL';
+        }
+        update_option( 'evoting_brand_short_name', $short_name, false );
+
+        $full_name = isset( $_POST['evoting_brand_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['evoting_brand_full_name'] ) ) : '';
+        $full_name = trim( $full_name );
+        if ( $full_name === '' ) {
+            $full_name = 'E-Parlament Wolnych Ludzi';
+        }
+        update_option( 'evoting_brand_full_name', $full_name, false );
+
         flush_rewrite_rules();
 
         $query_args = [ 'page' => 'evoting-settings', 'saved' => '1' ];

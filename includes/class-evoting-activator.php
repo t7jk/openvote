@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Activator {
 
-    const DB_VERSION = '3.1.0';
+    const DB_VERSION = '3.3.0';
 
     public static function activate(): void {
         self::create_tables();
@@ -201,6 +201,19 @@ class Evoting_Activator {
             if ( in_array( 'date_end', $cols, true ) ) {
                 $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN date_end DATETIME NOT NULL" );
             }
+        }
+
+        // ── 3.1.0 → 3.2.0 : status ENUM + 'scheduled' (zaplanowane) ─────────
+        if ( version_compare( $installed, '3.2.0', '<' ) ) {
+            $polls = $wpdb->prefix . 'evoting_polls';
+            $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN status ENUM('draft','scheduled','open','closed') NOT NULL DEFAULT 'draft'" );
+        }
+
+        // ── 3.2.0 → 3.3.0 : usunięcie statusu 'scheduled' ───────────────────
+        if ( version_compare( $installed, '3.3.0', '<' ) ) {
+            $polls = $wpdb->prefix . 'evoting_polls';
+            $wpdb->query( "UPDATE {$polls} SET status = 'draft' WHERE status = 'scheduled'" );
+            $wpdb->query( "ALTER TABLE {$polls} MODIFY COLUMN status ENUM('draft','open','closed') NOT NULL DEFAULT 'draft'" );
         }
     }
 }

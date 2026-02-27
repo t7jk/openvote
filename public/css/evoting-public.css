@@ -26,10 +26,11 @@
 }
 
 .evoting-poll__question {
-    border: 1px solid #eee;
+    border: 1px solid #e2e4e7;
     border-radius: 6px;
     padding: 16px;
     margin-bottom: 12px;
+    background-color: #e8f4f8;
 }
 
 .evoting-poll__question legend {
@@ -46,6 +47,20 @@
 
 .evoting-poll__option input[type="radio"] {
     margin-right: 8px;
+}
+
+.evoting-poll__vote-mode {
+    font-size: 0.75rem !important;
+    margin-top: 12px;
+}
+
+.evoting-poll__vote-mode legend {
+    font-size: 1em !important;
+    font-weight: 600;
+}
+
+.evoting-poll__vote-mode .evoting-poll__option {
+    font-size: 1em !important;
 }
 
 .evoting-poll__submit {

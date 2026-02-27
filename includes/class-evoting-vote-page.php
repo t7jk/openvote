@@ -27,8 +27,22 @@ class Evoting_Vote_Page {
     }
 
     public static function maybe_serve_vote_page(): void {
-        if ( ! get_query_var( self::QUERY_VAR ) ) {
+        $slug = evoting_get_vote_page_slug();
+        if ( $slug === '' ) {
             return;
+        }
+        $by_query_var = (int) get_query_var( self::QUERY_VAR ) === 1;
+        $get_val      = isset( $_GET[ $slug ] ) ? sanitize_text_field( wp_unslash( $_GET[ $slug ] ) ) : null;
+        $by_get_slug  = $get_val !== null && ( $get_val === '' || $get_val === '1' );
+        if ( ! $by_query_var && ! $by_get_slug ) {
+            $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+            $request_uri = preg_replace( '#\?.*$#', '', $request_uri );
+            $request_uri = trim( $request_uri, '/' );
+            $path_parts  = explode( '/', $request_uri );
+            $last_segment = end( $path_parts );
+            if ( $last_segment !== $slug ) {
+                return;
+            }
         }
 
         require_once EVOTING_PLUGIN_DIR . 'includes/evoting-render-poll.php';
@@ -57,6 +71,9 @@ class Evoting_Vote_Page {
                 'voterList'        => __( 'Głosujący (anonimowo):', 'evoting' ),
                 'showVoters'       => __( 'Pokaż głosujących', 'evoting' ),
                 'hideVoters'       => __( 'Ukryj głosujących', 'evoting' ),
+                'nonVoterList'     => __( 'Nieobecni (nie głosowali):', 'evoting' ),
+                'showNonVoters'    => __( 'Pokaż nieobecnych', 'evoting' ),
+                'hideNonVoters'    => __( 'Ukryj nieobecnych', 'evoting' ),
                 'days'             => __( 'd', 'evoting' ),
                 'hours'            => __( 'godz.', 'evoting' ),
                 'minutes'          => __( 'min.', 'evoting' ),

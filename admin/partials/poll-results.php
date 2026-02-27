@@ -112,10 +112,13 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
     <?php endif; ?>
 
     <?php // ── Voter list (per-vote: jawnie = dane, anonimowo = Anonimowy) ── ?>
-    <?php if ( ! empty( $voters ) ) : ?>
-        <h2><?php esc_html_e( 'Lista głosujących', 'evoting' ); ?></h2>
+    <?php if ( ! empty( $voters ) ) :
+        $voters_total = count( $voters );
+        $page_size    = 100;
+    ?>
+        <h2><?php printf( esc_html__( 'Lista głosujących (%d)', 'evoting' ), $voters_total ); ?></h2>
         <p class="description"><?php esc_html_e( 'Widoczne: imię i nazwisko oraz zanonimizowany adres e-mail. Pozostałe dane są utajnione.', 'evoting' ); ?></p>
-        <table class="widefat fixed striped" style="max-width:700px;">
+        <table class="widefat fixed striped evoting-paginated-table" id="evoting-voters-table" style="max-width:700px;">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Imię i Nazwisko', 'evoting' ); ?></th>
@@ -124,8 +127,8 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( $voters as $voter ) : ?>
-                    <tr>
+                <?php foreach ( $voters as $idx => $voter ) : ?>
+                    <tr<?php echo $idx >= $page_size ? ' class="evoting-row-hidden" style="display:none;"' : ''; ?>>
                         <td><?php echo esc_html( $voter['name'] ); ?></td>
                         <td><code><?php echo esc_html( $voter['email_anon'] ); ?></code></td>
                         <td><?php echo esc_html( $voter['voted_at'] ); ?></td>
@@ -133,8 +136,61 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <?php if ( $voters_total > $page_size ) : ?>
+            <p style="margin-top:8px;">
+                <button type="button" class="button evoting-load-more" data-table="evoting-voters-table" data-page-size="<?php echo (int) $page_size; ?>">
+                    <?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d z %2$d)', 'evoting' ), min( $page_size, $voters_total ), $voters_total ); ?>
+                </button>
+            </p>
+        <?php endif; ?>
     <?php else : ?>
         <p class="description"><?php esc_html_e( 'Nikt jeszcze nie głosował.', 'evoting' ); ?></p>
+    <?php endif; ?>
+
+    <?php // ── Non-voter list ── ?>
+    <?php if ( ! empty( $non_voters_list ) ) :
+        $non_voters_total = count( $non_voters_list );
+        $page_size_nv     = 100;
+    ?>
+        <h2><?php printf( esc_html__( 'Nie głosowali (%d)', 'evoting' ), $non_voters_total ); ?></h2>
+        <p class="description"><?php esc_html_e( 'Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane.', 'evoting' ); ?></p>
+        <table class="widefat fixed striped evoting-paginated-table" id="evoting-non-voters-table" style="max-width:400px;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Pseudonim (zanonimizowany)', 'evoting' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $non_voters_list as $idx => $nv ) : ?>
+                    <tr<?php echo $idx >= $page_size_nv ? ' class="evoting-row-hidden" style="display:none;"' : ''; ?>>
+                        <td><?php echo esc_html( $nv['nicename'] ); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php if ( $non_voters_total > $page_size_nv ) : ?>
+            <p style="margin-top:8px;">
+                <button type="button" class="button evoting-load-more" data-table="evoting-non-voters-table" data-page-size="<?php echo (int) $page_size_nv; ?>">
+                    <?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d z %2$d)', 'evoting' ), min( $page_size_nv, $non_voters_total ), $non_voters_total ); ?>
+                </button>
+            </p>
+        <?php endif; ?>
+    <?php elseif ( isset( $non_voters_list ) ) : ?>
+        <h2><?php esc_html_e( 'Nie głosowali (0)', 'evoting' ); ?></h2>
+        <p class="description"><?php esc_html_e( 'Wszyscy uprawnieni użytkownicy oddali głos.', 'evoting' ); ?></p>
+    <?php endif; ?>
+
+    <?php if ( Evoting_Results_Pdf::is_available() ) : ?>
+        <p class="submit" style="margin-top:24px;">
+            <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'evoting', 'action' => 'results', 'poll_id' => $poll->id, 'evoting_pdf' => '1' ], admin_url( 'admin.php' ) ), 'evoting_results_pdf_' . $poll->id ) ); ?>"
+               class="button button-primary">
+                <?php esc_html_e( 'Pobierz wyniki (PDF)', 'evoting' ); ?>
+            </a>
+        </p>
+    <?php else : ?>
+        <p class="description" style="margin-top:16px;">
+            <?php esc_html_e( 'Aby pobrać wyniki w PDF, uruchom w katalogu wtyczki: composer install', 'evoting' ); ?>
+        </p>
     <?php endif; ?>
 
 </div>

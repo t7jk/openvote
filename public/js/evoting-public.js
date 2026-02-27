@@ -49,8 +49,36 @@
 
     /* ── Voting Forms ── */
 
+    function isFormVoteComplete(form) {
+        var questionFieldsets = form.querySelectorAll('.evoting-poll__question');
+        var allAnswered = true;
+        questionFieldsets.forEach(function (fs) {
+            if (!fs.querySelector('input[type="radio"]:checked')) {
+                allAnswered = false;
+            }
+        });
+        var visibilityChecked = form.querySelector('input[name="evoting_vote_visibility"]:checked');
+        return allAnswered && !!visibilityChecked;
+    }
+
+    function updateVoteSubmitButton(form) {
+        var submitBtn = form.querySelector('.evoting-poll__submit');
+        if (submitBtn) {
+            submitBtn.disabled = !isFormVoteComplete(form);
+        }
+    }
+
     function initVotingForms() {
         document.querySelectorAll('.evoting-poll__form').forEach(function (form) {
+            var submitBtn = form.querySelector('.evoting-poll__submit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+            form.addEventListener('change', function () {
+                updateVoteSubmitButton(form);
+            });
+            updateVoteSubmitButton(form);
+
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
@@ -190,10 +218,22 @@
         /* Voter list – anonymized nicenames, toggled */
         if (data.voters && data.voters.length) {
             html += '<div class="evoting-results__voters-section">';
-            html += '<button type="button" class="evoting-voters-toggle">' + escapeHtml(cfg.i18n.showVoters) + '</button>';
+            html += '<button type="button" class="evoting-voters-toggle" data-list="voters">' + escapeHtml(cfg.i18n.showVoters) + '</button>';
             html += '<div class="evoting-results__voters" style="display:none">';
             html += '<h4>' + escapeHtml(cfg.i18n.voterList) + '</h4><ul>';
             data.voters.forEach(function (v) {
+                html += '<li>' + escapeHtml(v.nicename) + '</li>';
+            });
+            html += '</ul></div></div>';
+        }
+
+        /* Non-voter list – eligible users who did not vote */
+        if (data.non_voters_list && data.non_voters_list.length) {
+            html += '<div class="evoting-results__voters-section">';
+            html += '<button type="button" class="evoting-voters-toggle" data-list="non-voters">' + escapeHtml(cfg.i18n.showNonVoters) + '</button>';
+            html += '<div class="evoting-results__non-voters" style="display:none">';
+            html += '<h4>' + escapeHtml(cfg.i18n.nonVoterList) + '</h4><ul>';
+            data.non_voters_list.forEach(function (v) {
                 html += '<li>' + escapeHtml(v.nicename) + '</li>';
             });
             html += '</ul></div></div>';
@@ -203,15 +243,22 @@
         container.innerHTML = html;
 
         /* Wire up voter-list toggle */
-        var toggleBtn = container.querySelector('.evoting-voters-toggle');
-        if (toggleBtn) {
+        container.querySelectorAll('.evoting-voters-toggle').forEach(function (toggleBtn) {
             toggleBtn.addEventListener('click', function () {
-                var list = container.querySelector('.evoting-results__voters');
-                var open = list.style.display !== 'none';
-                list.style.display = open ? 'none' : '';
-                toggleBtn.textContent = open ? cfg.i18n.showVoters : cfg.i18n.hideVoters;
+                var listKey = toggleBtn.getAttribute('data-list');
+                var listEl = listKey === 'non-voters'
+                    ? container.querySelector('.evoting-results__non-voters')
+                    : container.querySelector('.evoting-results__voters');
+                if (!listEl) return;
+                var open = listEl.style.display !== 'none';
+                listEl.style.display = open ? 'none' : '';
+                if (listKey === 'non-voters') {
+                    toggleBtn.textContent = open ? cfg.i18n.showNonVoters : cfg.i18n.hideNonVoters;
+                } else {
+                    toggleBtn.textContent = open ? cfg.i18n.showVoters : cfg.i18n.hideVoters;
+                }
             });
-        }
+        });
     }
 
     function participationRow(label, count, pct, cssKey) {

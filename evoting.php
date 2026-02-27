@@ -20,6 +20,10 @@ define( 'EVOTING_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EVOTING_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EVOTING_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
+if ( file_exists( EVOTING_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+	require_once EVOTING_PLUGIN_DIR . 'vendor/autoload.php';
+}
+
 require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-field-map.php';
 require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-role-manager.php';
 require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-batch-processor.php';
@@ -31,6 +35,7 @@ require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-i18n.php';
 require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting.php';
 require_once EVOTING_PLUGIN_DIR . 'models/class-evoting-poll.php';
 require_once EVOTING_PLUGIN_DIR . 'models/class-evoting-vote.php';
+require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-results-pdf.php';
 
 register_activation_hook( __FILE__, [ 'Evoting_Activator', 'activate' ] );
 register_deactivation_hook( __FILE__, [ 'Evoting_Deactivator', 'deactivate' ] );
@@ -80,7 +85,79 @@ function evoting_get_vote_page_slug(): string {
  * Np. https://mojadomena.pl/glosuj
  */
 function evoting_get_vote_page_url(): string {
-	return home_url( '/' . evoting_get_vote_page_slug() );
+	return home_url( '/?' . evoting_get_vote_page_slug() );
+}
+
+/**
+ * ID załącznika logo (do 32×32 px) z Konfiguracji.
+ *
+ * @return int 0 gdy nie ustawiono.
+ */
+function evoting_get_logo_attachment_id(): int {
+	return (int) get_option( 'evoting_logo_attachment_id', 0 );
+}
+
+/**
+ * ID załącznika banera (proporcja horyzontalna ok. 800×260 px) z Konfiguracji.
+ *
+ * @return int 0 gdy nie ustawiono.
+ */
+function evoting_get_banner_attachment_id(): int {
+	return (int) get_option( 'evoting_banner_attachment_id', 0 );
+}
+
+/**
+ * URL logo do wyświetlenia na stronie głosowania (mały rozmiar do 32×32).
+ *
+ * @return string URL lub pusty string.
+ */
+function evoting_get_logo_url(): string {
+	$id = evoting_get_logo_attachment_id();
+	if ( ! $id ) {
+		return '';
+	}
+	$url = wp_get_attachment_image_url( $id, [ 32, 32 ] );
+	return is_string( $url ) ? $url : '';
+}
+
+/**
+ * URL banera do wyświetlenia na stronie głosowania (proporcja horyzontalna).
+ *
+ * @return string URL lub pusty string.
+ */
+function evoting_get_banner_url(): string {
+	$id = evoting_get_banner_attachment_id();
+	if ( ! $id ) {
+		return '';
+	}
+	$url = wp_get_attachment_image_url( $id, [ 800, 260 ] );
+	return is_string( $url ) ? $url : wp_get_attachment_image_url( $id, 'full' );
+}
+
+/**
+ * Skrót nazwy systemu (do 6 znaków). Używany w menu admina i nagłówku.
+ * Opcja: evoting_brand_short_name, domyślnie „EP-RWL”.
+ *
+ * @return string
+ */
+function evoting_get_brand_short_name(): string {
+	$v = get_option( 'evoting_brand_short_name', 'EP-RWL' );
+	$v = is_string( $v ) ? trim( $v ) : 'EP-RWL';
+	if ( $v === '' ) {
+		return 'EP-RWL';
+	}
+	return mb_substr( $v, 0, 6 );
+}
+
+/**
+ * Pełna nazwa systemu. Używana w nagłówku panelu i np. w PDF.
+ * Opcja: evoting_brand_full_name, domyślnie „E-Parlament Wolnych Ludzi”.
+ *
+ * @return string
+ */
+function evoting_get_brand_full_name(): string {
+	$v = get_option( 'evoting_brand_full_name', 'E-Parlament Wolnych Ludzi' );
+	return is_string( $v ) && trim( $v ) !== '' ? trim( $v ) : 'E-Parlament Wolnych Ludzi';
 }
 
 // Wirtualna strona głosowania (np. /glosuj) — bez szablonu WordPress.
