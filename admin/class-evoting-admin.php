@@ -56,6 +56,24 @@ class Evoting_Admin {
             'evoting-settings',
             [ $this, 'render_settings_page' ]
         );
+
+        add_submenu_page(
+            'evoting',
+            __( 'Podręcznik użytkownika', 'evoting' ),
+            __( '📖 Podręcznik', 'evoting' ),
+            'read',
+            'evoting-manual',
+            [ $this, 'render_manual_page' ]
+        );
+
+        add_submenu_page(
+            'evoting',
+            __( 'Przepisy prawne', 'evoting' ),
+            __( '⚖️ Przepisy', 'evoting' ),
+            'read',
+            'evoting-law',
+            [ $this, 'render_law_page' ]
+        );
     }
 
     /**
@@ -454,6 +472,14 @@ class Evoting_Admin {
         }
 
         include EVOTING_PLUGIN_DIR . 'admin/partials/settings.php';
+    }
+
+    public function render_manual_page(): void {
+        include EVOTING_PLUGIN_DIR . 'admin/partials/manual.php';
+    }
+
+    public function render_law_page(): void {
+        include EVOTING_PLUGIN_DIR . 'admin/partials/law.php';
     }
 
     public function render_brand_header(): void {

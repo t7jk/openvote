@@ -8,6 +8,12 @@ $polls = Evoting_Poll::get_all();
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting&action=new' ) ); ?>" class="page-title-action">
         <?php esc_html_e( 'Dodaj nowe', 'evoting' ); ?>
     </a>
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-law' ) ); ?>"
+       class="page-title-action"
+       style="margin-left:4px;"
+       title="<?php esc_attr_e( 'Przepisy prawne obowiązujące w głosowaniach', 'evoting' ); ?>">
+        ⚖️ <?php esc_html_e( 'Przepisy', 'evoting' ); ?>
+    </a>
     <hr class="wp-header-end">
 
     <?php if ( isset( $_GET['deleted'] ) ) : ?>

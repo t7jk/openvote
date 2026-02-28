@@ -17,6 +17,14 @@ function evoting_settings_select( string $logical, string $current, array $core_
     $name = 'evoting_field_map[' . esc_attr( $logical ) . ']';
     echo '<select name="' . $name . '" id="evoting_field_' . esc_attr( $logical ) . '" class="evoting-settings-select">';
 
+    // Optional fields: first option is "not assigned"
+    $optional_fields = [ 'phone', 'pesel', 'id_card', 'address', 'zip_code', 'town' ];
+    if ( in_array( $logical, $optional_fields, true ) ) {
+        echo '<option value="' . esc_attr( Evoting_Field_Map::NOT_SET_KEY ) . '"' . selected( $current, Evoting_Field_Map::NOT_SET_KEY, false ) . '>';
+        echo esc_html__( '— nie określone —', 'evoting' );
+        echo '</option>';
+    }
+
     if ( 'city' === $logical ) {
         echo '<option value="' . esc_attr( Evoting_Field_Map::NO_CITY_KEY ) . '"' . selected( $current, Evoting_Field_Map::NO_CITY_KEY, false ) . '>';
         echo esc_html__( 'Nie używaj miast (wszyscy w grupie Wszyscy)', 'evoting' );
@@ -429,18 +437,53 @@ function evoting_settings_select( string $logical, string $current, array $core_
                 'evoting'
             ); ?>
         </p>
+
+        <div class="notice notice-warning inline" style="max-width:860px;margin:0 0 16px;padding:12px 16px;">
+            <p style="margin:0 0 6px;">
+                <strong>⚠ <?php esc_html_e( 'Wymagana wtyczka do rozszerzonych pól profilu', 'evoting' ); ?></strong>
+            </p>
+            <p style="margin:0 0 8px;color:#3c3c3c;">
+                <?php esc_html_e(
+                    'Pola takie jak Telefon, PESEL czy Numer dowodu osobistego nie istnieją domyślnie w WordPress. '
+                    . 'Aby użytkownicy mogli je uzupełniać, potrzebujesz wtyczki, która dodaje własne pola rejestracji i profilu — np.:',
+                    'evoting'
+                ); ?>
+            </p>
+            <ul style="margin:0 0 8px;padding-left:20px;list-style:disc;color:#3c3c3c;">
+                <li>
+                    <a href="https://wordpress.org/plugins/user-registration/" target="_blank" rel="noopener noreferrer">
+                        <strong>User Registration &amp; Membership</strong>
+                    </a>
+                    <?php esc_html_e( '— darmowa, 60 000+ aktywnych instalacji, obsługuje własne pola i powiązuje je z usermeta.', 'evoting' ); ?>
+                </li>
+                <li>
+                    <?php esc_html_e( 'Lub każda inna wtyczka zapisująca dane w', 'evoting' ); ?>
+                    <code>wp_usermeta</code>
+                    <?php esc_html_e( 'pod dowolnym kluczem (meta_key) — wpisz ten klucz w kolumnie poniżej.', 'evoting' ); ?>
+                </li>
+            </ul>
+            <p style="margin:0;font-size:12px;color:#777;">
+                <?php esc_html_e(
+                    'Jeśli dana wtyczka zapisuje numer telefonu jako „user_gsm", wpisz „user_gsm" jako klucz dla pola Telefon.',
+                    'evoting'
+                ); ?>
+            </p>
+        </div>
+
         <table class="widefat fixed evoting-settings-table" style="max-width:780px;">
             <thead>
                 <tr>
                     <th style="width:220px;"><?php esc_html_e( 'Pole logiczne', 'evoting' ); ?></th>
                     <th><?php esc_html_e( 'Klucz w bazie danych WordPress', 'evoting' ); ?></th>
-                    <th style="width:180px;"><?php esc_html_e( 'Aktualny klucz', 'evoting' ); ?></th>
+                    <th style="width:110px;text-align:center;"><?php esc_html_e( 'Wymagane', 'evoting' ); ?><br><span style="font-weight:400;font-size:11px;color:#888;"><?php esc_html_e( 'do głosowania', 'evoting' ); ?></span></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ( $labels as $logical => $label ) :
                     $current_val = $current_map[ $logical ] ?? Evoting_Field_Map::DEFAULTS[ $logical ];
                     $is_core     = Evoting_Field_Map::is_core_field( $current_val );
+                    $always_req  = in_array( $logical, Evoting_Field_Map::ALWAYS_REQUIRED, true );
+                    $is_req      = Evoting_Field_Map::is_required( $logical );
                 ?>
                 <tr>
                     <td>
@@ -448,6 +491,30 @@ function evoting_settings_select( string $logical, string $current, array $core_
                         <?php if ( 'email' === $logical ) : ?>
                             <br><span class="description" style="font-size:11px;">
                                 <?php esc_html_e( 'Zazwyczaj user_email (pole wbudowane)', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'phone' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_gsm', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'pesel' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_pesel', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'id_card' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_id', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'address' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_address', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'zip_code' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_zip', 'evoting' ); ?>
+                            </span>
+                        <?php elseif ( 'town' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_city', 'evoting' ); ?>
                             </span>
                         <?php endif; ?>
                     </td>
@@ -458,28 +525,125 @@ function evoting_settings_select( string $logical, string $current, array $core_
                             $available_keys['core'],
                             $available_keys['meta']
                         ); ?>
-                    </td>
-                    <td>
-                        <?php if ( 'city' === $logical && $current_val === Evoting_Field_Map::NO_CITY_KEY ) : ?>
-                            <code><?php esc_html_e( 'Nie używaj miast', 'evoting' ); ?></code>
-                            <br><span class="evoting-badge evoting-badge--meta"><?php esc_html_e( 'grupa Wszyscy', 'evoting' ); ?></span>
+                        <br>
+                        <?php if ( $current_val === Evoting_Field_Map::NOT_SET_KEY ) : ?>
+                            <span class="evoting-badge" style="background:#f0f0f1;color:#787c82;"><?php esc_html_e( 'nie określone', 'evoting' ); ?></span>
+                        <?php elseif ( 'city' === $logical && $current_val === Evoting_Field_Map::NO_CITY_KEY ) : ?>
+                            <code style="margin-top:4px;display:inline-block;"><?php esc_html_e( 'Nie używaj miast', 'evoting' ); ?></code>
+                            <span class="evoting-badge evoting-badge--meta"><?php esc_html_e( 'grupa Wszyscy', 'evoting' ); ?></span>
                         <?php else : ?>
-                            <code><?php echo esc_html( $current_val ); ?></code>
+                            <code style="margin-top:4px;display:inline-block;"><?php echo esc_html( $current_val ); ?></code>
                             <?php if ( $is_core ) : ?>
-                                <br><span class="evoting-badge evoting-badge--core">
-                                    <?php esc_html_e( 'wbudowane', 'evoting' ); ?>
-                                </span>
+                                <span class="evoting-badge evoting-badge--core"><?php esc_html_e( 'wbudowane', 'evoting' ); ?></span>
                             <?php else : ?>
-                                <br><span class="evoting-badge evoting-badge--meta">
-                                    <?php esc_html_e( 'usermeta', 'evoting' ); ?>
-                                </span>
+                                <span class="evoting-badge evoting-badge--meta"><?php esc_html_e( 'usermeta', 'evoting' ); ?></span>
                             <?php endif; ?>
+                        <?php endif; ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;">
+                        <?php if ( $always_req ) : ?>
+                            <input type="checkbox" checked disabled
+                                   title="<?php esc_attr_e( 'To pole jest zawsze wymagane', 'evoting' ); ?>">
+                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'evoting' ); ?></span>
+                        <?php else : ?>
+                            <input type="checkbox"
+                                   name="evoting_required_fields[]"
+                                   value="<?php echo esc_attr( $logical ); ?>"
+                                   <?php checked( $is_req ); ?>>
                         <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <!-- ── Szablon e-maila zapraszającego ─────────────────────────────── -->
+
+        <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Szablon e-maila zapraszającego', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 16px;">
+            <?php esc_html_e(
+                'Treść e-maila wysyłanego do uczestników przy starcie głosowania. '
+                . 'Pola oznaczone {zmienną} są automatycznie zastępowane danymi głosowania.',
+                'evoting'
+            ); ?>
+        </p>
+
+        <div style="background:#f0f6fc;border:1px solid #c3d9f0;border-radius:4px;padding:12px 16px;max-width:700px;margin-bottom:18px;font-size:12px;color:#3c434a;line-height:1.8;">
+            <strong><?php esc_html_e( 'Dostępne zmienne:', 'evoting' ); ?></strong><br>
+            <code>{poll_title}</code> — <?php esc_html_e( 'tytuł głosowania', 'evoting' ); ?><br>
+            <code>{brand_short}</code> — <?php esc_html_e( 'skrót nazwy systemu (z WP Site Title)', 'evoting' ); ?><br>
+            <code>{from_email}</code> — <?php esc_html_e( 'adres e-mail nadawcy (z pola powyżej)', 'evoting' ); ?><br>
+            <code>{vote_url}</code> — <?php esc_html_e( 'pełny adres strony głosowania', 'evoting' ); ?><br>
+            <code>{date_end}</code> — <?php esc_html_e( 'data i godzina zakończenia głosowania', 'evoting' ); ?><br>
+            <code>{questions}</code> — <?php esc_html_e( 'lista pytań z odpowiedziami (automatycznie formatowana)', 'evoting' ); ?>
+        </div>
+
+        <table class="form-table" style="max-width:760px;">
+            <tr>
+                <th scope="row" style="width:160px;">
+                    <label for="evoting_email_subject"><?php esc_html_e( 'Temat', 'evoting' ); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="evoting_email_subject"
+                           name="evoting_email_subject"
+                           value="<?php echo esc_attr( evoting_get_email_subject_template() ); ?>"
+                           class="large-text"
+                           placeholder="<?php esc_attr_e( 'Zaproszenie do głosowania: {poll_title}', 'evoting' ); ?>" />
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="evoting_email_from_template"><?php esc_html_e( 'Od (nazwa nadawcy)', 'evoting' ); ?></label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="evoting_email_from_template"
+                           name="evoting_email_from_template"
+                           value="<?php echo esc_attr( evoting_get_email_from_template() ); ?>"
+                           class="large-text"
+                           placeholder="<?php esc_attr_e( '{brand_short} ({from_email})', 'evoting' ); ?>" />
+                    <p class="description" style="margin-top:4px;">
+                        <?php esc_html_e( 'Nazwa wyświetlana jako nadawca w kliencie pocztowym. Adres e-mail pochodzi z pola "E-mail nadawcy" powyżej.', 'evoting' ); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row" style="vertical-align:top;padding-top:12px;">
+                    <label for="evoting_email_body"><?php esc_html_e( 'Treść', 'evoting' ); ?></label>
+                </th>
+                <td>
+                    <textarea id="evoting_email_body"
+                              name="evoting_email_body"
+                              rows="14"
+                              class="large-text"
+                              style="font-family:monospace;font-size:13px;line-height:1.6;"><?php echo esc_textarea( evoting_get_email_body_template() ); ?></textarea>
+                    <p class="description" style="margin-top:4px;">
+                        <?php esc_html_e( 'Treść wiadomości w formacie tekstowym. Używaj {zmiennych} z listy powyżej.', 'evoting' ); ?>
+                    </p>
+                    <p style="margin-top:8px;">
+                        <button type="button" class="button" id="evoting-email-reset-btn">
+                            <?php esc_html_e( 'Przywróć domyślną treść', 'evoting' ); ?>
+                        </button>
+                    </p>
+                </td>
+            </tr>
+        </table>
+
+        <script>
+        document.getElementById('evoting-email-reset-btn').addEventListener('click', function() {
+            if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść e-maila? Obecna treść zostanie nadpisana.', 'evoting' ) ); ?>')) return;
+            document.getElementById('evoting_email_subject').value = 'Zaproszenie do g\u0142osowania: {poll_title}';
+            document.getElementById('evoting_email_from_template').value = '{brand_short} ({from_email})';
+            document.getElementById('evoting_email_body').value =
+                'Zapraszamy do wzi\u0119cia udzia\u0142u w g\u0142osowaniu pod tytu\u0142em: {poll_title}.\n\n' +
+                'G\u0142osowanie jest przeprowadzane na stronie: {vote_url}\n' +
+                'i potrwa do: {date_end}.\n\n' +
+                'Oto lista pyta\u0144 w g\u0142osowaniu:\n{questions}\n\n' +
+                'Zapraszamy do g\u0142osowania!\n' +
+                'Zesp\u00f3\u0142 {brand_short}';
+        });
+        </script>
 
         <p style="margin-top:16px;">
             <?php submit_button( __( 'Zapisz konfigurację', 'evoting' ), 'primary', 'submit', false ); ?>
@@ -489,7 +653,7 @@ function evoting_settings_select( string $logical, string $current, array $core_
     <hr>
     <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'evoting' ); ?></h2>
     <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
-        <li><?php esc_html_e( 'Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie 5 pól jest wypełnionych.', 'evoting' ); ?></li>
+        <li><?php esc_html_e( 'Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie pola oznaczone jako "Wymagane" są wypełnione.', 'evoting' ); ?></li>
         <li><?php esc_html_e( 'Pole "Nazwa miasta" służy do definiowania grup docelowych głosowania.', 'evoting' ); ?></li>
         <li><?php esc_html_e( 'Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users.', 'evoting' ); ?></li>
         <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'evoting' ); ?></li>

@@ -169,6 +169,106 @@ function evoting_get_from_email(): string {
 	return 'noreply@' . ( $domain ?: 'example.com' );
 }
 
+// ── Szablon e-maila zapraszającego ───────────────────────────────────────
+
+/**
+ * Domyślny temat e-maila zaproszenia.
+ * Używa placeholdera {poll_title}.
+ */
+function evoting_get_email_subject_template(): string {
+	$saved = get_option( 'evoting_email_subject', '' );
+	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
+		return trim( $saved );
+	}
+	return 'Zaproszenie do głosowania: {poll_title}';
+}
+
+/**
+ * Domyślna nazwa nadawcy w szablonie.
+ * Używa placeholderów {brand_short} i {from_email}.
+ */
+function evoting_get_email_from_template(): string {
+	$saved = get_option( 'evoting_email_from_template', '' );
+	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
+		return trim( $saved );
+	}
+	return '{brand_short} ({from_email})';
+}
+
+/**
+ * Domyślna treść e-maila zaproszenia.
+ * Używa placeholderów: {poll_title}, {vote_url}, {date_end}, {questions}, {brand_short}.
+ */
+function evoting_get_email_body_template(): string {
+	$saved = get_option( 'evoting_email_body', '' );
+	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
+		return trim( $saved );
+	}
+	return 'Zapraszamy do wzięcia udziału w głosowaniu pod tytułem: {poll_title}.
+
+Głosowanie jest przeprowadzane na stronie: {vote_url}
+i potrwa do: {date_end}.
+
+Oto lista pytań w głosowaniu:
+{questions}
+
+Zapraszamy do głosowania!
+Zespół {brand_short}';
+}
+
+/**
+ * Podmień placeholdery w szablonie e-maila na rzeczywiste wartości.
+ *
+ * Dostępne zmienne:
+ *   {poll_title}  — tytuł głosowania
+ *   {brand_short} — skrót nazwy systemu
+ *   {from_email}  — adres e-mail nadawcy
+ *   {vote_url}    — URL strony głosowania
+ *   {date_end}    — data i godzina zakończenia głosowania
+ *   {questions}   — lista pytań z odpowiedziami
+ *
+ * @param string   $template Szablon z placeholderami.
+ * @param object   $poll     Obiekt głosowania (z ->title, ->date_end, ->questions).
+ * @return string  Gotowy tekst po podstawieniu.
+ */
+function evoting_render_email_template( string $template, object $poll ): string {
+	$questions_text = '';
+	if ( ! empty( $poll->questions ) ) {
+		foreach ( $poll->questions as $i => $q ) {
+			$questions_text .= ( $i + 1 ) . '. ' . $q->body . "\n";
+			if ( ! empty( $q->answers ) ) {
+				foreach ( $q->answers as $a ) {
+					$questions_text .= '   - ' . $a->body . "\n";
+				}
+			}
+			$questions_text .= "\n";
+		}
+		$questions_text = rtrim( $questions_text );
+	}
+
+	$end_raw = $poll->date_end ?? '';
+	if ( strlen( $end_raw ) === 10 ) {
+		$end_raw .= ' 23:59:59';
+	}
+	try {
+		$end_dt   = new DateTimeImmutable( $end_raw, wp_timezone() );
+		$date_end = $end_dt->format( 'd.m.Y H:i' );
+	} catch ( \Exception $e ) {
+		$date_end = $poll->date_end ?? '';
+	}
+
+	$replacements = [
+		'{poll_title}'  => $poll->title ?? '',
+		'{brand_short}' => evoting_get_brand_short_name(),
+		'{from_email}'  => evoting_get_from_email(),
+		'{vote_url}'    => evoting_get_vote_page_url(),
+		'{date_end}'    => $date_end,
+		'{questions}'   => $questions_text,
+	];
+
+	return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+}
+
 /**
  * Metoda wysyłki e-maili: 'wordpress' (domyślna), 'smtp' lub 'sendgrid'.
  */
@@ -236,6 +336,13 @@ add_action( 'wp_enqueue_scripts',  [ 'Evoting_Vote_Page', 'enqueue_assets' ] );
 add_filter( 'body_class',          [ 'Evoting_Vote_Page', 'add_body_class' ] );
 add_filter( 'pre_get_document_title', [ 'Evoting_Vote_Page', 'filter_document_title' ] );
 add_filter( 'the_title',              [ 'Evoting_Vote_Page', 'suppress_page_title' ], 10, 2 );
+
+// Strona przepisów prawnych (np. /przepisy/) — dostępna dla wszystkich.
+add_filter( 'query_vars',    [ 'Evoting_Law_Page', 'register_query_var' ] );
+add_action( 'init',          [ 'Evoting_Law_Page', 'add_rewrite_rule' ] );
+add_filter( 'template_include', [ 'Evoting_Law_Page', 'filter_template' ] );
+add_filter( 'body_class',    [ 'Evoting_Law_Page', 'add_body_class' ] );
+
 
 /**
  * Zwraca przesunięcie czasu dla głosowań (w godzinach, od -12 do +12).

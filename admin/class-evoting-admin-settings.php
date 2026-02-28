@@ -22,6 +22,9 @@ class Evoting_Admin_Settings {
         $raw_map = (array) ( $_POST['evoting_field_map'] ?? [] );
         Evoting_Field_Map::save( $raw_map );
 
+        $raw_required = array_map( 'sanitize_key', (array) ( $_POST['evoting_required_fields'] ?? [] ) );
+        Evoting_Field_Map::save_required_fields( $raw_required );
+
         if ( Evoting_Field_Map::is_city_disabled() ) {
             self::ensure_wszyscy_group_exists();
         }
@@ -80,6 +83,22 @@ class Evoting_Admin_Settings {
         update_option( 'evoting_brand_short_name', $short_name, false );
 
         // Pełna nazwa pobierana z WordPress Site Title — nie zapisujemy w opcjach wtyczki.
+
+        // ── Szablon e-maila zapraszającego ──────────────────────────────────
+        update_option(
+            'evoting_email_subject',
+            sanitize_text_field( wp_unslash( $_POST['evoting_email_subject'] ?? '' ) ),
+            false
+        );
+        update_option(
+            'evoting_email_from_template',
+            sanitize_text_field( wp_unslash( $_POST['evoting_email_from_template'] ?? '' ) ),
+            false
+        );
+        // Treść może zawierać znaki nowej linii — używamy wp_kses_post aby nie kasował \n.
+        $email_body = wp_unslash( $_POST['evoting_email_body'] ?? '' );
+        $email_body = wp_strip_all_tags( $email_body );
+        update_option( 'evoting_email_body', $email_body, false );
 
         flush_rewrite_rules();
 

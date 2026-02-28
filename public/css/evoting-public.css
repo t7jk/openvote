@@ -84,6 +84,35 @@
     padding-top: 0.5rem;
 }
 
+/* Link "Przepisy" w nawigacji zakładek (pozycjonowany po prawej) */
+.evoting-law-link {
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #666;
+    text-decoration: none !important;
+    padding: 4px 10px;
+    border: 1px solid #dde1e7;
+    border-radius: 20px;
+    white-space: nowrap;
+    transition: background .16s ease, color .16s ease, border-color .16s ease;
+    line-height: 1;
+}
+
+.evoting-law-link:hover,
+.evoting-law-link:focus {
+    background: #f5f7fa;
+    color: var(--wp--preset--color--primary, #0073aa);
+    border-color: var(--wp--preset--color--primary, #0073aa);
+    text-decoration: none !important;
+    outline: none;
+}
+
 /* ── Zakończone głosowania — blok wyników (styl spójny z aktywnym blokiem) ─ */
 
 /* Pasek statusu nad tytułem */
@@ -440,4 +469,77 @@
 
 .evoting-results__voters li {
     padding: 2px 0;
+}
+
+/* ── Strona przepisów prawnych (/przepisy/) ──────────────────────────────── */
+
+.evoting-law-page-wrap {
+    max-width: 860px;
+    margin: 2rem auto;
+    padding: 0 1.25rem 3rem;
+}
+
+.evoting-law-article {
+    line-height: 1.8;
+    font-size: 1rem;
+    color: inherit;
+}
+
+.evoting-law-article h1 {
+    margin-bottom: 0.25rem;
+}
+
+.evoting-law-lead {
+    font-size: 1.05em;
+    font-style: italic;
+    opacity: .75;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.evoting-law-article h2 {
+    margin-top: 2rem;
+    margin-bottom: 0.6rem;
+}
+
+.evoting-law-article h3 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.4rem;
+}
+
+.evoting-law-article hr {
+    margin: 2rem 0;
+    border: none;
+    border-top: 1px solid #e2e4e7;
+}
+
+.evoting-law-article ul,
+.evoting-law-article ol {
+    padding-left: 1.5rem;
+    margin: 0.6rem 0 1rem;
+}
+
+.evoting-law-article li {
+    margin-bottom: 0.4rem;
+}
+
+.evoting-law-article a {
+    color: var(--wp--preset--color--primary, #0073aa);
+}
+
+.evoting-law-back {
+    margin-top: 2.5rem;
+    border-top: 1px solid #e2e4e7;
+    padding-top: 1rem;
+    opacity: .7;
+    font-size: .9em;
+}
+
+.evoting-law-back a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.evoting-law-back a:hover {
+    text-decoration: underline;
 }

@@ -13,6 +13,12 @@ class Evoting_Field_Map {
     const NO_CITY_KEY  = '__evoting_no_city__';
     const WSZYSCY_NAME = 'Wszyscy';
 
+    /** Option key for storing which logical fields are required for voting. */
+    const REQUIRED_FIELDS_OPTION = 'evoting_required_fields';
+
+    /** Sentinel value meaning "field not mapped — treat as empty". */
+    const NOT_SET_KEY = '__evoting_not_set__';
+
     /**
      * Logical field identifiers and their factory defaults.
      * Keys are internal identifiers used throughout the codebase.
@@ -23,6 +29,12 @@ class Evoting_Field_Map {
         'nickname'   => 'nickname',
         'email'      => 'user_email',
         'city'       => 'user_registration_miejsce_spotkania',
+        'phone'      => self::NOT_SET_KEY,
+        'pesel'      => self::NOT_SET_KEY,
+        'id_card'    => self::NOT_SET_KEY,
+        'address'    => self::NOT_SET_KEY,
+        'zip_code'   => self::NOT_SET_KEY,
+        'town'       => self::NOT_SET_KEY,
     ];
 
     /**
@@ -34,7 +46,19 @@ class Evoting_Field_Map {
         'nickname'   => 'Nickname',
         'email'      => 'E-mail',
         'city'       => 'Nazwa miasta / miejsce spotkania',
+        'phone'      => 'Numer telefonu',
+        'pesel'      => 'Numer PESEL',
+        'id_card'    => 'Numer dowodu osobistego',
+        'address'    => 'Ulica i numer domu',
+        'zip_code'   => 'Kod pocztowy',
+        'town'       => 'Miejscowość',
     ];
+
+    /**
+     * Fields required by default (always required, regardless of admin config).
+     * Admin can add more via checkboxes; these cannot be unchecked.
+     */
+    const ALWAYS_REQUIRED = [ 'first_name', 'last_name', 'nickname', 'email' ];
 
     /**
      * WordPress core wp_users columns (not usermeta).
@@ -97,11 +121,64 @@ class Evoting_Field_Map {
             return self::WSZYSCY_NAME;
         }
 
+        if ( $actual === self::NOT_SET_KEY ) {
+            return '';
+        }
+
         if ( self::is_core_field( $actual ) ) {
             return (string) ( $user->{$actual} ?? '' );
         }
 
         return (string) get_user_meta( $user->ID, $actual, true );
+    }
+
+    /**
+     * Returns logical field keys that are marked as required for voting.
+     * Returns array: [ 'first_name' => 'Imię', 'email' => 'E-mail', ... ]
+     */
+    public static function get_required_fields(): array {
+        $saved    = (array) get_option( self::REQUIRED_FIELDS_OPTION, [] );
+        $required = [];
+        foreach ( array_keys( self::DEFAULTS ) as $logical ) {
+            // city — skip if disabled
+            if ( 'city' === $logical && self::is_city_disabled() ) {
+                continue;
+            }
+            // Always-required fields are included regardless of saved option
+            if ( in_array( $logical, self::ALWAYS_REQUIRED, true ) || in_array( $logical, $saved, true ) ) {
+                $required[ $logical ] = self::LABELS[ $logical ];
+            }
+        }
+        return $required;
+    }
+
+    /**
+     * Whether a specific logical field is marked as required.
+     */
+    public static function is_required( string $logical ): bool {
+        if ( in_array( $logical, self::ALWAYS_REQUIRED, true ) ) {
+            return true;
+        }
+        $saved = (array) get_option( self::REQUIRED_FIELDS_OPTION, [] );
+        return in_array( $logical, $saved, true );
+    }
+
+    /**
+     * Persist the required-fields selection from POST data.
+     * $checked is an array of logical keys that were checked.
+     */
+    public static function save_required_fields( array $checked ): void {
+        $clean = [];
+        foreach ( array_keys( self::DEFAULTS ) as $logical ) {
+            // Always-required fields don't need to be stored
+            if ( in_array( $logical, self::ALWAYS_REQUIRED, true ) ) {
+                continue;
+            }
+            if ( in_array( $logical, $checked, true ) ) {
+                $clean[] = $logical;
+            }
+        }
+        update_option( self::REQUIRED_FIELDS_OPTION, $clean, false );
     }
 
     /**

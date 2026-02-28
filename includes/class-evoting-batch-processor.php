@@ -440,12 +440,9 @@ class Evoting_Batch_Processor {
         }
 
         $from_email = evoting_get_from_email();
-        $from_name  = evoting_get_brand_short_name();
-        $subject    = sprintf( __( 'Nowe głosowanie: %s', 'evoting' ), $poll->title );
-        $message    = sprintf(
-            __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby wziąć udział.", 'evoting' ),
-            $poll->title
-        );
+        $from_name  = evoting_render_email_template( evoting_get_email_from_template(), $poll );
+        $subject    = evoting_render_email_template( evoting_get_email_subject_template(), $poll );
+        $message    = evoting_render_email_template( evoting_get_email_body_template(), $poll );
         $headers = [
             'Content-Type: text/plain; charset=UTF-8',
             'From: ' . $from_name . ' <' . $from_email . '>',
@@ -602,18 +599,8 @@ class Evoting_Batch_Processor {
             return [];
         }
 
-        $subject = sprintf(
-            /* translators: %s: poll title */
-            __( 'Zaproszenie do głosowania: %s', 'evoting' ),
-            $poll->title
-        );
-        $vote_url = evoting_get_vote_page_url();
-        $message  = sprintf(
-            /* translators: 1: poll title, 2: voting URL */
-            __( "Zostało otwarte nowe głosowanie: %1\$s\n\nZaloguj się i oddaj swój głos:\n%2\$s", 'evoting' ),
-            $poll->title,
-            $vote_url
-        );
+        $subject = evoting_render_email_template( evoting_get_email_subject_template(), $poll );
+        $message = evoting_render_email_template( evoting_get_email_body_template(), $poll );
 
         $sent   = [];
         $failed = [];
@@ -633,7 +620,7 @@ class Evoting_Batch_Processor {
             }
         } else {
             $from_email = evoting_get_from_email();
-            $from_name  = evoting_get_brand_short_name();
+            $from_name  = evoting_render_email_template( evoting_get_email_from_template(), $poll );
             $headers    = [
                 'Content-Type: text/plain; charset=UTF-8',
                 'From: ' . $from_name . ' <' . $from_email . '>',

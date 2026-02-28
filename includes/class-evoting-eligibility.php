@@ -80,17 +80,8 @@ class Evoting_Eligibility {
             return self::no( __( 'Konto użytkownika nie istnieje.', 'evoting' ) );
         }
 
-        // ── 4. Profil kompletny ─────────────────────────────────────────────
-        $required = [
-            'first_name' => Evoting_Field_Map::LABELS['first_name'],
-            'last_name'  => Evoting_Field_Map::LABELS['last_name'],
-            'nickname'   => Evoting_Field_Map::LABELS['nickname'],
-            'email'      => Evoting_Field_Map::LABELS['email'],
-            'city'       => Evoting_Field_Map::LABELS['city'],
-        ];
-        if ( Evoting_Field_Map::is_city_disabled() ) {
-            unset( $required['city'] );
-        }
+        // ── 4. Profil kompletny — weryfikacja pól oznaczonych jako wymagane ──
+        $required = Evoting_Field_Map::get_required_fields();
 
         foreach ( $required as $logical => $label ) {
             if ( '' === Evoting_Field_Map::get_user_value( $user, $logical ) ) {

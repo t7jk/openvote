@@ -28,13 +28,14 @@ if ( $is_logged ) {
 
 $tab_active_url = esc_url( add_query_arg( 'tab', 'active', $vote_page_url ) );
 $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $vote_page_url ) );
+$law_page_url   = class_exists( 'Evoting_Law_Page' ) ? Evoting_Law_Page::get_url() : '';
 
 get_header();
 ?>
 
 <div class="evoting-vote-page-wrap">
 
-    <nav class="evoting-tabs" role="tablist">
+    <nav class="evoting-tabs" role="tablist" style="position:relative;">
         <a href="<?php echo $tab_active_url; ?>"
            class="evoting-tab<?php echo 'active' === $active_tab ? ' evoting-tab--active' : ''; ?>"
            role="tab"
@@ -47,6 +48,13 @@ get_header();
            aria-selected="<?php echo 'closed' === $active_tab ? 'true' : 'false'; ?>">
             <?php esc_html_e( 'Zakończone głosowania', 'evoting' ); ?>
         </a>
+        <?php if ( $law_page_url !== '' ) : ?>
+        <a href="<?php echo esc_url( $law_page_url ); ?>"
+           class="evoting-law-link"
+           title="<?php esc_attr_e( 'Przepisy prawne', 'evoting' ); ?>">
+            ⚖️ <?php esc_html_e( 'Przepisy', 'evoting' ); ?>
+        </a>
+        <?php endif; ?>
     </nav>
 
     <div class="evoting-tab-content">
