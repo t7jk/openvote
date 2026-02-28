@@ -36,16 +36,17 @@ class Openvote_Admin_Polls {
             }
         }
 
-        $data = $this->sanitize_form_data();
+        // Status i data_start wg przycisku: Zapisz jako szkic / Wystartuj / Zaplanuj.
+        $submit_action = sanitize_text_field( $_POST['openvote_submit_action'] ?? '' );
+        $is_draft_save = ( 'save_draft' === $submit_action );
+
+        $data = $this->sanitize_form_data( $is_draft_save );
 
         if ( is_wp_error( $data ) ) {
             set_transient( 'openvote_admin_error', $data->get_error_message(), 30 );
             wp_safe_redirect( wp_get_referer() ?: admin_url( 'admin.php?page=openvote' ) );
             exit;
         }
-
-        // Status i data_start wg przycisku: Zapisz jako szkic / Wystartuj / Zaplanuj.
-        $submit_action = sanitize_text_field( $_POST['openvote_submit_action'] ?? '' );
         if ( $poll_id ) {
             $existing   = Openvote_Poll::get( $poll_id );
             $was_open   = $existing && 'open' === $existing->status;
@@ -92,12 +93,17 @@ class Openvote_Admin_Polls {
     }
 
     /**
+     * @param bool $is_draft_save True gdy kliknięto "Zapisz jako szkic" — pomijana walidacja wymaganych pól.
      * @return array|\WP_Error
      */
-    private function sanitize_form_data(): array|\WP_Error {
-        $title = sanitize_text_field( wp_unslash( $_POST['poll_title'] ?? '' ) );
+    private function sanitize_form_data( bool $is_draft_save = false ): array|\WP_Error {
+        $title = trim( sanitize_text_field( wp_unslash( $_POST['poll_title'] ?? '' ) ) );
         if ( '' === $title ) {
-            return new \WP_Error( 'missing_title', __( 'Tytuł jest wymagany.', 'openvote' ) );
+            if ( $is_draft_save ) {
+                $title = __( 'Szkic', 'openvote' );
+            } else {
+                return new \WP_Error( 'missing_title', __( 'Tytuł jest wymagany.', 'openvote' ) );
+            }
         }
         if ( mb_strlen( $title ) > 512 ) {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'openvote' ) );
@@ -114,7 +120,11 @@ class Openvote_Admin_Polls {
             '21d' => 21 * DAY_IN_SECONDS,
         ];
         if ( ! isset( $duration_seconds[ $duration_key ] ) ) {
-            return new \WP_Error( 'invalid_duration', __( 'Wybierz poprawny czas trwania głosowania.', 'openvote' ) );
+            if ( $is_draft_save ) {
+                $duration_key = '7d';
+            } else {
+                return new \WP_Error( 'invalid_duration', __( 'Wybierz poprawny czas trwania głosowania.', 'openvote' ) );
+            }
         }
         $date_start = current_time( 'Y-m-d H:i:s' );
         $date_end   = wp_date( 'Y-m-d H:i:s', time() + $duration_seconds[ $duration_key ] );
@@ -147,6 +157,9 @@ class Openvote_Admin_Polls {
             }
 
             if ( count( $answers ) < 3 ) {
+                if ( $is_draft_save ) {
+                    continue;
+                }
                 return new \WP_Error( 'too_few_answers', __( 'Każde pytanie musi mieć co najmniej 3 odpowiedzi (w tym obowiązkową abstencję).', 'openvote' ) );
             }
             if ( count( $answers ) > 12 ) {
@@ -159,7 +172,7 @@ class Openvote_Admin_Polls {
             ];
         }
 
-        if ( count( $questions ) < 1 ) {
+        if ( count( $questions ) < 1 && ! $is_draft_save ) {
             return new \WP_Error( 'missing_questions', __( 'Dodaj przynajmniej jedno pytanie.', 'openvote' ) );
         }
         if ( count( $questions ) > 24 ) {

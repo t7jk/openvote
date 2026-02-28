@@ -2,11 +2,11 @@
 defined( 'ABSPATH' ) || exit;
 
 $list_table = new Openvote_Surveys_List();
-$list_table->process_bulk_action();
+// Bulk action jest obsługiwany w admin_init (handle_bulk_surveys_action), żeby redirect działał przed outputem motywu.
 $list_table->prepare_items();
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline"><?php esc_html_e( 'Ankiety', 'openvote' ); ?></h1>
+    <h1 class="wp-heading-inline"><?php esc_html_e( 'Ankiety wyborcze', 'openvote' ); ?></h1>
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-surveys&action=new' ) ); ?>" class="page-title-action">
         <?php esc_html_e( 'Dodaj nową', 'openvote' ); ?>
     </a>

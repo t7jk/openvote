@@ -1,11 +1,11 @@
 /**
  * E-Voting — AJAX vote submission & results rendering.
- * Depends on: window.evotingPublic (localized by PHP)
+ * Depends on: window.openvotePublic (localized by PHP)
  */
 (function () {
     'use strict';
 
-    var cfg = window.evotingPublic || {};
+    var cfg = window.openvotePublic || {};
 
     document.addEventListener('DOMContentLoaded', function () {
         initVotingForms();
@@ -40,7 +40,7 @@
             answers[qId] = parseInt(checked.value, 10);
         });
 
-        var visibilityRadios = form.querySelectorAll('input[name="evoting_vote_visibility"]:checked');
+        var visibilityRadios = form.querySelectorAll('input[name="openvote_vote_visibility"]:checked');
         var isAnonymous = visibilityRadios.length ? (parseInt(visibilityRadios[0].value, 10) === 1) : false;
 
         if (!allAnswered) {
@@ -126,10 +126,10 @@
         var pctVoted  = eligible > 0 ? (voted  / eligible * 100).toFixed(1) : '0.0';
         var pctAbsent = eligible > 0 ? (absent / eligible * 100).toFixed(1) : '0.0';
 
-        var html = '<div class="evoting-results">';
+        var html = '<div class="openvote-results">';
 
         // Participation summary.
-        html += '<div class="evoting-results__participation">';
+        html += '<div class="openvote-results__participation">';
         html += '<h4>' + escHtml(i18n.participation || 'Frekwencja') + '</h4>';
         html += participationRow(i18n.totalEligible || 'Uprawnionych',         eligible, '100.0',    'eligible');
         html += participationRow(i18n.totalVoters   || 'Uczestniczyło',        voted,    pctVoted,   'voted');
@@ -138,13 +138,13 @@
 
         // Per-question answer bars.
         (data.questions || []).forEach(function (q, qi) {
-            html += '<div class="evoting-results__question">';
+            html += '<div class="openvote-results__question">';
             html += '<h4>' + (qi + 1) + '. ' + escHtml(q.question_text) + '</h4>';
 
             q.answers.forEach(function (a, ai) {
                 var barClass = a.is_abstain
-                    ? 'evoting-results__bar--wstrzymuje_sie'
-                    : (ai === 0 ? 'evoting-results__bar--za' : 'evoting-results__bar--przeciw');
+                    ? 'openvote-results__bar--wstrzymuje_sie'
+                    : (ai === 0 ? 'openvote-results__bar--za' : 'openvote-results__bar--przeciw');
 
                 var pct   = parseFloat(a.pct) || 0;
                 var label = escHtml(a.text);
@@ -152,12 +152,12 @@
                     label += ' <em>(' + escHtml(i18n.inclAbsent || 'inc. brak głosu') + ')</em>';
                 }
 
-                html += '<div class="evoting-results__bar-container">';
-                html += '<div class="evoting-results__bar-label">'
+                html += '<div class="openvote-results__bar-container">';
+                html += '<div class="openvote-results__bar-label">'
                       + '<span>' + label + '</span>'
                       + '<span>' + a.count + ' (' + pct.toFixed(1) + '%)</span>'
                       + '</div>';
-                html += '<div class="evoting-results__bar ' + barClass + '" style="width:' + pct.toFixed(1) + '%"></div>';
+                html += '<div class="openvote-results__bar ' + barClass + '" style="width:' + pct.toFixed(1) + '%"></div>';
                 html += '</div>';
             });
 
@@ -166,15 +166,15 @@
 
         // Anonymous mode notice.
         if (data.anonymous_msg) {
-            html += '<p class="evoting-results__anon-msg">' + escHtml(data.anonymous_msg) + '</p>';
+            html += '<p class="openvote-results__anon-msg">' + escHtml(data.anonymous_msg) + '</p>';
         }
 
         // Voter list — anonymized nicenames, toggled (public mode only).
         if (data.voters && data.voters.length) {
-            html += '<div class="evoting-results__voters-section">';
-            html += '<button type="button" class="evoting-voters-toggle">'
+            html += '<div class="openvote-results__voters-section">';
+            html += '<button type="button" class="openvote-voters-toggle">'
                   + escHtml(i18n.showVoters || 'Pokaż głosujących') + '</button>';
-            html += '<div class="evoting-results__voters" hidden>';
+            html += '<div class="openvote-results__voters" hidden>';
             html += '<h4>' + escHtml(i18n.voterList || 'Głosujący (anonimowo):') + '</h4><ul>';
             data.voters.forEach(function (v) {
                 html += '<li>' + escHtml(v.nicename) + '</li>';
@@ -186,8 +186,8 @@
         container.innerHTML = html;
 
         // Wire voter-list toggle.
-        var btn  = container.querySelector('.evoting-voters-toggle');
-        var list = container.querySelector('.evoting-results__voters');
+        var btn  = container.querySelector('.openvote-voters-toggle');
+        var list = container.querySelector('.openvote-results__voters');
         if (btn && list) {
             btn.addEventListener('click', function () {
                 var open = !list.hasAttribute('hidden');
@@ -203,12 +203,12 @@
     }
 
     function participationRow(label, count, pct, cssKey) {
-        return '<div class="evoting-results__bar-container">'
-            + '<div class="evoting-results__bar-label">'
+        return '<div class="openvote-results__bar-container">'
+            + '<div class="openvote-results__bar-label">'
             + '<span>' + escHtml(label) + '</span>'
             + '<span>' + count + ' (' + pct + '%)</span>'
             + '</div>'
-            + '<div class="evoting-results__bar evoting-results__bar--' + cssKey + '" style="width:' + pct + '%"></div>'
+            + '<div class="openvote-results__bar openvote-results__bar--' + cssKey + '" style="width:' + pct + '%"></div>'
             + '</div>';
     }
 

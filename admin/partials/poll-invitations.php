@@ -52,7 +52,7 @@ $status_labels = [
         ); ?>
     </p>
 
-    <?php if ( current_user_can( 'manage_options' ) && in_array( $poll->status, [ 'open', 'closed' ], true ) ) :
+    <?php if ( current_user_can( 'manage_options' ) && 'open' === ( $poll->status ?? '' ) ) :
         $all_sent   = $eq_exists && $cnt_pending === 0 && $cnt_failed === 0 && $cnt_sent > 0;
         $btn_label  = $all_sent
             ? __( 'Wszyscy powiadomieni', 'openvote' )
@@ -196,7 +196,7 @@ $status_labels = [
 
     <?php endif; // eq_exists ?>
 
-    <?php if ( current_user_can( 'manage_options' ) && in_array( $poll->status, [ 'open', 'closed' ], true ) ) : ?>
+    <?php if ( current_user_can( 'manage_options' ) && 'open' === ( $poll->status ?? '' ) ) : ?>
     <script>
     (function(){
         var btn       = document.getElementById('openvote-send-invitations-btn');

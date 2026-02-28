@@ -270,6 +270,31 @@ class Openvote_Vote {
     }
 
     /**
+     * Return only vote and eligible counts for a poll (e.g. for list table).
+     *
+     * @param int $poll_id
+     * @return array{ total_voters: int, total_eligible: int }
+     */
+    public static function get_turnout_counts( int $poll_id ): array {
+        global $wpdb;
+
+        $poll = Openvote_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return [ 'total_voters' => 0, 'total_eligible' => 0 ];
+        }
+
+        $total_eligible = self::get_eligible_count( $poll );
+        $total_voters   = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT COUNT(DISTINCT user_id) FROM ' . self::table() . ' WHERE poll_id = %d',
+                $poll_id
+            )
+        );
+
+        return [ 'total_voters' => $total_voters, 'total_eligible' => $total_eligible ];
+    }
+
+    /**
      * Get voter list for public results — one entry per voter.
      * Each voter chose jawnie or anonimowo; anonymous voters shown as "Anonimowy".
      *

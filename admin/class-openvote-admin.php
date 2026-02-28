@@ -12,8 +12,8 @@ class Openvote_Admin {
             $menu_icon = 'dashicons-yes-alt';
         }
         add_menu_page(
-            __( 'Open Vote', 'openvote' ),
-            __( 'Open Vote', 'openvote' ),
+            openvote_get_brand_short_name(),
+            openvote_get_brand_short_name(),
             'read',
             'openvote',
             [ $this, 'render_polls_page' ],
@@ -32,8 +32,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Ankiety', 'openvote' ),
-            __( 'Ankiety', 'openvote' ),
+            __( 'Ankiety wyborcze', 'openvote' ),
+            __( 'Ankiety wyborcze', 'openvote' ),
             'read',
             'openvote-surveys',
             [ $this, 'render_surveys_page' ]
@@ -41,8 +41,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Grupy użytkowników', 'openvote' ),
-            __( 'Grupy', 'openvote' ),
+            __( 'Członkowie i Sejmiki', 'openvote' ),
+            __( 'Członkowie i Sejmiki', 'openvote' ),
             'read',
             'openvote-groups',
             [ $this, 'render_groups_page' ]
@@ -50,8 +50,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Koordynatorzy', 'openvote' ),
-            __( 'Koordynatorzy', 'openvote' ),
+            __( 'Koordynatorzy i Sejmiki', 'openvote' ),
+            __( 'Koordynatorzy i Sejmiki', 'openvote' ),
             'read',
             'openvote-roles',
             [ $this, 'render_roles_page' ]
@@ -59,8 +59,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Konfiguracja', 'openvote' ),
-            __( 'Konfiguracja', 'openvote' ),
+            __( 'Konfiguracja OpenVote', 'openvote' ),
+            __( 'Konfiguracja OpenVote', 'openvote' ),
             'read',
             'openvote-settings',
             [ $this, 'render_settings_page' ]
@@ -86,8 +86,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'O tym', 'openvote' ),
-            __( 'O tym', 'openvote' ),
+            __( 'O OpenVote', 'openvote' ),
+            __( 'O OpenVote', 'openvote' ),
             'read',
             'openvote-about',
             [ $this, 'render_about_page' ]
@@ -235,6 +235,18 @@ class Openvote_Admin {
             return;
         }
         $list_table = new Openvote_Polls_List();
+        $list_table->process_bulk_action();
+    }
+
+    /**
+     * Bulk actions (POST) na liście ankiet — wykonywane w admin_init (priorytet 1),
+     * zanim motyw lub inna wtyczka wyśle output, żeby wp_safe_redirect() działał.
+     */
+    public function handle_bulk_surveys_action(): void {
+        if ( ! isset( $_GET['page'] ) || 'openvote-surveys' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+        $list_table = new Openvote_Surveys_List();
         $list_table->process_bulk_action();
     }
 
@@ -730,19 +742,21 @@ class Openvote_Admin {
                 OPENVOTE_VERSION,
                 true
             );
-            $profile_opts = [ '' => __( '— brak (pole dowolne)', 'openvote' ) ] + Openvote_Field_Map::LABELS;
+            $translated_labels = array_combine(
+                array_keys( Openvote_Field_Map::LABELS ),
+                array_map( function( $l ) { return __( $l, 'openvote' ); }, Openvote_Field_Map::LABELS )
+            );
+            $profile_opts = [ '' => __( '— brak (pole dowolne)', 'openvote' ) ] + $translated_labels;
             wp_localize_script( 'openvote-survey-admin', 'openvoteSurveyAdmin', [
                 'maxFields'        => Openvote_Survey::MAX_QUESTIONS,
                 'profileFieldOpts' => $profile_opts,
                 'i18n'             => [
                     'text_short'     => __( 'Krótki tekst do 100 znaków', 'openvote' ),
                     'text_long'      => __( 'Długi tekst do 2000 znaków', 'openvote' ),
-                    'numeric'        => __( 'Numer do 30 cyfr', 'openvote' ),
                     'url'            => __( 'Adres URL', 'openvote' ),
-                    'email'          => __( 'E-mail', 'openvote' ),
-                    'placeholder'    => __( 'Etykieta / tytuł pola', 'openvote' ),
-                    'profileLabel'   => __( 'Pole profilu (na stronie /zgłoszenia/ dane wrażliwe są ukrywane)', 'openvote' ),
-                    'maxChars'       => __( 'Limit znaków:', 'openvote' ),
+                    'placeholder'           => __( 'Pytanie', 'openvote' ),
+                    'sensitiveCheckboxLabel' => __( 'Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie.', 'openvote' ),
+                    'maxChars'              => __( 'Limit znaków:', 'openvote' ),
                     'remove'         => __( 'Usuń pole', 'openvote' ),
                     'minOne'         => __( 'Ankieta musi mieć co najmniej jedno pole.', 'openvote' ),
                     'emptyLabel'     => __( 'Wypełnij etykiety wszystkich pól.', 'openvote' ),

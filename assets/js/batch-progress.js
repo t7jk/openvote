@@ -12,7 +12,7 @@
  * @param {Function} onProgress  Callback(processed, total, pct).
  * @param {Function} onComplete  Callback(jobData).
  * @param {Function} onError     Callback(error).
- * @param {number}   [delayMs]   Opóźnienie między partiami w ms (nadpisuje evotingBatch.emailDelay).
+ * @param {number}   [delayMs]   Opóźnienie między partiami w ms (nadpisuje openvoteBatch.emailDelay).
  */
 async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, delayMs ) {
 	const apiRoot    = window.openvoteBatch?.apiRoot    || '/wp-json/openvote/v1';
@@ -58,7 +58,7 @@ async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, dela
 			if ( typeof onError === 'function' ) {
 				onError( err );
 			} else {
-				console.error( '[evoting batch]', err );
+				console.error( '[openvote batch]', err );
 			}
 		}
 	};
@@ -74,7 +74,7 @@ async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, dela
  */
 function openvoteSaveJobId( pollId, jobId ) {
 	try {
-		localStorage.setItem( 'evoting_job_' + pollId, jobId );
+		localStorage.setItem( 'openvote_job_' + pollId, jobId );
 	} catch ( e ) { /* ignoruj — prywatny tryb przeglądarki */ }
 }
 
@@ -86,7 +86,7 @@ function openvoteSaveJobId( pollId, jobId ) {
  */
 function openvoteGetSavedJobId( pollId ) {
 	try {
-		return localStorage.getItem( 'evoting_job_' + pollId );
+		return localStorage.getItem( 'openvote_job_' + pollId );
 	} catch ( e ) {
 		return null;
 	}
@@ -99,7 +99,7 @@ function openvoteGetSavedJobId( pollId ) {
  */
 function openvoteClearJobId( pollId ) {
 	try {
-		localStorage.removeItem( 'evoting_job_' + pollId );
+		localStorage.removeItem( 'openvote_job_' + pollId );
 	} catch ( e ) { /* ignoruj */ }
 }
 
@@ -115,11 +115,11 @@ function openvoteRenderProgress( container, processed, total, pct ) {
 	if ( ! container ) return;
 
 	container.innerHTML = `
-		<div class="evoting-progress-wrap">
-			<div class="evoting-progress-bar-outer">
-				<div class="evoting-progress-bar-inner" style="width:${pct}%"></div>
+		<div class="openvote-progress-wrap">
+			<div class="openvote-progress-bar-outer">
+				<div class="openvote-progress-bar-inner" style="width:${pct}%"></div>
 			</div>
-			<p class="evoting-progress-label">${processed} / ${total} (${pct}%)</p>
+			<p class="openvote-progress-label">${processed} / ${total} (${pct}%)</p>
 		</div>
 	`;
 }
@@ -129,16 +129,16 @@ function openvoteRenderProgress( container, processed, total, pct ) {
  */
 document.addEventListener( 'DOMContentLoaded', function () {
 	// Przycisk sync pojedynczej grupy.
-	document.querySelectorAll( '.evoting-sync-group-btn' ).forEach( function ( btn ) {
+	document.querySelectorAll( '.openvote-sync-group-btn' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
 			const groupId   = btn.dataset.groupId;
-			const container = document.getElementById( 'evoting-sync-progress-' + groupId );
+			const container = document.getElementById( 'openvote-sync-progress-' + groupId );
 			const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
 			const nonce     = window.openvoteBatch?.nonce   || '';
 
 			btn.disabled = true;
 			if ( container ) {
-				container.innerHTML = '<p class="evoting-progress-label">Uruchamianie synchronizacji…</p>';
+				container.innerHTML = '<p class="openvote-progress-label">Uruchamianie synchronizacji…</p>';
 			}
 
 			fetch( `${apiRoot}/groups/${groupId}/sync`, {
@@ -159,7 +159,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						( processed, total, pct ) => openvoteRenderProgress( container, processed, total, pct ),
 						( job ) => {
 							if ( container ) {
-								container.innerHTML = `<p class="evoting-progress-done">✓ Synchronizacja zakończona. Przetworzone: ${job.processed}</p>`;
+								container.innerHTML = `<p class="openvote-progress-done">✓ Synchronizacja zakończona. Przetworzone: ${job.processed}</p>`;
 							}
 							btn.disabled = false;
 							// Odśwież licznik po 2s.
@@ -168,7 +168,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						( err ) => {
 							if ( container ) {
 								const p = document.createElement( 'p' );
-								p.className = 'evoting-progress-error';
+								p.className = 'openvote-progress-error';
 								p.textContent = 'Błąd: ' + err.message;
 								container.innerHTML = '';
 								container.appendChild( p );
@@ -180,7 +180,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				.catch( err => {
 					if ( container ) {
 						const p = document.createElement( 'p' );
-						p.className = 'evoting-progress-error';
+						p.className = 'openvote-progress-error';
 						p.textContent = 'Błąd: ' + err.message;
 						container.innerHTML = '';
 						container.appendChild( p );
@@ -191,16 +191,16 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	} );
 
 	// Przycisk sync-all.
-	const syncAllBtn = document.getElementById( 'evoting-sync-all-btn' );
+	const syncAllBtn = document.getElementById( 'openvote-sync-all-btn' );
 	if ( syncAllBtn ) {
 		syncAllBtn.addEventListener( 'click', function () {
-			const container = document.getElementById( 'evoting-sync-all-progress' );
+			const container = document.getElementById( 'openvote-sync-all-progress' );
 			const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
 			const nonce     = window.openvoteBatch?.nonce   || '';
 
 			syncAllBtn.disabled = true;
 			if ( container ) {
-				container.innerHTML = '<p class="evoting-progress-label">Uruchamianie synchronizacji…</p>';
+				container.innerHTML = '<p class="openvote-progress-label">Uruchamianie synchronizacji…</p>';
 			}
 
 			fetch( `${apiRoot}/groups/sync-all`, {
@@ -221,7 +221,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						( processed, total, pct ) => openvoteRenderProgress( container, processed, total, pct ),
 						( job ) => {
 							if ( container ) {
-								container.innerHTML = `<p class="evoting-progress-done">✓ Synchronizacja zakończona. Przetworzone grupy: ${job.processed}</p>`;
+								container.innerHTML = `<p class="openvote-progress-done">✓ Synchronizacja zakończona. Przetworzone grupy: ${job.processed}</p>`;
 							}
 							syncAllBtn.disabled = false;
 							setTimeout( () => location.reload(), 2000 );
@@ -229,7 +229,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						( err ) => {
 							if ( container ) {
 								const p = document.createElement( 'p' );
-								p.className = 'evoting-progress-error';
+								p.className = 'openvote-progress-error';
 								p.textContent = 'Błąd: ' + err.message;
 								container.innerHTML = '';
 								container.appendChild( p );
@@ -241,7 +241,7 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				.catch( err => {
 					if ( container ) {
 						const p = document.createElement( 'p' );
-						p.className = 'evoting-progress-error';
+						p.className = 'openvote-progress-error';
 						p.textContent = 'Błąd: ' + err.message;
 						container.innerHTML = '';
 						container.appendChild( p );

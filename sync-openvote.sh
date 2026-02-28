@@ -6,7 +6,7 @@ DST="/var/www/html/wordpress/wp-content/plugins/openvote/"
 
 [[ ! -d "$DST" ]] && sudo mkdir -p "$DST" && sudo chown apache:apache "$DST"
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Start – pokazywane będą TYLKO rzeczywiste zmiany"
+echo -n "[$(date '+%Y-%m-%d %H:%M:%S')] Start – pokazywane będą TYLKO rzeczywiste zmiany"
 
 while true; do
     # Uruchamiamy rsync od razu (bez -n), zbieramy itemize output
@@ -23,11 +23,9 @@ while true; do
         | grep -v '^cd')
 
     if [[ -n "$real_changes" ]]; then
-        echo ""
         echo -e "\033[1;33m[$(date '+%Y-%m-%d %H:%M:%S')] Zsynchronizowano:\033[0m"
         echo "$real_changes" | sed 's/^/  /'
         sudo chown -R apache:apache "$DST" 2>/dev/null
-        echo ""
     fi
 
     sleep 2

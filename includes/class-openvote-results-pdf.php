@@ -126,10 +126,9 @@ class Openvote_Results_Pdf {
 				] );
 
 				foreach ( $q['answers'] as $ai => $answer ) {
-					$txt = $answer['text'];
-					if ( ! empty( $answer['is_abstain'] ) ) {
-						$txt .= ' (wstrzymanie)';
-					}
+					$txt = ! empty( $answer['is_abstain'] )
+						? __( 'Wstrzymało się', 'openvote' )
+						: $answer['text'];
 					// Color-code: za=green, przeciw=red, abstain=orange
 					if ( ! empty( $answer['is_abstain'] ) ) {
 						$pdf->SetTextColor( 180, 95, 0 );

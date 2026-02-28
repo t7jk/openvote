@@ -83,11 +83,11 @@ function openvote_get_vote_page_slug(): string {
 }
 
 /**
- * Zwraca pełny URL strony głosowania (domena z instalacji WordPress + slug).
- * Np. https://mojadomena.pl/glosuj
+ * Zwraca pełny URL strony głosowania (domena z instalacji WordPress + slug w ścieżce).
+ * Np. https://mojadomena.pl/glosuj/
  */
 function openvote_get_vote_page_url(): string {
-	return home_url( '/?' . openvote_get_vote_page_slug() );
+	return user_trailingslashit( home_url( '/' . openvote_get_vote_page_slug() ) );
 }
 
 /**
@@ -131,18 +131,18 @@ function openvote_get_banner_attachment_id(): int {
 }
 
 /**
- * Skrót nazwy systemu (do 6 znaków). Używany w menu admina i nagłówku.
- * Opcja: openvote_brand_short_name, domyślnie „Open Vote”.
+ * Skrót nazwy systemu (do 12 znaków). Używany w menu admina i nagłówku.
+ * Opcja: openvote_brand_short_name, domyślnie „OpenVote”.
  *
  * @return string
  */
 function openvote_get_brand_short_name(): string {
-	$v = get_option( 'openvote_brand_short_name', 'Open Vote' );
-	$v = is_string( $v ) ? trim( $v ) : 'Open Vote';
+	$v = get_option( 'openvote_brand_short_name', 'OpenVote' );
+	$v = is_string( $v ) ? trim( $v ) : 'OpenVote';
 	if ( $v === '' ) {
-		return 'Open Vote';
+		return 'OpenVote';
 	}
-	return mb_substr( $v, 0, 20 );
+	return mb_substr( $v, 0, 12 );
 }
 
 /**

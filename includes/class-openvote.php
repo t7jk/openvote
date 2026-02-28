@@ -40,6 +40,7 @@ class Openvote {
         $this->loader->add_action( 'admin_bar_menu', $admin, 'customize_admin_bar_logo', 999 );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_menu_restrict_script' );
         $this->loader->add_action( 'admin_init', $admin, 'handle_results_pdf_download', 1 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_surveys_action', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_openvote_get_actions', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_polls_action', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_openvote_surveys_get_actions', 5 );
@@ -52,7 +53,7 @@ class Openvote {
         $this->loader->add_action( 'admin_init', $polls, 'handle_form_submission' );
 
         $settings = new Openvote_Admin_Settings();
-        $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission' );
+        $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission', 5 );
 
         $roles = new Openvote_Admin_Roles();
         $this->loader->add_action( 'admin_init', $roles, 'handle_form_submission' );

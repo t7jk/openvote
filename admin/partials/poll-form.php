@@ -93,6 +93,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
           <?php if ( ! $is_read_only ) : ?>onsubmit="var b=this.querySelectorAll('button[type=submit],input[type=submit]');for(var i=0;i<b.length;i++)b[i].disabled=true;"<?php endif; ?>>
         <?php if ( ! $is_read_only ) : ?>
             <?php wp_nonce_field( 'openvote_save_poll', 'openvote_poll_nonce' ); ?>
+            <input type="hidden" name="openvote_submit_action" id="openvote-poll-submit-action" value="save_draft">
             <?php if ( $is_edit ) : ?>
                 <input type="hidden" name="poll_id" value="<?php echo esc_attr( $poll->id ); ?>">
                 <input type="hidden" name="openvote_action" value="update">
@@ -107,7 +108,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                 <td>
                     <input type="text" id="poll_title" name="poll_title"
                            value="<?php echo esc_attr( $title ); ?>"
-                           maxlength="512" class="large-text" <?php echo $is_read_only ? 'readonly disabled' : 'required'; ?>>
+                           maxlength="512" class="large-text" <?php echo $is_read_only ? 'readonly disabled' : ''; ?>>
                     <?php if ( ! $is_read_only ) : ?>
                         <p class="description"><?php esc_html_e( 'Maks. 512 znaków.', 'openvote' ); ?></p>
                     <?php endif; ?>
@@ -128,7 +129,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
             <tr>
                 <th scope="row"><label for="poll_duration"><?php esc_html_e( 'Czas trwania głosowania', 'openvote' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? 'disabled' : 'required'; ?>>
+                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? 'disabled' : ''; ?>>
                         <?php foreach ( $duration_options as $val => $label ) : ?>
                             <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $selected_duration, $val ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
@@ -137,7 +138,7 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e( 'Grupy docelowe', 'openvote' ); ?></th>
+                <th scope="row"><?php esc_html_e( 'Sejmiki docelowe', 'openvote' ); ?></th>
                 <td>
                     <?php if ( ! empty( $all_groups ) ) : ?>
                         <select name="target_groups[]" id="openvote-target-groups" multiple size="6" style="min-width:280px;" <?php echo $is_read_only ? 'disabled' : ''; ?>>
@@ -150,10 +151,10 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
                             <?php endforeach; ?>
                         </select>
                         <?php if ( ! $is_read_only ) : ?>
-                            <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele grup. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'openvote' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele sejmików. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'openvote' ); ?></p>
                         <?php endif; ?>
                     <?php else : ?>
-                        <p class="description"><?php esc_html_e( 'Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>
+                        <p class="description"><?php esc_html_e( 'Brak sejmików. Dodaj sejmiki w sekcji Sejmiki, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -290,10 +291,10 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
             </p>
         <?php else : ?>
             <p class="submit openvote-poll-actions">
-                <button type="submit" name="openvote_submit_action" value="save_draft" class="button button-primary">
+                <button type="submit" class="button button-primary" onmousedown="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='save_draft';}">
                     <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
                 </button>
-                <button type="submit" name="openvote_submit_action" value="start_now" id="openvote-btn-start-poll" class="button openvote-btn-start-poll" disabled>
+                <button type="submit" id="openvote-btn-start-poll" class="button openvote-btn-start-poll" disabled onmousedown="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='start_now';}">
                     <?php esc_html_e( 'Wystartuj głosowanie', 'openvote' ); ?>
                 </button>
             </p>

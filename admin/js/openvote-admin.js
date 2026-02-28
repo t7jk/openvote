@@ -168,6 +168,19 @@
                 if (!titleEl || titleEl.value.trim() === '') return false;
                 if (!durationEl || !durationEl.value) return false;
 
+                var groupsSelect = form.querySelector('#openvote-target-groups');
+                if (groupsSelect && groupsSelect.options.length > 0) {
+                    var selectedCount = 0;
+                    if (groupsSelect.selectedOptions) {
+                        selectedCount = groupsSelect.selectedOptions.length;
+                    } else {
+                        for (var g = 0; g < groupsSelect.options.length; g++) {
+                            if (groupsSelect.options[g].selected) selectedCount++;
+                        }
+                    }
+                    if (selectedCount < 1) return false;
+                }
+
                 if (container) {
                     var blocks = container.querySelectorAll('.openvote-question-block');
                     var hasQuestion = false;

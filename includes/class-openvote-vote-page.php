@@ -27,9 +27,9 @@ class Openvote_Vote_Page {
     }
 
     /**
-     * Sprawdza, czy bieżące żądanie dotyczy strony głosowania.
+     * Sprawdza, czy bieżące żądanie to adres strony głosowania (bez sprawdzania, czy strona istnieje).
      */
-    public static function is_vote_page(): bool {
+    private static function is_vote_page_request(): bool {
         $slug = openvote_get_vote_page_slug();
         if ( $slug === '' ) {
             return false;
@@ -49,6 +49,17 @@ class Openvote_Vote_Page {
         $request_uri = trim( $request_uri, '/' );
         $path_parts  = explode( '/', $request_uri );
         return end( $path_parts ) === $slug;
+    }
+
+    /**
+     * Sprawdza, czy bieżące żądanie dotyczy strony głosowania.
+     * Zwraca true tylko gdy istnieje opublikowana strona WordPress z tym slugiem — inaczej adres nie jest aktywny.
+     */
+    public static function is_vote_page(): bool {
+        if ( ! self::is_vote_page_request() ) {
+            return false;
+        }
+        return openvote_vote_page_exists();
     }
 
     /**
@@ -173,11 +184,25 @@ class Openvote_Vote_Page {
      *  - Jeśli odwiedzamy przez stary URL query-param (?glosuj) → redirect 301.
      */
     public static function filter_template( string $template ): string {
+        $slug = openvote_get_vote_page_slug();
+        if ( $slug === '' ) {
+            return $template;
+        }
+
+        // Adres strony głosowania, ale strona WordPress nie została jeszcze utworzona — 404.
+        if ( self::is_vote_page_request() && ! openvote_vote_page_exists() ) {
+            global $wp_query;
+            $wp_query->set_404();
+            status_header( 404 );
+            nocache_headers();
+            $tpl = get_404_template();
+            return $tpl !== '' ? $tpl : $template;
+        }
+
         if ( ! self::is_vote_page() ) {
             return $template;
         }
 
-        $slug    = openvote_get_vote_page_slug();
         $wp_page = get_page_by_path( $slug );
 
         if ( $wp_page && 'publish' === $wp_page->post_status ) {

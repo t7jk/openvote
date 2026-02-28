@@ -99,13 +99,22 @@ if ( isset( $survey ) && $survey ) {
                         <table style="width:100%;border-collapse:collapse;">
                             <?php foreach ( $questions as $q ) :
                                 $answer = $resp->answers[ (int) $q->id ] ?? '';
+                                $is_url = ( $q->field_type ?? '' ) === 'url';
+                                if ( $answer !== '' && $is_url ) {
+                                    $href = ( strpos( $answer, '://' ) !== false ) ? $answer : 'https://' . $answer;
+                                    $answer_cell = '<a href="' . esc_url( $href ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $answer ) . '</a>';
+                                } elseif ( $answer !== '' ) {
+                                    $answer_cell = esc_html( $answer );
+                                } else {
+                                    $answer_cell = '<span style="color:#aaa;">—</span>';
+                                }
                                 ?>
                                 <tr style="border-bottom:1px solid #f0f0f0;">
                                     <td style="padding:8px 16px;width:35%;vertical-align:top;color:#666;font-style:italic;">
                                         <?php echo esc_html( $q->body ); ?>
                                     </td>
                                     <td style="padding:8px 16px;vertical-align:top;">
-                                        <?php echo $answer !== '' ? esc_html( $answer ) : '<span style="color:#aaa;">—</span>'; ?>
+                                        <?php echo $answer_cell; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

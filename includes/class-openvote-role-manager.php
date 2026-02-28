@@ -132,10 +132,10 @@ class Openvote_Role_Manager {
     public static function add_wp_admin( int $user_id ): true|\WP_Error {
         $group_id = self::get_administrators_group_id();
         if ( ! $group_id ) {
-            return new \WP_Error( 'no_group', __( 'Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy.', 'openvote' ) );
+            return new \WP_Error( 'no_group', __( 'Sejmik „Administratorzy” nie istnieje. Utwórz go w sekcji Sejmiki.', 'openvote' ) );
         }
         if ( ! self::is_user_in_administrators_group( $user_id ) ) {
-            return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z grupy „Administratorzy” mogą zostać administratorami WordPress.', 'openvote' ) );
+            return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z sejmiku „Administratorzy” mogą zostać administratorami WordPress.', 'openvote' ) );
         }
         $lock = 'openvote_wp_admin_lock';
         if ( get_transient( $lock ) ) {
@@ -215,7 +215,7 @@ class Openvote_Role_Manager {
             $previous_role = 'subscriber';
         }
         $user->set_role( $previous_role );
-        set_transient( 'openvote_roles_error', __( 'Administratorem WordPress może zostać tylko użytkownik z grupy „Administratorzy”. Rola została cofnięta.', 'openvote' ), 30 );
+        set_transient( 'openvote_roles_error', __( 'Administratorem WordPress może zostać tylko użytkownik z sejmiku „Administratorzy”. Rola została cofnięta.', 'openvote' ), 30 );
     }
 
     /**
@@ -320,7 +320,7 @@ class Openvote_Role_Manager {
      */
     public static function add_poll_editor( int $user_id, array $group_ids ): true|\WP_Error {
         if ( empty( $group_ids ) ) {
-            return new \WP_Error( 'no_groups', __( 'Koordynator musi mieć przypisaną co najmniej jedną grupę.', 'openvote' ) );
+            return new \WP_Error( 'no_groups', __( 'Koordynator musi mieć przypisany co najmniej jeden sejmik.', 'openvote' ) );
         }
 
         update_user_meta( $user_id, self::META_ROLE, self::ROLE_POLL_EDITOR );

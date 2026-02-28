@@ -12,11 +12,11 @@ msgstr ""
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: en_US\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
 #: admin/class-evoting-admin.php:26 admin/class-evoting-admin.php:27
 #: admin/class-evoting-admin.php:508 admin/partials/manual.php:62
@@ -105,8 +105,9 @@ msgstr "Add new"
 #, php-format
 msgid "Usunięto %d głosowanie."
 msgid_plural "Usunięto %d głosowań."
-msgstr[0] "Deleted %d poll."
-msgstr[1] "Deleted %d polls."
+msgstr[0] ""
+msgstr[1] ""
+
 #: admin/class-evoting-admin.php:522
 msgid "Głosowanie zostało uruchomione."
 msgstr "Poll has been started."
@@ -115,8 +116,9 @@ msgstr "Poll has been started."
 #, php-format
 msgid "Zakończono %d głosowanie."
 msgid_plural "Zakończono %d głosowań."
-msgstr[0] "Ended %d poll."
-msgstr[1] "Ended %d polls."
+msgstr[0] ""
+msgstr[1] ""
+
 #: admin/class-evoting-admin.php:535 admin/partials/poll-list.php:21
 msgid "Głosowanie zostało usunięte."
 msgstr "Poll has been deleted."
@@ -265,8 +267,7 @@ msgid ""
 "Zostało otwarte nowe głosowanie: %s\n"
 "\n"
 "Zaloguj się, aby oddać swój głos."
-msgstr ""
-"A new poll has been opened: %s\n"
+msgstr "A new poll has been opened: %s\n"
 "\n"
 "Log in to cast your vote."
 
@@ -566,6 +567,7 @@ msgid "Użytkownik dodany do %d grupy."
 msgid_plural "Użytkownik dodany do %d grup."
 msgstr[0] "User added to %d group."
 msgstr[1] "User added to %d groups."
+
 #: admin/partials/groups.php:140
 msgid "Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania."
 msgstr "User profile updated: place of residence added."
@@ -598,7 +600,7 @@ msgstr "Delete group"
 #: admin/partials/groups.php:268
 #, php-format
 msgid "Członkowie grupy: %s"
-msgstr ""
+msgstr "Group members: %s"
 
 #: admin/partials/groups.php:277
 msgid "ID użytkownika"
@@ -648,46 +650,46 @@ msgstr "Manually assign a user to one or more groups. Useful for testing."
 
 #: admin/partials/groups.php:343 admin/partials/roles.php:113
 msgid "ID użytkownika (szybkie):"
-msgstr ""
+msgstr "User ID (quick):"
 
 #: admin/partials/groups.php:344
 msgid "Wpisz ID użytkownika, jeśli znasz (np. z listy członków)."
-msgstr ""
+msgstr "Enter user ID if you know it (e.g. from the members list)."
 
 #: admin/partials/groups.php:345 admin/partials/roles.php:115
 msgid "opcjonalnie"
-msgstr ""
+msgstr "optional"
 
 #: admin/partials/groups.php:348
 msgid "Użytkownik (z listy):"
-msgstr ""
+msgstr "User (from list):"
 
 #: admin/partials/groups.php:349 admin/partials/roles.php:119
 #, php-format
 msgid "Pokazano max %d użytkowników. Przewiń listę lub wpisz ID powyżej."
-msgstr ""
+msgstr "Showing max %d users. Scroll the list or enter ID above."
 
 #: admin/partials/groups.php:351 admin/partials/roles.php:121
 msgid "Wybierz"
-msgstr ""
+msgstr "Select"
 
 #: admin/partials/groups.php:354 admin/partials/roles.php:62
 #: admin/partials/roles.php:128
 msgid "brak"
-msgstr ""
+msgstr "none"
 
 #: admin/partials/groups.php:363 admin/partials/roles.php:135
 #: public/views/partials/profile-complete.php:65
 msgid "Dodaj"
-msgstr ""
+msgstr "Add"
 
 #: admin/partials/groups.php:366 admin/partials/roles.php:138
 msgid "Grupy:"
-msgstr ""
+msgstr "Groups:"
 
 #: admin/partials/groups.php:367 admin/partials/roles.php:139
 msgid "Ctrl+klik: wiele grup. Przewiń listę."
-msgstr ""
+msgstr "Ctrl+click: multiple groups. Scroll the list."
 
 #: admin/partials/groups.php:380 admin/partials/groups.php:390
 msgid "Dodaj grupę"
@@ -695,7 +697,7 @@ msgstr "Add group"
 
 #: admin/partials/groups.php:386
 msgid "Nazwa"
-msgstr ""
+msgstr "Name"
 
 #: admin/partials/groups.php:396
 msgid "Synchronizacja grup-miast"
@@ -715,27 +717,27 @@ msgstr "Sync all city groups"
 #: admin/partials/manual.php:7
 #, php-format
 msgid "Podręcznik użytkownika — %s"
-msgstr ""
+msgstr "User manual — %s"
 
 #: admin/partials/manual.php:34
 msgid "Spis treści"
-msgstr ""
+msgstr "Table of contents"
 
 #: admin/partials/manual.php:36 admin/partials/manual.php:54
 msgid "Czym jest wtyczka i jak działa"
-msgstr ""
+msgstr "What the plugin is and how it works"
 
 #: admin/partials/manual.php:37 admin/partials/manual.php:82
 msgid "Role użytkowników i uprawnienia"
-msgstr ""
+msgstr "User roles and permissions"
 
 #: admin/partials/manual.php:40 admin/partials/manual.php:171
 msgid "Głosowania — tworzenie i zarządzanie"
-msgstr ""
+msgstr "Polls — creating and managing"
 
 #: admin/partials/manual.php:41 admin/partials/manual.php:257
 msgid "Jak odbywa się głosowanie (widok uczestnika)"
-msgstr ""
+msgstr "How voting works (participant view)"
 
 #: admin/partials/manual.php:42 admin/partials/manual.php:290
 #: admin/partials/poll-invitations.php:43
@@ -749,20 +751,20 @@ msgstr "Email invitations"
 
 #: admin/partials/manual.php:44 admin/partials/manual.php:351
 msgid "Konfiguracja wtyczki"
-msgstr ""
+msgstr "Plugin configuration"
 
 #: admin/partials/manual.php:45 admin/partials/manual.php:399
 #: admin/partials/settings.php:542
 msgid "Mapowanie pól użytkownika"
-msgstr ""
+msgstr "User field mapping"
 
 #: admin/partials/manual.php:46 admin/partials/manual.php:438
 msgid "Ankiety i strona zgłoszeń"
-msgstr ""
+msgstr "Surveys and submissions page"
 
 #: admin/partials/manual.php:47 admin/partials/manual.php:470
 msgid "Najczęstsze pytania (FAQ)"
-msgstr ""
+msgstr "Frequently asked questions (FAQ)"
 
 #: admin/partials/manual.php:56
 #, php-format
@@ -771,19 +773,19 @@ msgid ""
 "wśród zarejestrowanych użytkowników witryny. Umożliwia tworzenie głosowań "
 "wielopytaniowych, definiowanie grup docelowych, wysyłkę zaproszeń e-mail "
 "oraz prezentację wyników — w formie zbiorczej lub jawnej."
-msgstr ""
+msgstr "%s is a WordPress plugin for running electronic votes among registered site users. It allows creating multi-question polls, defining target groups, sending email invitations and displaying results — in aggregate or public form."
 
 #: admin/partials/manual.php:60
 msgid "Główne elementy systemu"
-msgstr ""
+msgstr "Main system components"
 
 #: admin/partials/manual.php:62
 msgid "zestaw pytań z określonym czasem trwania i grupą docelową."
-msgstr ""
+msgstr "set of questions with a defined duration and target group."
 
 #: admin/partials/manual.php:63 admin/partials/manual.php:220
 msgid "Pytania i odpowiedzi"
-msgstr ""
+msgstr "Questions and answers"
 
 #: admin/partials/manual.php:63
 msgid ""
@@ -795,37 +797,37 @@ msgstr ""
 msgid ""
 "zbiory użytkowników (np. według miasta). Głosowanie może być skierowane do "
 "jednej lub wielu grup."
-msgstr ""
+msgstr "collections of users (e.g. by city). A poll can target one or more groups."
 
 #: admin/partials/manual.php:65
 msgid ""
 "użytkownicy z uprawnieniami do zarządzania głosowaniami przypisanymi do "
 "konkretnych grup."
-msgstr ""
+msgstr "users with permission to manage polls assigned to specific groups."
 
 #: admin/partials/manual.php:66
 msgid "Strona głosowania"
-msgstr ""
+msgstr "Voting page"
 
 #: admin/partials/manual.php:66
 msgid ""
 "publiczna strona WordPress z blokiem głosowania, dostępna pod adresem "
 "skonfigurowanym w Konfiguracji."
-msgstr ""
+msgstr "public WordPress page with the voting block, available at the URL set in Configuration."
 
 #: admin/partials/manual.php:69
 msgid "Przepływ pracy"
-msgstr ""
+msgstr "Workflow"
 
 #: admin/partials/manual.php:71
 msgid "Administrator tworzy grupy i przypisuje do nich użytkowników."
-msgstr ""
+msgstr "Administrator creates groups and assigns users to them."
 
 #: admin/partials/manual.php:72
 msgid ""
 "Administrator (lub Koordynator) tworzy głosowanie, wybiera grupy docelowe i "
 "pyta."
-msgstr ""
+msgstr "Administrator (or Coordinator) creates a poll, selects target groups and questions."
 
 #: admin/partials/manual.php:73
 msgid ""
@@ -837,7 +839,7 @@ msgstr ""
 msgid ""
 "Uprawnieni użytkownicy logują się, wchodzą na stronę głosowania i oddają "
 "głos."
-msgstr ""
+msgstr "Eligible users log in, go to the voting page and cast their vote."
 
 #: admin/partials/manual.php:75
 msgid ""
@@ -847,69 +849,69 @@ msgstr ""
 
 #: admin/partials/manual.php:83
 msgid "Wtyczka rozróżnia role WordPress i własne role wtyczki."
-msgstr ""
+msgstr "The plugin distinguishes between WordPress roles and its own plugin roles."
 
 #: admin/partials/manual.php:87
 msgid "Rola"
-msgstr ""
+msgstr "Role"
 
 #: admin/partials/manual.php:88
 msgid "Uprawnienia"
-msgstr ""
+msgstr "Permissions"
 
 #: admin/partials/manual.php:92
 msgid "Administrator WordPress"
-msgstr ""
+msgstr "WordPress Administrator"
 
 #: admin/partials/manual.php:93
 msgid ""
 "Pełny dostęp: wszystkie ekrany, Konfiguracja, Role, zarządzanie grupami i "
 "koordynatorami, pobieranie PDF."
-msgstr ""
+msgstr "Full access: all screens, Configuration, Roles, managing groups and coordinators, PDF download."
 
 #: admin/partials/manual.php:96
 msgid "Editor / Author WordPress"
-msgstr ""
+msgstr "WordPress Editor / Author"
 
 #: admin/partials/manual.php:97
 msgid ""
 "Dostęp do menu E-głosowań (lista głosowań, grupy, koordynatorzy). Może "
 "tworzyć głosowania."
-msgstr ""
+msgstr "Access to the voting menu (poll list, groups, coordinators). Can create polls."
 
 #: admin/partials/manual.php:100
 msgid "Koordynator (rola wtyczki)"
-msgstr ""
+msgstr "Coordinator (plugin role)"
 
 #: admin/partials/manual.php:101
 msgid ""
 "Widzi i zarządza głosowaniami przypisanymi do swoich grup. Może tworzyć "
 "głosowania dla swoich grup."
-msgstr ""
+msgstr "Sees and manages polls assigned to their groups. Can create polls for their groups."
 
 #: admin/partials/manual.php:104
 msgid "Zwykły użytkownik (Subscriber)"
-msgstr ""
+msgstr "Regular user (Subscriber)"
 
 #: admin/partials/manual.php:105
 msgid ""
 "Może oddawać głosy. Menu w panelu jest widoczne, ale nieaktywne (kursywa)."
-msgstr ""
+msgstr "Can cast votes. The admin menu is visible but inactive (greyed out)."
 
 #: admin/partials/manual.php:111
 msgid "Limity ról"
-msgstr ""
+msgstr "Role limits"
 
 #: admin/partials/manual.php:112
 msgid ""
 "Administratorów WordPress może być co najmniej 1, maksymalnie 2. Nie można "
 "usunąć ostatniego Administratora WordPress. Koordynatorów może być wielu i "
 "można ich przypisywać do wielu grup jednocześnie."
-msgstr ""
+msgstr "There must be at least 1 and at most 2 WordPress Administrators. The last WordPress Administrator cannot be removed. There can be many Coordinators and they can be assigned to multiple groups."
 
 #: admin/partials/manual.php:115
 msgid "Jak nadać rolę Koordynatora"
-msgstr ""
+msgstr "How to assign the Coordinator role"
 
 #: admin/partials/manual.php:117
 msgid "Przejdź do menu E-głosowania → Koordynatorzy."
@@ -917,11 +919,11 @@ msgstr ""
 
 #: admin/partials/manual.php:118
 msgid "W lewej kolumnie znajdź użytkownika (wpisz imię lub nazwisko)."
-msgstr ""
+msgstr "In the left column find the user (type first or last name)."
 
 #: admin/partials/manual.php:119
 msgid "W prawej kolumnie wybierz grupę (lub kilka grup)."
-msgstr ""
+msgstr "In the right column select the group (or groups)."
 
 #: admin/partials/manual.php:120
 msgid "Kliknij \"Dodaj\". Użytkownik stanie się Koordynatorem wybranych grup."
@@ -932,11 +934,11 @@ msgid ""
 "Grupy służą do definiowania kto ma prawo głosować w danym głosowaniu. "
 "Użytkownik musi należeć do co najmniej jednej grupy docelowej głosowania, "
 "aby móc oddać głos."
-msgstr ""
+msgstr "Groups define who is allowed to vote in a given poll. A user must belong to at least one of the poll’s target groups to be able to vote."
 
 #: admin/partials/manual.php:130
 msgid "Tworzenie grupy"
-msgstr ""
+msgstr "Creating a group"
 
 #: admin/partials/manual.php:132
 msgid "Przejdź do menu E-głosowania → Grupy."
@@ -948,19 +950,19 @@ msgstr ""
 
 #: admin/partials/manual.php:134
 msgid "Zapisz. Grupa pojawi się na liście."
-msgstr ""
+msgstr "Save. The group will appear on the list."
 
 #: admin/partials/manual.php:137
 msgid "Dodawanie użytkowników do grupy"
-msgstr ""
+msgstr "Adding users to a group"
 
 #: admin/partials/manual.php:138
 msgid "Są trzy sposoby:"
-msgstr ""
+msgstr "There are three ways:"
 
 #: admin/partials/manual.php:140
 msgid "Ręcznie"
-msgstr ""
+msgstr "Manually"
 
 #: admin/partials/manual.php:140
 msgid ""
@@ -981,7 +983,7 @@ msgstr ""
 
 #: admin/partials/manual.php:142
 msgid "Przez rejestrację"
-msgstr ""
+msgstr "On registration"
 
 #: admin/partials/manual.php:142
 msgid ""
@@ -1001,15 +1003,15 @@ msgstr ""
 msgid ""
 "Koordynator to użytkownik przypisany do jednej lub więcej grup. Ma dostęp do "
 "panelu admina i może zarządzać głosowaniami dla swoich grup."
-msgstr ""
+msgstr "A Coordinator is a user assigned to one or more groups. They have access to the admin panel and can manage polls for their groups."
 
 #: admin/partials/manual.php:156
 msgid "Zarządzanie koordynatorami"
-msgstr ""
+msgstr "Managing coordinators"
 
 #: admin/partials/manual.php:158
 msgid "Dodanie"
-msgstr ""
+msgstr "Adding"
 
 #: admin/partials/manual.php:158
 msgid ""
@@ -1019,7 +1021,7 @@ msgstr ""
 
 #: admin/partials/manual.php:159
 msgid "Odłączenie od wszystkich grup"
-msgstr ""
+msgstr "Remove from all groups"
 
 #: admin/partials/manual.php:159
 msgid "kliknij \"Odłącz wszystko\" przy danym koordynatorze na liście."
@@ -1027,23 +1029,23 @@ msgstr ""
 
 #: admin/partials/manual.php:160
 msgid "Odłączenie od konkretnej grupy"
-msgstr ""
+msgstr "Remove from a specific group"
 
 #: admin/partials/manual.php:160
 msgid ""
 "kliknij nazwę grupy wyświetloną przy koordynatorze (jest podkreślona jako "
 "link)."
-msgstr ""
+msgstr "click the group name shown next to the coordinator (it is underlined as a link)."
 
 #: admin/partials/manual.php:164
 msgid ""
 "Jeden użytkownik może być koordynatorem wielu grup jednocześnie — nie znika "
 "z lewej listy po pierwszym przypisaniu."
-msgstr ""
+msgstr "One user can be a coordinator of multiple groups at once — they do not disappear from the left list after the first assignment."
 
 #: admin/partials/manual.php:173
 msgid "Tworzenie nowego głosowania"
-msgstr ""
+msgstr "Creating a new poll"
 
 #: admin/partials/manual.php:175
 msgid "Przejdź do E-głosowania → Głosowania → Dodaj nowe."
@@ -1051,7 +1053,7 @@ msgstr ""
 
 #: admin/partials/manual.php:176
 msgid "Wypełnij formularz (opis pól poniżej)."
-msgstr ""
+msgstr "Fill in the form (field descriptions below)."
 
 #: admin/partials/manual.php:177
 msgid "Kliknij \"Zapisz jako szkic\" lub \"Wystartuj głosowanie\"."
@@ -1059,24 +1061,24 @@ msgstr ""
 
 #: admin/partials/manual.php:180
 msgid "Opis pól formularza głosowania"
-msgstr ""
+msgstr "Poll form field descriptions"
 
 #: admin/partials/manual.php:183
 msgid "Pole"
-msgstr ""
+msgstr "Field"
 
 #: admin/partials/manual.php:189
 msgid "Nazwa głosowania widoczna dla uczestników. Wymagane, maks. 512 znaków."
-msgstr ""
+msgstr "Poll name visible to participants. Required, max 512 characters."
 
 #: admin/partials/manual.php:193
 msgid "Dodatkowe informacje o celu głosowania. Widoczny na karcie głosowania."
-msgstr ""
+msgstr "Additional information about the purpose of the poll. Shown on the voting page."
 
 #: admin/partials/manual.php:196 admin/partials/poll-form.php:121
 #: admin/partials/survey-form.php:106
 msgid "Data i godzina rozpoczęcia"
-msgstr ""
+msgstr "Start date and time"
 
 #: admin/partials/manual.php:197
 msgid ""
@@ -1086,17 +1088,17 @@ msgstr ""
 
 #: admin/partials/manual.php:200
 msgid "Czas trwania"
-msgstr ""
+msgstr "Duration"
 
 #: admin/partials/manual.php:201
 msgid ""
 "Wybierz z listy: 1 godz., 6 godz., 1 dzień, 2 dni itd. Data zakończenia jest "
 "obliczana automatycznie."
-msgstr ""
+msgstr "Choose from the list: 1 hr, 6 hrs, 1 day, 2 days, etc. End date is calculated automatically."
 
 #: admin/partials/manual.php:204
 msgid "Tryb dołączania"
-msgstr ""
+msgstr "Join mode"
 
 #: admin/partials/manual.php:205
 msgid ""
@@ -1107,7 +1109,7 @@ msgstr ""
 
 #: admin/partials/manual.php:208
 msgid "Tryb głosowania"
-msgstr ""
+msgstr "Voting mode"
 
 #: admin/partials/manual.php:209
 msgid ""
@@ -1118,23 +1120,23 @@ msgstr ""
 
 #: admin/partials/manual.php:212 admin/partials/poll-form.php:140
 msgid "Grupy docelowe"
-msgstr ""
+msgstr "Target groups"
 
 #: admin/partials/manual.php:213
 msgid ""
 "Wybierz jedną lub więcej grup, których członkowie będą uprawnieni do "
 "głosowania. Wymagane."
-msgstr ""
+msgstr "Select one or more groups whose members will be eligible to vote. Required."
 
 #: admin/partials/manual.php:216
 msgid "Powiadomienie e-mail"
-msgstr ""
+msgstr "Email notification"
 
 #: admin/partials/manual.php:217
 msgid ""
 "Zaznaczone domyślnie. Po starcie głosowania system wysyła zaproszenia do "
 "wszystkich uprawnionych uczestników."
-msgstr ""
+msgstr "Checked by default. When the poll starts, the system sends invitations to all eligible participants."
 
 #: admin/partials/manual.php:221
 msgid ""
@@ -1145,22 +1147,22 @@ msgstr ""
 
 #: admin/partials/manual.php:226
 msgid "Statusy głosowania"
-msgstr ""
+msgstr "Poll statuses"
 
 #: admin/partials/manual.php:230
 msgid "Znaczenie"
-msgstr ""
+msgstr "Meaning"
 
 #: admin/partials/manual.php:235
 msgid ""
 "Głosowanie zapisane, ale jeszcze nie rozpoczęte. Nie widoczne dla "
 "uczestników."
-msgstr ""
+msgstr "Poll saved but not yet started. Not visible to participants."
 
 #: admin/partials/manual.php:239
 msgid ""
 "Aktywne. Uczestnicy mogą oddawać głosy. Zaproszenia e-mail zostały wysłane."
-msgstr ""
+msgstr "Active. Participants can vote. Email invitations have been sent."
 
 #: admin/partials/manual.php:243
 msgid ""
@@ -1170,7 +1172,7 @@ msgstr ""
 
 #: admin/partials/manual.php:249
 msgid "Walidacja przed startem"
-msgstr ""
+msgstr "Validation before start"
 
 #: admin/partials/manual.php:250
 msgid ""
@@ -1183,7 +1185,7 @@ msgstr ""
 msgid ""
 "Uczestnik wchodzi na stronę głosowania (domyślnie /glosowanie lub "
 "skonfigurowany adres). Strona ma dwie zakładki:"
-msgstr ""
+msgstr "The participant goes to the voting page (default /vote or the configured URL). The page has two tabs:"
 
 #: admin/partials/manual.php:260 blocks/evoting-voting-tabs/render.php:109
 #: includes/class-evoting-vote-page.php:145 public/views/vote-page.php:26
@@ -1193,7 +1195,7 @@ msgstr "Active polls"
 
 #: admin/partials/manual.php:260
 msgid "aktywne głosowania, w których użytkownik może wziąć udział."
-msgstr ""
+msgstr "active polls in which the user can participate."
 
 #: admin/partials/manual.php:261 blocks/evoting-voting-tabs/render.php:115
 #: public/views/vote-page-theme.php:64
@@ -1203,15 +1205,15 @@ msgstr "Ended polls"
 #: admin/partials/manual.php:261
 msgid ""
 "lista zakończonych głosowań z wynikami, w których użytkownik był uprawniony."
-msgstr ""
+msgstr "list of ended polls with results in which the user was eligible."
 
 #: admin/partials/manual.php:264
 msgid "Proces oddania głosu"
-msgstr ""
+msgstr "Voting process"
 
 #: admin/partials/manual.php:266
 msgid "Zaloguj się do WordPress."
-msgstr ""
+msgstr "Log in to WordPress."
 
 #: admin/partials/manual.php:267
 msgid "Wejdź na stronę głosowania i wybierz zakładkę \"Trwające głosowania\"."
@@ -1219,7 +1221,7 @@ msgstr ""
 
 #: admin/partials/manual.php:268
 msgid "Odpowiedz na wszystkie pytania (wybierz jedną odpowiedź na pytanie)."
-msgstr ""
+msgstr "Answer all questions (select one answer per question)."
 
 #: admin/partials/manual.php:269
 msgid ""
@@ -1237,16 +1239,16 @@ msgstr ""
 #: admin/partials/manual.php:271
 msgid ""
 "Po oddaniu głosu formularz zostaje zablokowany i pojawia się potwierdzenie."
-msgstr ""
+msgstr "After voting, the form is locked and a confirmation is shown."
 
 #: admin/partials/manual.php:274
 msgid "Warunki uprawnienia do głosowania"
-msgstr ""
+msgstr "Eligibility to vote"
 
 #: admin/partials/manual.php:275
 msgid ""
 "Użytkownik może głosować tylko jeśli spełnia wszystkie poniższe warunki:"
-msgstr ""
+msgstr "A user can vote only if they meet all of the following conditions:"
 
 #: admin/partials/manual.php:277
 msgid "Głosowanie ma status \"Rozpoczęte\"."
@@ -1254,11 +1256,11 @@ msgstr ""
 
 #: admin/partials/manual.php:278
 msgid "Obecna data mieści się między datą startu a datą zakończenia."
-msgstr ""
+msgstr "The current date is between the start and end date."
 
 #: admin/partials/manual.php:279
 msgid "Użytkownik jest zalogowany."
-msgstr ""
+msgstr "The user is logged in."
 
 #: admin/partials/manual.php:280
 msgid ""
@@ -1269,11 +1271,11 @@ msgstr ""
 
 #: admin/partials/manual.php:281
 msgid "Użytkownik należy do grupy docelowej głosowania."
-msgstr ""
+msgstr "The user belongs to the poll’s target group."
 
 #: admin/partials/manual.php:282
 msgid "Użytkownik jeszcze nie głosował."
-msgstr ""
+msgstr "The user has not voted yet."
 
 #: admin/partials/manual.php:283
 msgid ""
@@ -1283,28 +1285,28 @@ msgstr ""
 
 #: admin/partials/manual.php:292
 msgid "Widok uczestnika (zakładka Zakończone)"
-msgstr ""
+msgstr "Participant view (Ended tab)"
 
 #: admin/partials/manual.php:293
 msgid "Każde zakończone głosowanie wyświetla:"
-msgstr ""
+msgstr "Each ended poll displays:"
 
 #: admin/partials/manual.php:295
 msgid "Tytuł i opis głosowania."
-msgstr ""
+msgstr "Poll title and description."
 
 #: admin/partials/manual.php:296
 msgid "Pasek frekwencji (ilu uprawnionych wzięło udział)."
-msgstr ""
+msgstr "Turnout bar (how many eligible participants took part)."
 
 #: admin/partials/manual.php:297
 msgid "Dla każdego pytania: odpowiedzi z procentami i paskami wyników."
-msgstr ""
+msgstr "For each question: answers with percentages and result bars."
 
 #: admin/partials/manual.php:298
 msgid ""
 "Zielony pasek = wynik wiodący, szary = pozostałe, żółty = wstrzymanie się."
-msgstr ""
+msgstr "Green bar = leading result, grey = others, yellow = abstention."
 
 #: admin/partials/manual.php:299
 msgid "Dla administratorów: przycisk \"Pobierz wyniki (PDF)\"."
@@ -1312,7 +1314,7 @@ msgstr ""
 
 #: admin/partials/manual.php:302
 msgid "Widok admina"
-msgstr ""
+msgstr "Admin view"
 
 #: admin/partials/manual.php:303
 msgid ""
@@ -1322,30 +1324,30 @@ msgstr ""
 #: admin/partials/manual.php:305
 msgid ""
 "Pełne wyniki z listą głosujących (jawnie lub anonimowo, zależnie od trybu)."
-msgstr ""
+msgstr "Full results with list of voters (public or anonymous, depending on mode)."
 
 #: admin/partials/manual.php:306
 msgid "Lista nieobecnych (uprawnionych, którzy nie zagłosowali)."
-msgstr ""
+msgstr "List of absentees (eligible users who did not vote)."
 
 #: admin/partials/manual.php:307
 msgid "Pobieranie raportu PDF zawierającego wyniki i obie listy."
-msgstr ""
+msgstr "Downloading a PDF report with results and both lists."
 
 #: admin/partials/manual.php:311
 msgid "Tryb anonimowy"
-msgstr ""
+msgstr "Anonymous mode"
 
 #: admin/partials/manual.php:312
 msgid ""
 "Gdy głosowanie odbyło się w trybie anonimowym, lista głosujących jest ukryta "
 "dla wszystkich — łącznie z administratorem. Widoczne są wyłącznie zbiorcze "
 "liczby i procenty."
-msgstr ""
+msgstr "When a poll was run in anonymous mode, the list of voters is hidden from everyone — including the administrator. Only aggregate counts and percentages are shown."
 
 #: admin/partials/manual.php:315
 msgid "Jak obliczane są procenty"
-msgstr ""
+msgstr "How percentages are calculated"
 
 #: admin/partials/manual.php:316
 msgid ""
@@ -1358,11 +1360,11 @@ msgstr ""
 msgid ""
 "Po uruchomieniu głosowania system automatycznie tworzy kolejkę wiadomości e-"
 "mail dla wszystkich uprawnionych uczestników."
-msgstr ""
+msgstr "When a poll is started, the system automatically creates an email queue for all eligible participants."
 
 #: admin/partials/manual.php:325
 msgid "Ekran Zaproszenia"
-msgstr ""
+msgstr "Invitations screen"
 
 #: admin/partials/manual.php:326
 msgid ""
@@ -1372,11 +1374,11 @@ msgstr ""
 
 #: admin/partials/manual.php:328
 msgid "Ile e-maili zostało wysłanych, ile oczekuje, ile nie udało się wysłać."
-msgstr ""
+msgstr "How many emails were sent, how many are pending, how many failed."
 
 #: admin/partials/manual.php:329
 msgid "Pasek postępu wysyłki."
-msgstr ""
+msgstr "Sending progress bar."
 
 #: admin/partials/manual.php:330
 msgid ""
@@ -1397,28 +1399,28 @@ msgstr ""
 
 #: admin/partials/manual.php:338
 msgid "Konfiguracja e-mail"
-msgstr ""
+msgstr "Email configuration"
 
 #: admin/partials/manual.php:339
 msgid "W Konfiguracji można ustawić:"
-msgstr ""
+msgstr "In Configuration you can set:"
 
 #: admin/partials/manual.php:341
 msgid "Adres nadawcy (E-mail nadawcy)."
-msgstr ""
+msgstr "Sender address (Sender email)."
 
 #: admin/partials/manual.php:342
 msgid ""
 "Metodę wysyłki: domyślna WordPress (wp_mail) lub zewnętrzny serwer SMTP."
-msgstr ""
+msgstr "Sending method: default WordPress (wp_mail) or external SMTP server."
 
 #: admin/partials/manual.php:343
 msgid "Dla SMTP: host, port, szyfrowanie, nazwa użytkownika i hasło."
-msgstr ""
+msgstr "For SMTP: host, port, encryption, username and password."
 
 #: admin/partials/manual.php:344
 msgid "Opcjonalnie: wysyłka przez SendGrid API (klucz API w Konfiguracji)."
-msgstr ""
+msgstr "Optionally: sending via SendGrid API (API key in Configuration)."
 
 #: admin/partials/manual.php:352
 msgid ""
@@ -1427,7 +1429,7 @@ msgstr ""
 
 #: admin/partials/manual.php:356
 msgid "Opcja"
-msgstr ""
+msgstr "Option"
 
 #: admin/partials/manual.php:361
 msgid "Slug strony głosowania"
@@ -1441,27 +1443,27 @@ msgstr ""
 
 #: admin/partials/manual.php:365
 msgid "Dodaj podstronę"
-msgstr ""
+msgstr "Add page"
 
 #: admin/partials/manual.php:366
 msgid ""
 "Tworzy stronę WordPress o podanym slug z blokiem głosowania. Pojawia się "
 "tylko gdy strona jeszcze nie istnieje."
-msgstr ""
+msgstr "Creates a WordPress page with the given slug and the voting block. Only shown when the page does not exist yet."
 
 #: admin/partials/manual.php:369 admin/partials/settings.php:87
 msgid "Zaktualizuj stronę głosowania"
-msgstr ""
+msgstr "Update voting page"
 
 #: admin/partials/manual.php:370
 msgid ""
 "Pojawia się gdy strona istnieje, ale nie zawiera aktualnego bloku zakładek. "
 "Kliknij, aby zastąpić treść nowym blokiem."
-msgstr ""
+msgstr "Shown when the page exists but does not contain the current tabs block. Click to replace the content with the new block."
 
 #: admin/partials/manual.php:373 admin/partials/settings.php:394
 msgid "URL strony ankiet"
-msgstr ""
+msgstr "Surveys page URL"
 
 #: admin/partials/manual.php:374
 msgid ""
@@ -1472,7 +1474,7 @@ msgstr ""
 
 #: admin/partials/manual.php:377 admin/partials/settings.php:449
 msgid "URL strony zgłoszeń"
-msgstr ""
+msgstr "Submissions page URL"
 
 #: admin/partials/manual.php:378
 msgid ""
@@ -1486,12 +1488,12 @@ msgstr ""
 
 #: admin/partials/manual.php:381 admin/partials/settings.php:112
 msgid "E-mail nadawcy"
-msgstr ""
+msgstr "Sender email"
 
 #: admin/partials/manual.php:382
 msgid ""
 "Adres, z którego wysyłane są zaproszenia. Domyślnie noreply@twojadomena.pl."
-msgstr ""
+msgstr "Address from which invitations are sent. Default noreply@yourdomain.com."
 
 #: admin/partials/manual.php:385
 msgid "Metoda wysyłki e-mail"
@@ -1512,14 +1514,14 @@ msgstr ""
 msgid ""
 "Na dole strony Konfiguracji. Usuwa wszystkie tabele i opcje wtyczki z bazy "
 "danych. Nieodwracalne — używać ostrożnie."
-msgstr ""
+msgstr "At the bottom of the Configuration page. Removes all plugin tables and options from the database. Irreversible — use with caution."
 
 #: admin/partials/manual.php:400
 msgid ""
 "Sekcja w Konfiguracji służy do powiązania logicznych nazw pól wtyczki z "
 "kluczami meta, pod jakimi Twoja wtyczka rejestracji zapisuje dane "
 "użytkownika."
-msgstr ""
+msgstr "The Configuration section is used to map the plugin’s logical field names to the meta keys under which your registration plugin stores user data."
 
 #: admin/partials/manual.php:402
 msgid "Pola logiczne"
@@ -1527,53 +1529,53 @@ msgstr ""
 
 #: admin/partials/manual.php:405 admin/partials/settings.php:587
 msgid "Pole logiczne"
-msgstr ""
+msgstr "Logical field"
 
 #: admin/partials/manual.php:406
 msgid "Domyślny klucz"
-msgstr ""
+msgstr "Default key"
 
 #: admin/partials/manual.php:410
 msgid "Imię"
-msgstr ""
+msgstr "First name"
 
 #: admin/partials/manual.php:410
 msgid "Imię użytkownika (wbudowane WP). Zawsze wymagane."
-msgstr ""
+msgstr "User first name (WP built-in). Always required."
 
 #: admin/partials/manual.php:411
 msgid "Nazwisko"
-msgstr ""
+msgstr "Last name"
 
 #: admin/partials/manual.php:411
 msgid "Nazwisko użytkownika (wbudowane WP). Zawsze wymagane."
-msgstr ""
+msgstr "User last name (WP built-in). Always required."
 
 #: admin/partials/manual.php:412
 msgid "Nickname"
-msgstr ""
+msgstr "Nickname"
 
 #: admin/partials/manual.php:412
 msgid "Pseudonim używany w anonimowych wynikach. Zawsze wymagane."
-msgstr ""
+msgstr "Nickname used in anonymous results. Always required."
 
 #: admin/partials/manual.php:413
 msgid "Adres e-mail (wbudowane WP). Zawsze wymagane."
-msgstr ""
+msgstr "Email address (WP built-in). Always required."
 
 #: admin/partials/manual.php:414
 msgid "Miasto / miejsce spotkania"
-msgstr ""
+msgstr "City / meeting place"
 
 #: admin/partials/manual.php:414
 msgid ""
 "Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją "
 "wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy)."
-msgstr ""
+msgstr "Field used for group assignment. Change to the key used by your registration plugin. Can be disabled (everyone in the Everyone group)."
 
 #: admin/partials/manual.php:415
 msgid "Numer telefonu"
-msgstr ""
+msgstr "Phone number"
 
 #: admin/partials/manual.php:415
 msgid ""
@@ -1582,31 +1584,31 @@ msgstr ""
 
 #: admin/partials/manual.php:416
 msgid "Numer PESEL"
-msgstr ""
+msgstr "PESEL number"
 
 #: admin/partials/manual.php:416 admin/partials/manual.php:417
 msgid "Opcjonalne. Można zaznaczyć jako wymagane do głosowania."
-msgstr ""
+msgstr "Optional. Can be marked as required for voting."
 
 #: admin/partials/manual.php:417
 msgid "Numer dowodu osobistego"
-msgstr ""
+msgstr "ID card number"
 
 #: admin/partials/manual.php:418
 msgid "Ulica i numer domu"
-msgstr ""
+msgstr "Street and number"
 
 #: admin/partials/manual.php:418 admin/partials/manual.php:419
 msgid "Opcjonalne."
-msgstr ""
+msgstr "Optional."
 
 #: admin/partials/manual.php:419
 msgid "Kod pocztowy"
-msgstr ""
+msgstr "Postal code"
 
 #: admin/partials/manual.php:420
 msgid "Miejscowość"
-msgstr ""
+msgstr "Town"
 
 #: admin/partials/manual.php:420
 msgid ""
@@ -1626,7 +1628,7 @@ msgstr ""
 
 #: admin/partials/manual.php:427
 msgid "Dane wrażliwe na stronie zgłoszeń"
-msgstr ""
+msgstr "Sensitive data on the submissions page"
 
 #: admin/partials/manual.php:428
 msgid ""
@@ -1651,11 +1653,11 @@ msgid ""
 "Wtyczka umożliwia tworzenie ankiet (formularzy z pytaniami), zbieranie "
 "odpowiedzi użytkowników oraz publiczne wyświetlanie zatwierdzonych zgłoszeń "
 "na dedykowanej stronie."
-msgstr ""
+msgstr "The plugin allows creating surveys (forms with questions), collecting user responses and publicly displaying approved submissions on a dedicated page."
 
 #: admin/partials/manual.php:441
 msgid "Gdzie znajdziesz ankiety"
-msgstr ""
+msgstr "Where to find surveys"
 
 #: admin/partials/manual.php:443
 msgid ""
@@ -1667,7 +1669,7 @@ msgstr ""
 msgid ""
 "Tworzenie i edycja: tytuł, opis, czas trwania, pola ankiety (etykieta, typ "
 "pola, opcjonalnie powiązanie z polem profilu)."
-msgstr ""
+msgstr "Creating and editing: title, description, duration, survey fields (label, field type, optionally link to profile field)."
 
 #: admin/partials/manual.php:445
 msgid ""
@@ -1677,7 +1679,7 @@ msgstr ""
 
 #: admin/partials/manual.php:448
 msgid "Pole profilu przy pytaniach ankiety"
-msgstr ""
+msgstr "Profile field for survey questions"
 
 #: admin/partials/manual.php:449
 msgid ""
@@ -1691,7 +1693,7 @@ msgstr ""
 msgid ""
 "Jeśli pole profilu jest puste (— brak), odpowiedź użytkownika na to pytanie "
 "jest na stronie /zgloszenia wyświetlana w całości."
-msgstr ""
+msgstr "If the profile field is empty (— none), the user’s answer to that question is shown in full on the submissions page."
 
 #: admin/partials/manual.php:452
 msgid ""
@@ -1705,11 +1707,11 @@ msgid ""
 "W nagłówku każdej karty zgłoszenia na stronie publicznej wyświetlane są "
 "wyłącznie imię i nazwisko; pozostałe dane z profilu (e-mail, telefon, data) "
 "nie są tam pokazywane."
-msgstr ""
+msgstr "In the header of each submission card on the public page only first and last name are shown; other profile data (email, phone, date) is not displayed there."
 
 #: admin/partials/manual.php:456
 msgid "Strona zgłoszeń (/zgloszenia)"
-msgstr ""
+msgstr "Submissions page (/submissions)"
 
 #: admin/partials/manual.php:457
 msgid ""
@@ -1755,7 +1757,7 @@ msgid ""
 "Sprawdź, które pole jest brakujące (komunikat podaje nazwę pola). Poproś "
 "użytkownika o uzupełnienie profilu lub sprawdź w Konfiguracji → Mapowanie "
 "pól, czy klucz jest poprawny."
-msgstr ""
+msgstr "Check which field is missing (the message gives the field name). Ask the user to complete their profile or check in Configuration → Field mapping that the key is correct."
 
 #: admin/partials/manual.php:475
 msgid ""
@@ -1766,11 +1768,11 @@ msgstr ""
 msgid ""
 "Sprawdź: (1) Czy użytkownik należy do grupy docelowej głosowania? (2) Czy "
 "profil użytkownika jest kompletny? (3) Czy data zakończenia nie minęła?"
-msgstr ""
+msgstr "Check: (1) Does the user belong to the poll’s target group? (2) Is the user’s profile complete? (3) Has the end date not passed?"
 
 #: admin/partials/manual.php:478
 msgid "Zaproszenia e-mail nie dochodzą."
-msgstr ""
+msgstr "Email invitations are not arriving."
 
 #: admin/partials/manual.php:479
 msgid ""
@@ -1781,7 +1783,7 @@ msgstr ""
 
 #: admin/partials/manual.php:481
 msgid "Strona głosowania pokazuje błąd lub przekierowuje w pętli."
-msgstr ""
+msgstr "The voting page shows an error or redirects in a loop."
 
 #: admin/partials/manual.php:482
 msgid ""
@@ -1792,23 +1794,23 @@ msgstr ""
 
 #: admin/partials/manual.php:484
 msgid "Jak zmienić nazwę witryny w nagłówku i PDF?"
-msgstr ""
+msgstr "How to change the site name in the header and PDF?"
 
 #: admin/partials/manual.php:485
 msgid ""
 "Wtyczka używa Tytułu witryny z WordPress (Ustawienia → Ogólne → Tytuł "
 "witryny). Zmień tam, a zaktualizuje się wszędzie automatycznie."
-msgstr ""
+msgstr "The plugin uses the Site Title from WordPress (Settings → General → Site Title). Change it there and it will update everywhere automatically."
 
 #: admin/partials/manual.php:487
 msgid "Jak zmienić logo wyświetlane w panelu admina?"
-msgstr ""
+msgstr "How to change the logo displayed in the admin panel?"
 
 #: admin/partials/manual.php:488
 msgid ""
 "Wtyczka używa ikony witryny WordPress (Wygląd → Dostosuj → Tożsamość witryny "
 "→ Ikona witryny). Ustaw ikonę tam."
-msgstr ""
+msgstr "The plugin uses the WordPress site icon (Appearance → Customize → Site identity → Site icon). Set the icon there."
 
 #: admin/partials/manual.php:490
 msgid "Co to jest tryb \"Nie używaj miast\"?"
@@ -1824,7 +1826,7 @@ msgstr ""
 #: admin/partials/manual.php:496
 #, php-format
 msgid "Wersja dokumentacji: %s"
-msgstr ""
+msgstr "Documentation version: %s"
 
 #: admin/partials/poll-form.php:12 admin/partials/survey-form.php:17
 msgid "1h"
@@ -1832,31 +1834,31 @@ msgstr ""
 
 #: admin/partials/poll-form.php:13 admin/partials/survey-form.php:18
 msgid "1 dzień"
-msgstr ""
+msgstr "1 day"
 
 #: admin/partials/poll-form.php:14 admin/partials/survey-form.php:19
 msgid "2 dni"
-msgstr ""
+msgstr "2 days"
 
 #: admin/partials/poll-form.php:15 admin/partials/survey-form.php:20
 msgid "3 dni"
-msgstr ""
+msgstr "3 days"
 
 #: admin/partials/poll-form.php:16 admin/partials/survey-form.php:21
 msgid "7 dni"
-msgstr ""
+msgstr "7 days"
 
 #: admin/partials/poll-form.php:17 admin/partials/survey-form.php:22
 msgid "14 dni"
-msgstr ""
+msgstr "14 days"
 
 #: admin/partials/poll-form.php:18 admin/partials/survey-form.php:23
 msgid "21 dni"
-msgstr ""
+msgstr "21 days"
 
 #: admin/partials/poll-form.php:65
 msgid "Podgląd głosowania"
-msgstr ""
+msgstr "Preview poll"
 
 #: admin/partials/poll-form.php:67 admin/partials/poll-results.php:19
 msgid "Edytuj głosowanie"
@@ -1864,23 +1866,23 @@ msgstr "Edit poll"
 
 #: admin/partials/poll-form.php:67
 msgid "Nowe głosowanie"
-msgstr ""
+msgstr "New poll"
 
 #: admin/partials/poll-form.php:75
 msgid "Głosowanie zostało zaktualizowane."
-msgstr ""
+msgstr "Poll has been updated."
 
 #: admin/partials/poll-form.php:78
 msgid "Głosowanie zostało uruchomione. Data rozpoczęcia ustawiona na dziś."
-msgstr ""
+msgstr "Poll has been started. Start date set to today."
 
 #: admin/partials/poll-form.php:81
 msgid "Utworzono kopię głosowania. Możesz ją teraz edytować."
-msgstr ""
+msgstr "Poll copy created. You can edit it now."
 
 #: admin/partials/poll-form.php:112
 msgid "Maks. 512 znaków."
-msgstr ""
+msgstr "Max 512 characters."
 
 #: admin/partials/poll-form.php:125
 msgid ""
@@ -1890,35 +1892,35 @@ msgstr ""
 
 #: admin/partials/poll-form.php:129
 msgid "Czas trwania głosowania"
-msgstr ""
+msgstr "Poll duration"
 
 #: admin/partials/poll-form.php:136
 msgid "Od momentu startu głosowania."
-msgstr ""
+msgstr "From the moment the poll starts."
 
 #: admin/partials/poll-form.php:153
 msgid ""
 "Ctrl+klik aby wybrać wiele grup. Zostaw puste = wszyscy uprawnieni "
 "użytkownicy."
-msgstr ""
+msgstr "Ctrl+click to select multiple groups. Leave empty = all eligible users."
 
 #: admin/partials/poll-form.php:156
 msgid ""
 "Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla "
 "wszystkich uprawnionych."
-msgstr ""
+msgstr "No groups. Add groups in the Groups section and the poll will be available to all eligible users."
 
 #: admin/partials/poll-form.php:161
 msgid "Powiadomienia e-mail"
-msgstr ""
+msgstr "Email notifications"
 
 #: admin/partials/poll-form.php:165
 msgid "Wyślij e-mail przy otwarciu głosowania"
-msgstr ""
+msgstr "Send email when poll opens"
 
 #: admin/partials/poll-form.php:167
 msgid "Zaznaczone domyślnie."
-msgstr ""
+msgstr "Checked by default."
 
 #: admin/partials/poll-form.php:172 admin/partials/poll-list.php:40
 msgid "Pytania"
@@ -1926,7 +1928,7 @@ msgstr "Questions"
 
 #: admin/partials/poll-form.php:172
 msgid "1–24 pytania, 3–12 odpowiedzi per pytanie"
-msgstr ""
+msgstr "1–24 questions, 3–12 answers per question"
 
 #: admin/partials/poll-form.php:174
 msgid ""
@@ -1936,28 +1938,28 @@ msgstr ""
 
 #: admin/partials/poll-form.php:187 admin/partials/poll-form.php:226
 msgid "Treść pytania"
-msgstr ""
+msgstr "Question text"
 
 #: admin/partials/poll-form.php:202 admin/partials/poll-form.php:238
 #: admin/partials/poll-form.php:249 admin/partials/poll-form.php:261
 msgid "Treść odpowiedzi"
-msgstr ""
+msgstr "Answer text"
 
 #: admin/partials/poll-form.php:208 admin/partials/poll-form.php:263
 msgid "(wstrzymanie – auto)"
-msgstr ""
+msgstr "(abstain – auto)"
 
 #: admin/partials/poll-form.php:215 admin/partials/poll-form.php:268
 msgid "Dodaj odpowiedź"
-msgstr ""
+msgstr "Add answer"
 
 #: admin/partials/poll-form.php:236
 msgid "Jestem za"
-msgstr ""
+msgstr "In favour"
 
 #: admin/partials/poll-form.php:247
 msgid "Jestem przeciw"
-msgstr ""
+msgstr "Against"
 
 #: admin/partials/poll-form.php:258
 msgid "Wstrzymuję się"
@@ -1965,28 +1967,28 @@ msgstr "Abstain"
 
 #: admin/partials/poll-form.php:278
 msgid "Dodaj pytanie"
-msgstr ""
+msgstr "Add question"
 
 #: admin/partials/poll-form.php:285
 msgid "Wróć do listy"
-msgstr ""
+msgstr "Back to list"
 
 #: admin/partials/poll-form.php:288
 msgid "Zobacz wyniki"
-msgstr ""
+msgstr "View results"
 
 #: admin/partials/poll-form.php:294 admin/partials/survey-form.php:171
 #: blocks/evoting-survey-form/render.php:212
 msgid "Zapisz jako szkic"
-msgstr ""
+msgstr "Save as draft"
 
 #: admin/partials/poll-form.php:297
 msgid "Wystartuj głosowanie"
-msgstr ""
+msgstr "Start poll"
 
 #: admin/partials/poll-form.php:302 admin/partials/poll-form.php:306
 msgid "Usuń głosowanie"
-msgstr ""
+msgstr "Delete poll"
 
 #: admin/partials/poll-invitations.php:36
 #, php-format
@@ -2333,31 +2335,31 @@ msgid ""
 "Dodanie użytkownika do grupy powoduje, że staje się koordynatorem tej grupy "
 "(jednej lub wielu) i może uruchamiać dla tych grup głosowania dla członków "
 "grupy. Jeden koordynator może być przypisany do jednej lub wielu grup."
-msgstr ""
+msgstr "Adding a user to a group makes them a coordinator of that group (one or more) and they can run polls for those groups for group members. One coordinator can be assigned to one or more groups."
 
 #: admin/partials/roles.php:47
 msgid "Koordynator"
-msgstr ""
+msgstr "Coordinator"
 
 #: admin/partials/roles.php:54
 msgid "Brak Koordynatorów."
-msgstr ""
+msgstr "No coordinators."
 
 #: admin/partials/roles.php:97
 msgid "Odłącz wszystko"
-msgstr ""
+msgstr "Remove all"
 
 #: admin/partials/roles.php:114
 msgid "Wpisz ID użytkownika, jeśli znasz."
-msgstr ""
+msgstr "Enter user ID if you know it."
 
 #: admin/partials/roles.php:118
 msgid "Koordynator (z listy):"
-msgstr ""
+msgstr "Coordinator (from list):"
 
 #: admin/partials/roles.php:149
 msgid "Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Koordynatorów."
-msgstr ""
+msgstr "First add groups in the Groups section to be able to assign Coordinators."
 
 #: admin/partials/settings.php:24
 msgid "— nie określone —"
@@ -2377,47 +2379,47 @@ msgstr ""
 
 #: admin/partials/settings.php:64
 msgid "Konfiguracja została zapisana."
-msgstr ""
+msgstr "Configuration has been saved."
 
 #: admin/partials/settings.php:69
 msgid ""
 "Strona głosowania została utworzona. Możesz ją edytować w Strony lub przejść "
 "pod skonfigurowany adres."
-msgstr ""
+msgstr "Voting page has been created. You can edit it under Pages or go to the configured URL."
 
 #: admin/partials/settings.php:74
 msgid "Strona głosowania została zaktualizowana — blok zakładek jest aktywny."
-msgstr ""
+msgstr "Voting page has been updated — the tabs block is active."
 
 #: admin/partials/settings.php:80
 msgid "Strona głosowania wymaga aktualizacji."
-msgstr ""
+msgstr "Voting page needs to be updated."
 
 #: admin/partials/settings.php:81
 msgid ""
 "Strona istnieje, ale nie zawiera bloku zakładek (Trwające / Zakończone "
 "głosowania)."
-msgstr ""
+msgstr "The page exists but does not contain the tabs block (Active / Ended polls)."
 
 #: admin/partials/settings.php:90
 msgid ""
 "Zastąpi treść strony blokiem zakładek. Inne bloki które dodałeś/aś zostaną "
 "usunięte."
-msgstr ""
+msgstr "This will replace the page content with the tabs block. Any other blocks you added will be removed."
 
 #: admin/partials/settings.php:99
 msgid "Nazwa systemu"
-msgstr ""
+msgstr "System name"
 
 #: admin/partials/settings.php:101
 msgid ""
 "Skrót nazwy wyświetlany w menu panelu. Pełna nazwa i logo pobierane są z "
 "ustawień WordPress (Ustawienia → Ogólne)."
-msgstr ""
+msgstr "Short name displayed in the admin menu. Full name and logo are taken from WordPress settings (Settings → General)."
 
 #: admin/partials/settings.php:105
 msgid "Skrót nazwy"
-msgstr ""
+msgstr "Short name"
 
 #: admin/partials/settings.php:108
 msgid "Do 6 znaków. Domyślnie: EP-RWL."
@@ -2427,35 +2429,35 @@ msgstr ""
 msgid ""
 "Adres e-mail, z którego wysyłane są zaproszenia i powiadomienia. Np. "
 "noreply@twojadomena.pl"
-msgstr ""
+msgstr "Email address used for invitations and notifications. E.g. noreply@yourdomain.com"
 
 #: admin/partials/settings.php:132
 msgid "Metoda wysyłki"
-msgstr ""
+msgstr "Sending method"
 
 #: admin/partials/settings.php:138
 msgid "WordPress (php mail)"
-msgstr ""
+msgstr "WordPress (php mail)"
 
 #: admin/partials/settings.php:139
 msgid "Bez konfiguracji, zalecane do ~50 odbiorców."
-msgstr ""
+msgstr "No configuration needed, recommended for up to ~50 recipients."
 
 #: admin/partials/settings.php:145
 msgid "Zewnętrzny serwer SMTP"
-msgstr ""
+msgstr "External SMTP server"
 
 #: admin/partials/settings.php:146
 msgid "Gmail, Outlook itp. — zalecane do ~500 odbiorców."
-msgstr ""
+msgstr "Gmail, Outlook, etc. — recommended for up to ~500 recipients."
 
 #: admin/partials/settings.php:152
 msgid "SendGrid API"
-msgstr ""
+msgstr "SendGrid API"
 
 #: admin/partials/settings.php:153
 msgid "HTTP API, port 443 — zalecane dla 500–10 000+ odbiorców."
-msgstr ""
+msgstr "HTTP API, port 443 — recommended for 500–10,000+ recipients."
 
 #: admin/partials/settings.php:161
 msgid "Konfiguracja serwera SMTP"
@@ -2538,30 +2540,30 @@ msgstr ""
 
 #: admin/partials/settings.php:255
 msgid "Parametry wysyłki wsadowej"
-msgstr ""
+msgstr "Batch sending parameters"
 
 #: admin/partials/settings.php:257
 msgid ""
 "Kontrola tempa wysyłki e-maili przy dużych grupach odbiorców. Puste pola = "
 "wartości domyślne (20 e-maili / 3 s dla WP/SMTP; 100 e-maili / 2 s dla "
 "SendGrid)."
-msgstr ""
+msgstr "Control email sending rate for large recipient groups. Empty fields = defaults (20 emails / 3 s for WP/SMTP; 100 emails / 2 s for SendGrid)."
 
 #: admin/partials/settings.php:261
 msgid "Liczba e-maili na partię"
-msgstr ""
+msgstr "Number of emails per batch"
 
 #: admin/partials/settings.php:266
 msgid "Dla SMTP/WP zalecane 10–50. Dla SendGrid do 1000."
-msgstr ""
+msgstr "For SMTP/WP recommended 10–50. For SendGrid up to 1000."
 
 #: admin/partials/settings.php:270
 msgid "Pauza między partiami (sekundy)"
-msgstr ""
+msgstr "Pause between batches (seconds)"
 
 #: admin/partials/settings.php:275
 msgid "Czas oczekiwania między partiami w przeglądarce admina."
-msgstr ""
+msgstr "Waiting time between batches in the admin browser."
 
 #: admin/partials/settings.php:325 admin/partials/settings.php:351
 msgid "Błąd połączenia."
@@ -2569,7 +2571,7 @@ msgstr ""
 
 #: admin/partials/settings.php:359
 msgid "URL strony głosowania"
-msgstr ""
+msgstr "Voting page URL"
 
 #: admin/partials/settings.php:361
 msgid ""
@@ -2583,16 +2585,16 @@ msgstr ""
 
 #: admin/partials/settings.php:373
 msgid "Strona WordPress (możesz ją edytować w Gutenberg):"
-msgstr ""
+msgstr "WordPress page (you can edit it in Gutenberg):"
 
 #: admin/partials/settings.php:376
 msgid "Adres strony głosowania:"
-msgstr ""
+msgstr "Voting page URL:"
 
 #: admin/partials/settings.php:385 admin/partials/settings.php:427
 #: admin/partials/settings.php:483
 msgid "Edytuj w Gutenberg"
-msgstr ""
+msgstr "Edit in Gutenberg"
 
 #: admin/partials/settings.php:396
 msgid ""
@@ -2602,27 +2604,27 @@ msgstr ""
 
 #: admin/partials/settings.php:400
 msgid "Strona ankiet została utworzona."
-msgstr ""
+msgstr "Surveys page has been created."
 
 #: admin/partials/settings.php:402
 msgid "Strona ankiet została zaktualizowana."
-msgstr ""
+msgstr "Surveys page has been updated."
 
 #: admin/partials/settings.php:407 admin/partials/settings.php:462
 msgid "Slug strony"
-msgstr ""
+msgstr "Page slug"
 
 #: admin/partials/settings.php:422
 msgid "Adres strony ankiet:"
-msgstr ""
+msgstr "Surveys page URL:"
 
 #: admin/partials/settings.php:434
 msgid "Utwórz stronę ankiet"
-msgstr ""
+msgstr "Create surveys page"
 
 #: admin/partials/settings.php:440
 msgid "Zaktualizuj stronę ankiet (dodaj blok)"
-msgstr ""
+msgstr "Update surveys page (add block)"
 
 #: admin/partials/settings.php:451
 msgid ""
@@ -2632,42 +2634,42 @@ msgstr ""
 
 #: admin/partials/settings.php:455
 msgid "Strona zgłoszeń została utworzona."
-msgstr ""
+msgstr "Submissions page has been created."
 
 #: admin/partials/settings.php:457
 msgid "Strona zgłoszeń została zaktualizowana."
-msgstr ""
+msgstr "Submissions page has been updated."
 
 #: admin/partials/settings.php:478
 msgid "Adres strony zgłoszeń:"
-msgstr ""
+msgstr "Submissions page URL:"
 
 #: admin/partials/settings.php:490
 msgid "Utwórz stronę zgłoszeń"
-msgstr ""
+msgstr "Create submissions page"
 
 #: admin/partials/settings.php:496
 msgid "Zaktualizuj stronę zgłoszeń (dodaj blok)"
-msgstr ""
+msgstr "Update submissions page (add block)"
 
 #: admin/partials/settings.php:504
 msgid "Ustawienie czasu (strefa głosowań)"
-msgstr ""
+msgstr "Time setting (voting timezone)"
 
 #: admin/partials/settings.php:506
 msgid ""
 "Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po "
 "przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania "
 "liczników."
-msgstr ""
+msgstr "If the server uses a different timezone than yours, set the offset. The adjusted time is used to check the voting period and display countdowns."
 
 #: admin/partials/settings.php:515
 msgid "Przesunięcie czasu"
-msgstr ""
+msgstr "Time offset"
 
 #: admin/partials/settings.php:520
 msgid "0 (bez zmiany)"
-msgstr ""
+msgstr "0 (no change)"
 
 #: admin/partials/settings.php:520
 msgid "%+d h"
@@ -2675,28 +2677,28 @@ msgstr ""
 
 #: admin/partials/settings.php:527
 msgid "Czas na serwerze"
-msgstr ""
+msgstr "Server time"
 
 #: admin/partials/settings.php:530
 msgid "Aktualny czas według ustawień WordPress (strefa z Ustawienia → Ogólne)."
-msgstr ""
+msgstr "Current time according to WordPress settings (timezone from Settings → General)."
 
 #: admin/partials/settings.php:534
 msgid "Czas dla głosowań"
-msgstr ""
+msgstr "Time for polls"
 
 #: admin/partials/settings.php:537
 msgid ""
 "Czas używany przy sprawdzaniu rozpoczęcia i zakończenia głosowania (serwer + "
 "przesunięcie)."
-msgstr ""
+msgstr "Time used when checking poll start and end (server + offset)."
 
 #: admin/partials/settings.php:545
 msgid ""
 "Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych "
 "WordPress. Dzięki temu wtyczka będzie działać poprawnie niezależnie od "
 "użytej wtyczki rejestracji lub własnego schematu metadanych."
-msgstr ""
+msgstr "Map the plugin's logical fields to actual keys in the WordPress database. This keeps the plugin working regardless of the registration plugin or custom metadata schema."
 
 #: admin/partials/settings.php:554
 msgid "Wymagana wtyczka do rozszerzonych pól profilu"
@@ -2707,21 +2709,21 @@ msgid ""
 "Pola takie jak Telefon, PESEL czy Numer dowodu osobistego nie istnieją "
 "domyślnie w WordPress. Aby użytkownicy mogli je uzupełniać, potrzebujesz "
 "wtyczki, która dodaje własne pola rejestracji i profilu — np.:"
-msgstr ""
+msgstr "Fields such as Phone, ID number or ID card number do not exist in WordPress by default. For users to fill them in, you need a plugin that adds custom registration and profile fields — e.g.:"
 
 #: admin/partials/settings.php:568
 msgid ""
 "— darmowa, 60 000+ aktywnych instalacji, obsługuje własne pola i powiązuje "
 "je z usermeta."
-msgstr ""
+msgstr "— free, 60,000+ active installations, supports custom fields and maps them to usermeta."
 
 #: admin/partials/settings.php:571
 msgid "Lub każda inna wtyczka zapisująca dane w"
-msgstr ""
+msgstr "Or any other plugin that stores data in"
 
 #: admin/partials/settings.php:573
 msgid "pod dowolnym kluczem (meta_key) — wpisz ten klucz w kolumnie poniżej."
-msgstr ""
+msgstr "under any key (meta_key) — enter that key in the column below."
 
 #: admin/partials/settings.php:578
 msgid ""
@@ -2731,137 +2733,137 @@ msgstr ""
 
 #: admin/partials/settings.php:588
 msgid "Klucz w bazie danych WordPress"
-msgstr ""
+msgstr "Key in WordPress database"
 
 #: admin/partials/settings.php:589 admin/partials/settings.php:590
 msgid "Wymagane"
-msgstr ""
+msgstr "Required"
 
 #: admin/partials/settings.php:589
 msgid "do głosowania"
-msgstr ""
+msgstr "for voting"
 
 #: admin/partials/settings.php:590
 msgid "do ankiety"
-msgstr ""
+msgstr "for survey"
 
 #: admin/partials/settings.php:607
 msgid "Zazwyczaj user_email (pole wbudowane)"
-msgstr ""
+msgstr "Usually user_email (built-in field)"
 
 #: admin/partials/settings.php:611
 msgid "Domyślnie: user_gsm"
-msgstr ""
+msgstr "Default: user_gsm"
 
 #: admin/partials/settings.php:615
 msgid "Domyślnie: user_pesel"
-msgstr ""
+msgstr "Default: user_pesel"
 
 #: admin/partials/settings.php:619
 msgid "Domyślnie: user_id"
-msgstr ""
+msgstr "Default: user_id"
 
 #: admin/partials/settings.php:623
 msgid "Domyślnie: user_address"
-msgstr ""
+msgstr "Default: user_address"
 
 #: admin/partials/settings.php:627
 msgid "Domyślnie: user_zip"
-msgstr ""
+msgstr "Default: user_zip"
 
 #: admin/partials/settings.php:631
 msgid "Domyślnie: user_city"
-msgstr ""
+msgstr "Default: user_city"
 
 #: admin/partials/settings.php:644
 msgid "nie określone"
-msgstr ""
+msgstr "not set"
 
 #: admin/partials/settings.php:646
 msgid "Nie używaj miast"
-msgstr ""
+msgstr "Do not use cities"
 
 #: admin/partials/settings.php:647
 msgid "grupa Wszyscy"
-msgstr ""
+msgstr "Everyone group"
 
 #: admin/partials/settings.php:651
 msgid "wbudowane"
-msgstr ""
+msgstr "built-in"
 
 #: admin/partials/settings.php:653
 msgid "usermeta"
-msgstr ""
+msgstr "usermeta"
 
 #: admin/partials/settings.php:659
 msgid "To pole jest zawsze wymagane"
-msgstr ""
+msgstr "This field is always required"
 
 #: admin/partials/settings.php:659 admin/partials/settings.php:672
 msgid "zawsze wymagane"
-msgstr ""
+msgstr "always required"
 
 #: admin/partials/settings.php:662 admin/partials/settings.php:675
 msgid "zawsze"
-msgstr ""
+msgstr "always"
 
 #: admin/partials/settings.php:672
 msgid "To pole jest zawsze wymagane dla ankiet"
-msgstr ""
+msgstr "This field is always required for surveys"
 
 #: admin/partials/settings.php:690
 msgid "Szablon e-maila zapraszającego"
-msgstr ""
+msgstr "Invitation email template"
 
 #: admin/partials/settings.php:693
 msgid ""
 "Treść e-maila wysyłanego do uczestników przy starcie głosowania. Pola "
 "oznaczone {zmienną} są automatycznie zastępowane danymi głosowania."
-msgstr ""
+msgstr "Email content sent to participants when a poll starts. Placeholders {variable} are automatically replaced with poll data."
 
 #: admin/partials/settings.php:700
 msgid "Dostępne zmienne:"
-msgstr ""
+msgstr "Available variables:"
 
 #: admin/partials/settings.php:701
 msgid "tytuł głosowania"
-msgstr ""
+msgstr "poll title"
 
 #: admin/partials/settings.php:702
 msgid "skrót nazwy systemu (z WP Site Title)"
-msgstr ""
+msgstr "short name of the system (from WP Site Title)"
 
 #: admin/partials/settings.php:703
 msgid "adres e-mail nadawcy (z pola powyżej)"
-msgstr ""
+msgstr "sender email address (from field above)"
 
 #: admin/partials/settings.php:704
 msgid "pełny adres strony głosowania"
-msgstr ""
+msgstr "full voting page URL"
 
 #: admin/partials/settings.php:705
 msgid "data i godzina zakończenia głosowania"
-msgstr ""
+msgstr "poll end date and time"
 
 #: admin/partials/settings.php:706
 msgid "lista pytań z odpowiedziami (automatycznie formatowana)"
-msgstr ""
+msgstr "list of questions with answers (auto-formatted)"
 
 #: admin/partials/settings.php:712
 msgid "Temat"
-msgstr ""
+msgstr "Subject"
 
 #: admin/partials/settings.php:720
 msgid "Zaproszenie do głosowania: {poll_title}"
-msgstr ""
+msgstr "Invitation to vote: {poll_title}"
 
 #: admin/partials/settings.php:725
 msgid "Od (nazwa nadawcy)"
-msgstr ""
+msgstr "From (sender name)"
 
 #: admin/partials/settings.php:733
 msgid "{brand_short} ({from_email})"
-msgstr ""
+msgstr "{brand_short} ({from_email})"
 
 #: admin/partials/settings.php:735
 msgid ""
@@ -2871,28 +2873,28 @@ msgstr ""
 
 #: admin/partials/settings.php:741
 msgid "Treść"
-msgstr ""
+msgstr "Content"
 
 #: admin/partials/settings.php:750
 msgid ""
 "Treść wiadomości w formacie tekstowym. Używaj {zmiennych} z listy powyżej."
-msgstr ""
+msgstr "Message content in plain text. Use {placeholders} from the list above."
 
 #: admin/partials/settings.php:754
 msgid "Przywróć domyślną treść"
-msgstr ""
+msgstr "Restore default content"
 
 #: admin/partials/settings.php:763
 msgid "Przywrócić domyślną treść e-maila? Obecna treść zostanie nadpisana."
-msgstr ""
+msgstr "Restore the default email content? Current content will be overwritten."
 
 #: admin/partials/settings.php:777
 msgid "Zapisz konfigurację"
-msgstr ""
+msgstr "Save configuration"
 
 #: admin/partials/settings.php:782
 msgid "Jak to działa?"
-msgstr ""
+msgstr "How does it work?"
 
 #: admin/partials/settings.php:784
 msgid ""
@@ -2906,123 +2908,125 @@ msgstr ""
 
 #: admin/partials/settings.php:786
 msgid "Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users."
-msgstr ""
+msgstr "Built-in fields (e.g. user_email) are read from the wp_users table."
 
 #: admin/partials/settings.php:787
 msgid "Pozostałe pola są odczytywane z tabeli wp_usermeta."
-msgstr ""
+msgstr "Other fields are read from the wp_usermeta table."
 
 #: admin/partials/settings.php:788
 msgid ""
 "Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają "
 "nowych kluczy."
-msgstr ""
+msgstr "After changing the configuration, all new and existing polls use the new keys."
 
 #: admin/partials/settings.php:792 admin/partials/settings.php:872
 msgid "Wyczyść bazę danych wtyczki i przywróć wartości fabryczne"
-msgstr ""
+msgstr "Clear plugin database and restore default values"
 
 #: admin/partials/settings.php:803
 msgid "Oddane głosy"
-msgstr ""
+msgstr "Votes cast"
 
 #: admin/partials/settings.php:805
 msgid "Członkowie grup"
-msgstr ""
+msgstr "Group members"
 
 #: admin/partials/settings.php:807
 msgid "Odpowiedzi ankiet"
-msgstr ""
+msgstr "Survey responses"
 
 #: admin/partials/settings.php:808
 msgid "Kolejka e-mail"
-msgstr ""
+msgstr "Email queue"
 
 #: admin/partials/settings.php:825 admin/partials/uninstall.php:34
 msgid "Strefa zagrożenia — operacja nieodwracalna"
-msgstr ""
+msgstr "Danger zone — operation cannot be undone"
 
 #: admin/partials/settings.php:828
 msgid ""
 "Poniższa operacja usuwa wszystkie dane głosowań, ankiet, grup i "
 "koordynatorów oraz przywraca ustawienia konfiguracyjne do wartości "
 "fabrycznych. Struktura tabel zostaje zachowana. Wtyczka pozostaje aktywna."
-msgstr ""
+msgstr "This operation removes all poll, survey, group and coordinator data and resets configuration to defaults. Table structure is preserved. The plugin remains active."
 
 #: admin/partials/settings.php:830
 msgid "Co zostanie wyczyszczone:"
-msgstr ""
+msgstr "What will be cleared:"
 
 #: admin/partials/settings.php:834
 msgid "Dane"
-msgstr ""
+msgstr "Data"
 
 #: admin/partials/settings.php:835 admin/partials/uninstall.php:51
 msgid "Zawartość"
-msgstr ""
+msgstr "Content"
 
 #. translators: %d: row count
 #: admin/partials/settings.php:844 admin/partials/uninstall.php:62
 #, php-format
 msgid "%d rekord"
 msgid_plural "%d rekordów"
-msgstr[0] "%d record"
-msgstr[1] "%d records"
+msgstr[0] ""
+msgstr[1] ""
+
 #: admin/partials/settings.php:848
 msgid "Koordynatorzy (usermeta)"
-msgstr ""
+msgstr "Coordinators (usermeta)"
 
 #: admin/partials/settings.php:849
 #, php-format
 msgid "%d użytkownik"
 msgid_plural "%d użytkowników"
-msgstr[0] "%d user"
-msgstr[1] "%d users"
+msgstr[0] ""
+msgstr[1] ""
+
 #: admin/partials/settings.php:852
 msgid "Opcje konfiguracyjne wtyczki"
-msgstr ""
+msgstr "Plugin configuration options"
 
 #: admin/partials/settings.php:853
 msgid "Reset do domyślnych"
-msgstr ""
+msgstr "Reset to defaults"
 
 #: admin/partials/settings.php:863
 msgid ""
 "Rozumiem, że operacja jest nieodwracalna i wszystkie dane oraz ustawienia "
 "wtyczki zostaną trwale usunięte."
-msgstr ""
+msgstr "I understand that this operation cannot be undone and all plugin data and settings will be permanently deleted."
 
 #: admin/partials/settings.php:891
 msgid "Odinstaluj wtyczkę"
-msgstr ""
+msgstr "Uninstall plugin"
 
 #: admin/partials/survey-form.php:24
 msgid "30 dni"
-msgstr ""
+msgstr "30 days"
 
 #: admin/partials/survey-form.php:57
 msgid "Podgląd ankiety"
-msgstr ""
+msgstr "Preview survey"
 
 #: admin/partials/survey-form.php:58
 msgid "Edytuj ankietę"
-msgstr ""
+msgstr "Edit survey"
 
 #: admin/partials/survey-form.php:58
 msgid "Nowa ankieta"
-msgstr ""
+msgstr "New survey"
 
 #: admin/partials/survey-form.php:64 admin/partials/survey-responses.php:26
 msgid "Powrót do listy"
-msgstr ""
+msgstr "Back to list"
 
 #: admin/partials/survey-form.php:69 admin/partials/survey-list.php:16
 msgid "Utworzono kopię ankiety. Możesz ją teraz edytować."
-msgstr ""
+msgstr "Survey copy created. You can edit it now."
 
 #: admin/partials/survey-form.php:102
 msgid "Opisz cel ankiety (np. wybór kandydata na przewodniczącego ruchu)."
-msgstr ""
+msgstr "Describe the purpose of the survey (e.g. selecting a candidate for chair)."
 
 #: admin/partials/survey-form.php:112
 msgid ""
@@ -3032,15 +3036,15 @@ msgstr ""
 
 #: admin/partials/survey-form.php:116
 msgid "Czas trwania ankiety"
-msgstr ""
+msgstr "Survey duration"
 
 #: admin/partials/survey-form.php:125
 msgid "Od momentu startu ankiety."
-msgstr ""
+msgstr "From the moment the survey starts."
 
 #: admin/partials/survey-form.php:132
 msgid "Pola ankiety"
-msgstr ""
+msgstr "Survey fields"
 
 #: admin/partials/survey-form.php:138
 msgid ""
@@ -3051,114 +3055,114 @@ msgstr ""
 #: admin/partials/survey-form.php:140
 #, php-format
 msgid "Możesz dodać od 1 do %d pól."
-msgstr ""
+msgstr "You can add from 1 to %d fields."
 
 #: admin/partials/survey-form.php:164
 msgid "Dodaj pole"
-msgstr ""
+msgstr "Add field"
 
 #: admin/partials/survey-form.php:176
 msgid "Wystartuj ankietę"
-msgstr ""
+msgstr "Start survey"
 
 #: admin/partials/survey-list.php:11
 msgid "Dodaj nową"
-msgstr ""
+msgstr "Add new"
 
 #: admin/partials/survey-list.php:19
 msgid "Błąd podczas duplikowania ankiety."
-msgstr ""
+msgstr "Error while duplicating the survey."
 
 #: admin/partials/survey-list.php:22
 msgid "Ankieta została zakończona."
-msgstr ""
+msgstr "Survey has been ended."
 
 #: admin/partials/survey-list.php:25
 msgid "Ankieta została usunięta."
-msgstr ""
+msgstr "Survey has been deleted."
 
 #: admin/partials/survey-list.php:28
 msgid "Ankieta została utworzona."
-msgstr ""
+msgstr "Survey has been created."
 
 #: admin/partials/survey-list.php:31
 msgid "Ankieta została zaktualizowana."
-msgstr ""
+msgstr "Survey has been updated."
 
 #: admin/partials/survey-list.php:34
 msgid "Ankiety zostały zakończone."
-msgstr ""
+msgstr "Surveys have been ended."
 
 #: admin/partials/survey-list.php:46
 msgid "Szukaj ankiety"
-msgstr ""
+msgstr "Search survey"
 
 #: admin/partials/survey-responses.php:16
 #, php-format
 msgid "Odpowiedzi: %s"
-msgstr ""
+msgstr "Responses: %s"
 
 #: admin/partials/survey-responses.php:20
 msgid "Odpowiedzi — zakończone ankiety"
-msgstr ""
+msgstr "Responses — ended surveys"
 
 #: admin/partials/survey-responses.php:31
 msgid "Zgłoszenie oznaczono jako „Nie spam”."
-msgstr ""
+msgstr "Submission marked as \"Not spam\"."
 
 #: admin/partials/survey-responses.php:35
 msgid "Brak zamkniętych ankiet."
-msgstr ""
+msgstr "No ended surveys."
 
 #: admin/partials/survey-responses.php:53
 #, php-format
 msgid "%d odpowiedzi (gotowe)"
-msgstr ""
+msgstr "%d responses (ready)"
 
 #: admin/partials/survey-responses.php:65
 msgid "Brak gotowych odpowiedzi."
-msgstr ""
+msgstr "No ready responses."
 
 #: admin/partials/survey-responses.php:91
 msgid "Nie spam"
-msgstr ""
+msgstr "Not spam"
 
 #: admin/partials/survey-responses.php:94
 msgid "To nie spam"
-msgstr ""
+msgstr "Not spam"
 
 #: admin/partials/uninstall.php:39
 msgid ""
 "Poniższa operacja nieodwracalnie usunie wszystkie dane wtyczki z bazy danych "
 "i dezaktywuje wtyczkę. Pliki wtyczki pozostaną na serwerze — możesz je "
 "usunąć ręcznie ze strony Wtyczki."
-msgstr ""
+msgstr "This operation will permanently remove all plugin data from the database and deactivate the plugin. Plugin files will remain on the server — you can delete them manually from the Plugins page."
 
 #: admin/partials/uninstall.php:45
 msgid "Co zostanie usunięte:"
-msgstr ""
+msgstr "What will be removed:"
 
 #: admin/partials/uninstall.php:50
 msgid "Tabela / opcja"
-msgstr ""
+msgstr "Table / option"
 
 #: admin/partials/uninstall.php:71
 msgid "Opcje WordPress"
-msgstr ""
+msgstr "WordPress options"
 
 #: admin/partials/uninstall.php:82
 msgid ""
 "Rozumiem, że operacja jest nieodwracalna i wszystkie dane głosowań zostaną "
 "trwale usunięte."
-msgstr ""
+msgstr "I understand that this operation cannot be undone and all poll data will be permanently deleted."
 
 #: admin/partials/uninstall.php:93
 msgid "Usuń dane i dezaktywuj wtyczkę"
-msgstr ""
+msgstr "Remove data and deactivate plugin"
 
 #: admin/partials/uninstall.php:97
 msgid "Anuluj"
-msgstr ""
+msgstr "Cancel"
 
 #. translators: %s: login link
 #: blocks/evoting-poll/render.php:28
@@ -3192,7 +3196,7 @@ msgstr ""
 #: blocks/evoting-survey-form/render.php:40
 #: includes/class-evoting-survey-page.php:114
 msgid "Zapisywanie…"
-msgstr ""
+msgstr "Saving…"
 
 #: blocks/evoting-survey-form/render.php:41
 #: includes/class-evoting-survey-page.php:115

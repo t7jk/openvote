@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 class Openvote_Survey {
 
     private const ALLOWED_STATUSES = [ 'draft', 'open', 'closed' ];
-    private const ALLOWED_FIELD_TYPES = [ 'text_short', 'text_long', 'numeric', 'url', 'email' ];
+    private const ALLOWED_FIELD_TYPES = [ 'text_short', 'text_long', 'url' ];
     const MAX_QUESTIONS = 20;
 
     // ── Table helpers ───────────────────────────────────────────────────────
@@ -300,9 +300,10 @@ class Openvote_Survey {
                 ? $q['field_type']
                 : 'text_short';
             $max_chars  = max( 1, min( 2000, (int) ( $q['max_chars'] ?? 100 ) ) );
-            $profile_field = isset( $q['profile_field'] ) && in_array( $q['profile_field'], $allowed_profile, true )
-                ? $q['profile_field']
-                : '';
+            $raw_pf     = isset( $q['profile_field'] ) ? (string) $q['profile_field'] : '';
+            $profile_field = ( $raw_pf === '1' )
+                ? '1'
+                : ( in_array( $raw_pf, $allowed_profile, true ) ? $raw_pf : '' );
 
             $wpdb->insert(
                 $qt,

@@ -160,13 +160,13 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
             <div class="openvote-result-question">
                 <h3><?php echo esc_html( ( $i + 1 ) . '. ' . $q['question_text'] ); ?></h3>
 
-                <table class="widefat fixed" style="max-width:800px;">
+                <table class="openvote-results-questions-table widefat" style="max-width:800px;">
                     <thead>
                         <tr>
                             <th><?php esc_html_e( 'Odpowiedź', 'openvote' ); ?></th>
                             <th style="width:80px;"><?php esc_html_e( 'Głosy', 'openvote' ); ?></th>
                             <th style="width:80px;"><?php esc_html_e( 'Procent', 'openvote' ); ?></th>
-                            <th><?php esc_html_e( 'Wykres', 'openvote' ); ?></th>
+                            <th style="width:240px;"><?php esc_html_e( 'Wykres', 'openvote' ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -177,16 +177,20 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                         ?>
                             <tr>
                                 <td>
-                                    <?php echo esc_html( $answer['text'] ); ?>
                                     <?php if ( $answer['is_abstain'] ) : ?>
+                                        <?php echo esc_html( __( 'Wstrzymuję się', 'openvote' ) ); ?>
                                         <em style="color:#999;font-size:11px;"><?php esc_html_e( '(inc. brak głosu)', 'openvote' ); ?></em>
+                                    <?php else : ?>
+                                        <?php echo esc_html( $answer['text'] ); ?>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo esc_html( $answer['count'] ); ?></td>
                                 <td><?php echo esc_html( $answer['pct'] ); ?>%</td>
-                                <td>
-                                    <div class="openvote-bar <?php echo esc_attr( $bar_class ); ?>"
-                                         style="width:<?php echo esc_attr( $answer['pct'] ); ?>%"></div>
+                                <td class="openvote-result-bar-cell">
+                                    <div class="openvote-bar-track">
+                                        <div class="openvote-bar <?php echo esc_attr( $bar_class ); ?>"
+                                             style="width:<?php echo esc_attr( $answer['pct'] ); ?>%"></div>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -346,7 +350,7 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
     <hr id="invitations" style="margin:32px 0 20px;">
     <h2><?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></h2>
 
-    <?php if ( in_array( $poll->status, [ 'open', 'closed' ], true ) && current_user_can( 'manage_options' ) ) : ?>
+    <?php if ( 'open' === ( $poll->status ?? '' ) && current_user_can( 'manage_options' ) ) : ?>
     <p>
         <button type="button" class="button button-primary" id="openvote-send-invitations-btn2"
                 data-poll-id="<?php echo (int) $poll->id; ?>"

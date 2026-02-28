@@ -125,13 +125,32 @@ class Openvote_Surveys_Rest_Controller {
         }
 
         // Walidacja odpowiedzi.
-        $questions = Openvote_Survey::get_questions( $survey_id );
+        $questions   = Openvote_Survey::get_questions( $survey_id );
         $raw_answers = (array) $request->get_param( 'answers' ); // [question_id => text]
         $clean_answers = [];
 
         foreach ( $questions as $q ) {
             $qid  = (int) $q->id;
-            $text = isset( $raw_answers[ $qid ] ) ? sanitize_textarea_field( (string) $raw_answers[ $qid ] ) : '';
+            $text = isset( $raw_answers[ $qid ] ) ? trim( sanitize_textarea_field( (string) $raw_answers[ $qid ] ) ) : '';
+
+            if ( ( $q->field_type ?? '' ) === 'url' && $text !== '' ) {
+                $url = $text;
+                if ( strpos( $url, '://' ) === false ) {
+                    $url = 'https://' . $url;
+                }
+                if ( ! wp_http_validate_url( $url ) ) {
+                    return new WP_Error(
+                        'invalid_url',
+                        sprintf(
+                            /* translators: %s: question label */
+                            __( 'Pole „%s”: wprowadź poprawny adres URL (np. domena.com/ścieżka).', 'openvote' ),
+                            $q->body
+                        ),
+                        [ 'status' => 400 ]
+                    );
+                }
+                $text = $url;
+            }
 
             // Ogranicz do max_chars.
             if ( mb_strlen( $text ) > (int) $q->max_chars ) {

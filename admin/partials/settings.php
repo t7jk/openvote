@@ -57,7 +57,7 @@ function openvote_settings_select( string $logical, string $current, array $core
 }
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Konfiguracja', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Konfiguracja OpenVote', 'openvote' ); ?></h1>
 
     <?php if ( isset( $_GET['saved'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
@@ -67,6 +67,7 @@ function openvote_settings_select( string $logical, string $current, array $core
     <?php if ( isset( $_GET['page_created'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
             <p><?php esc_html_e( 'Strona głosowania została utworzona. Możesz ją edytować w Strony lub przejść pod skonfigurowany adres.', 'openvote' ); ?></p>
+            <p><?php esc_html_e( 'Jeśli po wejściu na adres strony widzisz „Not Found”: wejdź w Ustawienia → Bezpośrednie odnośniki, wybierz dowolną strukturę inną niż „Zwykły” i kliknij „Zapisz zmiany”.', 'openvote' ); ?></p>
         </div>
     <?php endif; ?>
     <?php if ( isset( $_GET['page_updated'] ) ) : ?>
@@ -93,8 +94,9 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
     <?php endif; ?>
 
-    <form method="post" action="" id="openvote-settings-form">
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-settings' ) ); ?>" id="openvote-settings-form">
         <?php wp_nonce_field( 'openvote_save_settings', 'openvote_settings_nonce' ); ?>
+        <?php wp_nonce_field( 'openvote_create_page', 'openvote_create_page_nonce' ); ?>
 
         <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Nazwa systemu', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
@@ -104,10 +106,14 @@ function openvote_settings_select( string $logical, string $current, array $core
             <tr>
                 <th scope="row"><label for="openvote_brand_short_name"><?php esc_html_e( 'Skrót nazwy', 'openvote' ); ?></label></th>
                 <td>
-                    <input type="text" name="openvote_brand_short_name" id="openvote_brand_short_name" value="<?php echo esc_attr( openvote_get_brand_short_name() ); ?>" class="regular-text" style="width:120px;" maxlength="6" placeholder="Open Vote" />
-                    <p class="description" style="margin-top:6px;"><?php esc_html_e( 'Do 6 znaków. Domyślnie: Open Vote.', 'openvote' ); ?></p>
+                    <input type="text" name="openvote_brand_short_name" id="openvote_brand_short_name" value="<?php echo esc_attr( openvote_get_brand_short_name() ); ?>" class="regular-text" style="width:120px;" maxlength="12" placeholder="OpenVote" />
+                    <p class="description" style="margin-top:6px;"><?php esc_html_e( 'Do 12 znaków. Domyślnie: OpenVote.', 'openvote' ); ?></p>
                 </td>
             </tr>
+        </table>
+
+        <div class="openvote-settings-email-section">
+        <table class="form-table openvote-settings-email-section__table" role="presentation">
             <tr>
                 <th scope="row"><label for="openvote_from_email"><?php esc_html_e( 'E-mail nadawcy', 'openvote' ); ?></label></th>
                 <td>
@@ -157,7 +163,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
 
         <?php /* ── SMTP ── */ ?>
-        <div id="openvote-smtp-fields" style="<?php echo $mail_method === 'smtp' ? '' : 'display:none;'; ?>margin-top:0;">
+        <div id="openvote-smtp-fields" class="openvote-settings-email-section__smtp" style="<?php echo $mail_method === 'smtp' ? '' : 'display:none;'; ?>margin-top:0;">
             <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja serwera SMTP', 'openvote' ); ?></h3>
             <table class="form-table" role="presentation" style="max-width:780px;">
                 <tr>
@@ -222,7 +228,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
 
         <?php /* ── SendGrid ── */ ?>
-        <div id="openvote-sendgrid-fields" style="<?php echo $mail_method === 'sendgrid' ? '' : 'display:none;'; ?>margin-top:0;">
+        <div id="openvote-sendgrid-fields" class="openvote-settings-email-section__sendgrid" style="<?php echo $mail_method === 'sendgrid' ? '' : 'display:none;'; ?>margin-top:0;">
             <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja SendGrid API', 'openvote' ); ?></h3>
             <table class="form-table" role="presentation" style="max-width:780px;">
                 <tr>
@@ -252,11 +258,11 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
 
         <?php /* ── Parametry wysyłki wsadowej (widoczne zawsze) ── */ ?>
-        <h3 style="margin:24px 0 8px;padding-left:2px;"><?php esc_html_e( 'Parametry wysyłki wsadowej', 'openvote' ); ?></h3>
-        <p class="description" style="max-width:680px;margin:0 0 8px;">
+        <h3 class="openvote-settings-email-section__batch-title"><?php esc_html_e( 'Parametry wysyłki wsadowej', 'openvote' ); ?></h3>
+        <p class="description openvote-settings-email-section__batch-desc">
             <?php esc_html_e( 'Kontrola tempa wysyłki e-maili przy dużych grupach odbiorców. Puste pola = wartości domyślne (20 e-maili / 3 s dla WP/SMTP; 100 e-maili / 2 s dla SendGrid).', 'openvote' ); ?>
         </p>
-        <table class="form-table" role="presentation" style="max-width:780px;">
+        <table class="form-table openvote-settings-email-section__table" role="presentation">
             <tr>
                 <th scope="row"><label for="openvote_email_batch_size"><?php esc_html_e( 'Liczba e-maili na partię', 'openvote' ); ?></label></th>
                 <td>
@@ -276,6 +282,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
         </table>
+        </div>
 
         <script>
         (function(){
@@ -356,13 +363,14 @@ function openvote_settings_select( string $logical, string $current, array $core
         })();
         </script>
 
-        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony głosowania', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 12px;">
-            <?php esc_html_e( 'Adres ma postać: adres instalacji + ? + parametr (np. glosuj). Użytkownicy wchodzą pod link pokazany poniżej.', 'openvote' ); ?>
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony głosowania', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Adres ma postać: adres instalacji + slug w ścieżce (np. /glosuj/). Użytkownicy wchodzą pod link pokazany poniżej.', 'openvote' ); ?>
         </p>
-        <table class="form-table" role="presentation" style="max-width:780px;">
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
             <tr>
-                <th scope="row"><label for="openvote_vote_page_slug"><?php esc_html_e( 'Nazwa parametru', 'openvote' ); ?></label></th>
+                <th scope="row"><label for="openvote_vote_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
                 <td>
                     <input type="text" name="openvote_vote_page_slug" id="openvote_vote_page_slug" value="<?php echo esc_attr( openvote_get_vote_page_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="glosuj" />
                     <?php
@@ -386,13 +394,30 @@ function openvote_settings_select( string $logical, string $current, array $core
                         </a>
                         <?php endif; ?>
                     </p>
+                    <?php if ( ! $wp_vote_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_create_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Utwórz stronę głosowania', 'openvote' ); ?>
+                        </button>
+                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Stworzy stronę WordPress z blokiem zakładek (Trwające / Zakończone głosowania).', 'openvote' ); ?></span>
+                    </p>
+                    <?php elseif ( $wp_vote_page && ! openvote_vote_page_has_tabs_block() ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_update_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Zaktualizuj stronę głosowania (dodaj blok)', 'openvote' ); ?>
+                        </button>
+                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Zastąpi treść strony blokiem zakładek.', 'openvote' ); ?></span>
+                    </p>
+                    <?php endif; ?>
                 </td>
             </tr>
         </table>
+        </div>
 
         <!-- ── URL strony ankiet ──────────────────────────────────────────── -->
-        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony ankiet', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony ankiet', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
             <?php esc_html_e( 'Adres publicznej strony z ankietami. Najlepiej stwórz stronę WordPress i wstaw blok "Ankiety (Open Vote)", aby korzystać z edytora Gutenberg.', 'openvote' ); ?>
         </p>
         <?php
@@ -400,9 +425,11 @@ function openvote_settings_select( string $logical, string $current, array $core
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została utworzona.', 'openvote' ); ?></p></div>
         <?php elseif ( isset( $_GET['survey_page_updated'] ) ) : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została zaktualizowana.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['survey_page_update_error'] ) ) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony ankiet. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Ankiety (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
         <?php endif; ?>
 
-        <table class="form-table" role="presentation" style="max-width:780px;">
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
             <tr>
                 <th scope="row"><label for="openvote_survey_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
                 <td>
@@ -430,13 +457,13 @@ function openvote_settings_select( string $logical, string $current, array $core
                     </p>
                     <?php if ( ! $surv_page ) : ?>
                     <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_create_survey_page" value="1" class="button">
+                        <button type="submit" name="openvote_create_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
                             <?php esc_html_e( 'Utwórz stronę ankiet', 'openvote' ); ?>
                         </button>
                     </p>
-                    <?php elseif ( class_exists( 'Openvote_Survey_Page' ) && ! Openvote_Survey_Page::page_has_survey_block() ) : ?>
+                    <?php elseif ( $surv_page && class_exists( 'Openvote_Survey_Page' ) && ! Openvote_Survey_Page::page_has_survey_block() ) : ?>
                     <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_update_survey_page" value="1" class="button button-primary">
+                        <button type="submit" name="openvote_update_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
                             <?php esc_html_e( 'Zaktualizuj stronę ankiet (dodaj blok)', 'openvote' ); ?>
                         </button>
                     </p>
@@ -444,10 +471,12 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
         </table>
+        </div>
 
         <!-- ── URL strony zgłoszeń ─────────────────────────────────────────── -->
-        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony zgłoszeń', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony zgłoszeń', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
             <?php esc_html_e( 'Adres publicznej strony ze zgłoszeniami oznaczonymi jako „Nie spam”. Stwórz stronę i wstaw blok „Zgłoszenia (Open Vote)” lub użyj przycisków poniżej.', 'openvote' ); ?>
         </p>
         <?php
@@ -455,9 +484,11 @@ function openvote_settings_select( string $logical, string $current, array $core
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została utworzona.', 'openvote' ); ?></p></div>
         <?php elseif ( isset( $_GET['submissions_page_updated'] ) ) : ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została zaktualizowana.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['submissions_page_update_error'] ) ) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony zgłoszeń. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Zgłoszenia (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
         <?php endif; ?>
 
-        <table class="form-table" role="presentation" style="max-width:780px;">
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
             <tr>
                 <th scope="row"><label for="openvote_submissions_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
                 <td>
@@ -486,13 +517,13 @@ function openvote_settings_select( string $logical, string $current, array $core
                     </p>
                     <?php if ( ! $subm_page ) : ?>
                     <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_create_submissions_page" value="1" class="button">
+                        <button type="submit" name="openvote_create_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
                             <?php esc_html_e( 'Utwórz stronę zgłoszeń', 'openvote' ); ?>
                         </button>
                     </p>
-                    <?php elseif ( ! $has_block ) : ?>
+                    <?php elseif ( $subm_page && ! $has_block ) : ?>
                     <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_update_submissions_page" value="1" class="button button-primary">
+                        <button type="submit" name="openvote_update_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
                             <?php esc_html_e( 'Zaktualizuj stronę zgłoszeń (dodaj blok)', 'openvote' ); ?>
                         </button>
                     </p>
@@ -500,9 +531,11 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
         </table>
+        </div>
 
-        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+        <div class="openvote-settings-url-section openvote-settings-time-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
             <?php esc_html_e( 'Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania liczników.', 'openvote' ); ?>
         </p>
         <?php
@@ -510,7 +543,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         $server_time    = current_time( 'Y-m-d H:i:s' );
         $voting_time    = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
         ?>
-        <table class="form-table" role="presentation" style="max-width:780px;">
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
             <tr>
                 <th scope="row"><label for="openvote_time_offset_hours"><?php esc_html_e( 'Przesunięcie czasu', 'openvote' ); ?></label></th>
                 <td>
@@ -538,6 +571,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
         </table>
+        </div>
 
         <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
@@ -778,6 +812,26 @@ function openvote_settings_select( string $logical, string $current, array $core
         </p>
     </form>
 
+    <script>
+    ( function () {
+        var mainForm = document.getElementById( 'openvote-settings-form' );
+        if ( mainForm ) {
+            mainForm.addEventListener( 'submit', function ( e ) {
+                var btn = e.submitter;
+                if ( btn && btn.getAttribute( 'data-loading' ) ) {
+                    // Wyłącz przycisk dopiero w następnym ticku — inaczej przeglądarka
+                    // nie dołącza name/value wyłączonego przycisku do POST (np. openvote_create_vote_page).
+                    var loadingText = btn.getAttribute( 'data-loading' );
+                    setTimeout( function () {
+                        btn.disabled = true;
+                        btn.textContent = loadingText;
+                    }, 0 );
+                }
+            } );
+        }
+    } )();
+    </script>
+
     <hr>
     <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'openvote' ); ?></h2>
     <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
@@ -801,8 +855,8 @@ function openvote_settings_select( string $logical, string $current, array $core
     $openvote_clean_tables = [
         $wpdb->prefix . 'openvote_polls'            => __( 'Głosowania', 'openvote' ),
         $wpdb->prefix . 'openvote_votes'            => __( 'Oddane głosy', 'openvote' ),
-        $wpdb->prefix . 'openvote_groups'           => __( 'Grupy', 'openvote' ),
-        $wpdb->prefix . 'openvote_group_members'    => __( 'Członkowie grup', 'openvote' ),
+        $wpdb->prefix . 'openvote_groups'           => __( 'Sejmiki', 'openvote' ),
+        $wpdb->prefix . 'openvote_group_members'    => __( 'Członkowie sejmików', 'openvote' ),
         $wpdb->prefix . 'openvote_surveys'          => __( 'Ankiety', 'openvote' ),
         $wpdb->prefix . 'openvote_survey_responses' => __( 'Odpowiedzi ankiet', 'openvote' ),
         $wpdb->prefix . 'openvote_email_queue'      => __( 'Kolejka e-mail', 'openvote' ),
@@ -891,17 +945,4 @@ function openvote_settings_select( string $logical, string $current, array $core
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'openvote' ); ?></h2>
     <?php include OPENVOTE_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
 
-    <script>
-    ( function () {
-        var form = document.getElementById( 'openvote-settings-form' );
-        if ( form ) {
-            form.addEventListener( 'submit', function () {
-                var btns = form.querySelectorAll( 'button[type="submit"], input[type="submit"]' );
-                for ( var i = 0; i < btns.length; i++ ) {
-                    btns[ i ].disabled = true;
-                }
-            } );
-        }
-    } )();
-    </script>
-</div>
+    </div>

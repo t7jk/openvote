@@ -69,11 +69,23 @@ Yes. Group sync, invitation sending, and result lists are processed in batches (
 
 = Which languages are supported? =
 
-Polish (when WordPress is set to Polish) and English (for any other locale). All interface strings are translatable (domain: evoting).
+Polish (when WordPress is set to Polish) and English (for any other locale). All interface strings are translatable (domain: openvote).
 
 = Is voting really anonymous when I choose "anonymous"? =
 
 Yes. The server forces anonymous mode: even if the client sent a different preference, the vote is stored and displayed as anonymous. No list of voters is shown for anonymous polls.
+
+== Troubleshooting ==
+
+= "chmod(): Operation not permitted" or "Some files could not be copied" when installing/updating =
+
+These messages come from the server, not the plugin. WordPress tries to set file permissions after unpacking; if the web server user cannot run chmod (e.g. in Docker, some hostings, or when files are owned by root), the installer reports failures.
+
+* **Option 1 – Fix ownership:** On the server, make the web server user (e.g. www-data or apache) the owner of the WordPress directory, e.g. `sudo chown -R www-data:www-data /var/www/html/wordpress`. Then install or update the plugin again.
+* **Option 2 – Install manually:** Download the plugin zip, extract it on your computer, then upload the `openvote` folder to `wp-content/plugins/` via SFTP/FTP or file manager, so that the server does not run chmod.
+* **Option 3 – One-time permissions script:** If you have a script that sets correct ownership (e.g. the plugin’s `fix-wordpress-permissions.sh`), run it as root once (e.g. `sudo ./fix-wordpress-permissions.sh /var/www/html/wordpress`), then retry the plugin update in the admin.
+
+The plugin works normally once the files are present; the warnings only affect the installer’s ability to set permissions automatically.
 
 == Screenshots ==
 
@@ -84,6 +96,18 @@ Yes. The server forces anonymous mode: even if the client sent a different prefe
 5. Settings: email method, SMTP/SendGrid, vote page URL, field mapping
 6. Public vote page: active and ended polls, vote form
 7. Results: turnout, per-question stats, voter and non-voter lists (paginated)
+
+== Troubleshooting ==
+
+= "Cannot modify header information - headers already sent" =
+
+If you see this warning and the message says output started at a theme file (e.g. `themes/blocksy/inc/dynamic-css.php`), the theme is sending output before WordPress sends HTTP headers (e.g. before a redirect after saving).
+
+* **Quick fix (site-wide):** In `wp-config.php`, add at the very top right after `<?php`:  
+  `ob_start();`  
+  This buffers early output so headers can still be sent. Remove it after updating the theme or changing the option below.
+* **Blocksy theme:** In WordPress Admin → Appearance → Customize → Performance (or Blocksy options), set "Dynamic CSS" to **File** instead of **Inline**, then save. Clear any cache and regenerate assets (change one Customizer option and save again).
+* **General:** Update the theme and disable any plugin that minifies or combines CSS; ensure no PHP notices are shown (set `display_errors` off in production).
 
 == Changelog ==
 

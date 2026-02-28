@@ -56,7 +56,7 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                         </p>
                         <ul class="openvote-poll__answers-list">
                             <?php foreach ( $question->answers as $answer ) : ?>
-                                <li><?php echo esc_html( $answer->body ); ?></li>
+                                <li><?php echo ! empty( $answer->is_abstain ) ? esc_html( __( 'Wstrzymało się', 'openvote' ) ) : esc_html( $answer->body ); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -79,7 +79,7 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                                        name="question_<?php echo esc_attr( $question->id ); ?>"
                                        value="<?php echo esc_attr( $answer->id ); ?>"
                                        required>
-                                <?php echo esc_html( $answer->body ); ?>
+                                <?php echo ! empty( $answer->is_abstain ) ? esc_html( __( 'Wstrzymało się', 'openvote' ) ) : esc_html( $answer->body ); ?>
                             </label>
                         <?php endforeach; ?>
                     </fieldset>

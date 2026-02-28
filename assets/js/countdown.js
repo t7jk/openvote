@@ -1,15 +1,15 @@
 /**
  * E-Voting — Countdown Timer
- * Reads window.evotingPublic.i18n for translated time-unit labels.
+ * Reads window.openvotePublic.i18n for translated time-unit labels.
  */
 (function () {
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
-        var els = document.querySelectorAll('.evoting-countdown[data-end]');
+        var els = document.querySelectorAll('.openvote-countdown[data-end]');
         if (!els.length) return;
 
-        var i18n = (window.evotingPublic && window.evotingPublic.i18n) || {};
+        var i18n = (window.openvotePublic && window.openvotePublic.i18n) || {};
 
         function update() {
             els.forEach(function (el) {

@@ -23,7 +23,7 @@ $questions_cache = [];
 // z wyjątkiem pól oznaczonych w konfiguracji jako wrażliwe (E-mail, Miasto, Telefon, PESEL, Dowód, Ulica, Kod pocztowy, Miejscowość).
 ?>
 <div class="openvote-survey-responses-block">
-    <h2 class="openvote-survey-responses-block__title"><?php esc_html_e( 'Zgłoszenia ankiet', 'openvote' ); ?></h2>
+    <h2 class="openvote-survey-responses-block__title"><?php esc_html_e( 'Zgłoszenia (zatwierdzone)', 'openvote' ); ?></h2>
     <?php if ( empty( $responses ) ) : ?>
         <p class="openvote-survey-responses-block__empty"><?php esc_html_e( 'Brak zgłoszeń oznaczonych jako „Nie spam”.', 'openvote' ); ?></p>
     <?php else : ?>
@@ -42,12 +42,22 @@ $questions_cache = [];
                     <dl class="openvote-survey-responses-block__answers">
                         <?php foreach ( $questions as $q ) :
                             $answer = $resp->answers[ (int) $q->id ] ?? '';
-                            $profile_field = isset( $q->profile_field ) ? trim( (string) $q->profile_field ) : '';
-                            $is_sensitive = $profile_field !== '' && Openvote_Field_Map::is_sensitive_for_public( $profile_field );
+                            $is_sensitive = trim( (string) ( $q->profile_field ?? '' ) ) !== '';
+                            $is_url = ( $q->field_type ?? '' ) === 'url';
+                            if ( $is_sensitive ) {
+                                $cell = '—';
+                            } elseif ( $answer !== '' && $is_url ) {
+                                $href = ( strpos( $answer, '://' ) !== false ) ? $answer : 'https://' . $answer;
+                                $cell = '<a href="' . esc_url( $href ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $answer ) . '</a>';
+                            } elseif ( $answer !== '' ) {
+                                $cell = esc_html( $answer );
+                            } else {
+                                $cell = '—';
+                            }
                             ?>
                             <div class="openvote-survey-responses-block__row">
                                 <dt class="openvote-survey-responses-block__q"><?php echo esc_html( $q->body ); ?></dt>
-                                <dd class="openvote-survey-responses-block__a"><?php echo $is_sensitive ? '—' : ( $answer !== '' ? esc_html( $answer ) : '—' ); ?></dd>
+                                <dd class="openvote-survey-responses-block__a"><?php echo $cell; ?></dd>
                             </div>
                         <?php endforeach; ?>
                     </dl>

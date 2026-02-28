@@ -107,23 +107,18 @@ class Openvote_Admin_Surveys {
             }
 
             $field_type = sanitize_key( wp_unslash( $q['field_type'] ?? 'text_short' ) );
-            if ( ! in_array( $field_type, [ 'text_short', 'text_long', 'numeric', 'url', 'email' ], true ) ) {
+            if ( ! in_array( $field_type, [ 'text_short', 'text_long', 'url' ], true ) ) {
                 $field_type = 'text_short';
             }
 
             $max_chars = match ( $field_type ) {
                 'text_short' => 100,
                 'text_long'  => 2000,
-                'numeric'    => 30,
                 'url'        => 255,
-                'email'      => 255,
                 default      => 100,
             };
 
-            $allowed_profile = array_keys( Openvote_Field_Map::DEFAULTS );
-            $profile_field   = isset( $q['profile_field'] ) && in_array( $q['profile_field'], $allowed_profile, true )
-                ? $q['profile_field']
-                : '';
+            $profile_field = ! empty( $q['hide_on_public'] ) ? '1' : '';
 
             $questions[] = [
                 'body'          => $body,

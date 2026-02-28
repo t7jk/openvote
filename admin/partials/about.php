@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'O tym', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'O OpenVote', 'openvote' ); ?></h1>
     <hr class="wp-header-end">
 
     <div style="max-width:580px;background:#fff;border:1px solid #e2e4e7;border-radius:6px;padding:36px 40px;margin-top:20px;">

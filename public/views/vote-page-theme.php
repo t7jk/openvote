@@ -177,7 +177,7 @@ get_header();
                     ?>
                     <div class="openvote-closed-poll-block__answer">
                         <div class="openvote-closed-poll-block__answer-label">
-                            <span><?php echo esc_html( $a['text'] ); ?></span>
+                            <span><?php echo $a['is_abstain'] ? esc_html( __( 'Wstrzymało się', 'openvote' ) ) : esc_html( $a['text'] ); ?></span>
                             <span class="openvote-closed-poll-block__answer-stat">
                                 <strong><?php echo esc_html( $a['pct'] ); ?>%</strong>
                                 <small>(<?php echo (int) $a['count']; ?>)</small>

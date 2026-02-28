@@ -198,10 +198,9 @@
                     : (ai === 0 ? 'openvote-results__bar--za' : 'openvote-results__bar--przeciw');
 
                 var pct   = parseFloat(answer.pct) || 0;
-                var label = escapeHtml(answer.text);
-                if (answer.is_abstain) {
-                    label += ' <em>(' + escapeHtml(cfg.i18n.inclAbsent) + ')</em>';
-                }
+                var label = answer.is_abstain
+                    ? escapeHtml(cfg.i18n.abstainedLabel || 'Wstrzymało się')
+                    : escapeHtml(answer.text);
 
                 html += '<div class="openvote-results__bar-container">';
                 html += '<div class="openvote-results__bar-label">';

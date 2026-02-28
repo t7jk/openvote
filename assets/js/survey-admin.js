@@ -5,7 +5,7 @@
     const MAX_FIELDS = openvoteSurveyAdmin.maxFields || 20;
 
     const container  = document.getElementById( 'openvote-survey-fields' );
-    const addBtn     = document.getElementById( 'evoting-add-survey-field' );
+    const addBtn     = document.getElementById( 'openvote-add-survey-field' );
     const countLabel = document.getElementById( 'openvote-survey-field-count' );
     const startBtn   = document.getElementById( 'openvote-survey-start-btn' );
     const form       = document.getElementById( 'openvote-survey-form' );
@@ -53,51 +53,41 @@
         const types = [
             { v: 'text_short', l: openvoteSurveyAdmin.i18n.text_short },
             { v: 'text_long',  l: openvoteSurveyAdmin.i18n.text_long  },
-            { v: 'numeric',    l: openvoteSurveyAdmin.i18n.numeric    },
             { v: 'url',        l: openvoteSurveyAdmin.i18n.url        },
-            { v: 'email',      l: openvoteSurveyAdmin.i18n.email      },
         ];
 
         const opts = types.map( function ( t ) {
             return '<option value="' + t.v + '">' + t.l + '</option>';
         } ).join( '' );
 
-        const profileOpts  = openvoteSurveyAdmin.profileFieldOpts || {};
-        const profileLabel = openvoteSurveyAdmin.i18n.profileLabel || 'Pole profilu';
+        const sensitiveLabel = openvoteSurveyAdmin.i18n.sensitiveCheckboxLabel || 'Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie.';
 
         wrap.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:12px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;">
                 <span style="margin-top:8px;font-weight:600;color:#666;min-width:24px;">${ index + 1 }.</span>
                 <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                    <select name="survey_questions[${ index }][field_type]"
+                            class="openvote-survey-field-type">
+                        ${ opts }
+                    </select>
                     <input type="text"
                            name="survey_questions[${ index }][body]"
                            placeholder="${ openvoteSurveyAdmin.i18n.placeholder }"
                            maxlength="512"
                            style="width:100%;"
                            class="openvote-survey-field-body">
-                    <select name="survey_questions[${ index }][field_type]"
-                            class="openvote-survey-field-type">
-                        ${ opts }
-                    </select>
-                    <label style="font-size:11px;color:#666;">${ profileLabel }</label>
-                    <select name="survey_questions[${ index }][profile_field]"
-                            class="openvote-survey-field-profile">
-                    </select>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;">
+                        <input type="checkbox"
+                               name="survey_questions[${ index }][hide_on_public]"
+                               value="1">
+                        ${ sensitiveLabel }
+                    </label>
                 </div>
                 <button type="button"
-                        class="button evoting-remove-survey-field"
+                        class="button openvote-remove-survey-field"
                         style="margin-top:4px;"
                         title="${ openvoteSurveyAdmin.i18n.remove }">✕</button>
             </div>`;
-
-        // Wypełnij opcje profilu przez DOM (nie innerHTML) — zapobiega XSS jeśli etykiety zawierają znaki HTML.
-        const profileSelect = wrap.querySelector( '.openvote-survey-field-profile' );
-        Object.keys( profileOpts ).forEach( function ( k ) {
-            const opt = document.createElement( 'option' );
-            opt.value = k;
-            opt.textContent = profileOpts[ k ];
-            profileSelect.appendChild( opt );
-        } );
 
         return wrap;
     }
@@ -105,7 +95,7 @@
     // ── Delegacja zdarzeń na kontenerze ─────────────────────────────────────
 
     container.addEventListener( 'click', function ( e ) {
-        if ( e.target.classList.contains( 'evoting-remove-survey-field' ) ) {
+        if ( e.target.classList.contains( 'openvote-remove-survey-field' ) ) {
             if ( getFieldCount() <= 1 ) {
                 alert( openvoteSurveyAdmin.i18n.minOne );
                 return;

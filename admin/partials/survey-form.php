@@ -46,12 +46,8 @@ if ( $is_edit && ! empty( $survey->date_start ) && ! empty( $survey->date_end ) 
 $field_type_labels = [
     'text_short' => __( 'Krótki tekst do 100 znaków', 'openvote' ),
     'text_long'  => __( 'Długi tekst do 2000 znaków', 'openvote' ),
-    'numeric'    => __( 'Numer do 30 cyfr', 'openvote' ),
     'url'        => __( 'Adres URL', 'openvote' ),
-    'email'      => __( 'E-mail', 'openvote' ),
 ];
-
-$profile_field_options = [ '' => __( '— brak (pole dowolne)', 'openvote' ) ] + Openvote_Field_Map::LABELS;
 
 $page_title = $is_read_only
     ? __( 'Podgląd ankiety', 'openvote' )
@@ -71,6 +67,7 @@ $page_title = $is_read_only
 
     <form method="post" action="" id="openvote-survey-form">
         <?php wp_nonce_field( 'openvote_save_survey', 'openvote_survey_nonce' ); ?>
+        <input type="hidden" name="openvote_submit_action" id="openvote-survey-submit-action" value="draft">
         <?php if ( $is_edit ) : ?>
             <input type="hidden" name="survey_id" value="<?php echo esc_attr( $survey->id ); ?>">
         <?php endif; ?>
@@ -146,12 +143,12 @@ $page_title = $is_read_only
             <?php if ( empty( $questions ) && ! $is_read_only ) : ?>
                 <!-- Pusty formularz — jeden placeholder -->
                 <div class="openvote-survey-field-row" data-index="0">
-                    <?php openvote_render_survey_field_row( 0, null, $field_type_labels, $profile_field_options, $is_read_only ); ?>
+                    <?php openvote_render_survey_field_row( 0, null, $field_type_labels, $is_read_only ); ?>
                 </div>
             <?php else : ?>
                 <?php foreach ( $questions as $i => $q ) : ?>
                     <div class="openvote-survey-field-row" data-index="<?php echo esc_attr( $i ); ?>">
-                        <?php openvote_render_survey_field_row( $i, $q, $field_type_labels, $profile_field_options, $is_read_only ); ?>
+                        <?php openvote_render_survey_field_row( $i, $q, $field_type_labels, $is_read_only ); ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -167,13 +164,14 @@ $page_title = $is_read_only
 
         <!-- ── Przyciski zapisu ──────────────────────────────────── -->
         <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
-            <button type="submit" name="openvote_submit_action" value="draft" class="button button-secondary button-large">
-                <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
-            </button>
-            <button type="submit" name="openvote_submit_action" value="start_now" class="button button-primary button-large"
+            <button type="submit" class="button button-primary button-large"
                     style="background:#b32d2e;border-color:#a02020;"
-                    id="openvote-survey-start-btn">
+                    onmousedown="var h=document.getElementById('openvote-survey-submit-action');if(h){h.value='start_now';}">
                 <?php esc_html_e( 'Wystartuj ankietę', 'openvote' ); ?>
+            </button>
+            <button type="submit" class="button button-secondary button-large"
+                    onmousedown="var h=document.getElementById('openvote-survey-submit-action');if(h){h.value='draft';}">
+                <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
             </button>
         </div>
         <?php endif; ?>
@@ -184,28 +182,20 @@ $page_title = $is_read_only
 /**
  * Wyrenderuj jeden wiersz pola ankiety.
  *
- * @param array $profile_options [ '' => '— brak', 'first_name' => 'Imię', ... ]
+ * @param array $labels Etykiety typów pól (field_type).
  */
-function openvote_render_survey_field_row( int $i, ?object $q, array $labels, array $profile_options, bool $read_only ): void {
+function openvote_render_survey_field_row( int $i, ?object $q, array $labels, bool $read_only ): void {
     $body          = $q ? esc_attr( $q->body ) : '';
     $field_type    = $q ? esc_attr( $q->field_type ) : 'text_short';
     $max_chars     = $q ? (int) $q->max_chars : 100;
     $profile_field = $q && isset( $q->profile_field ) ? (string) $q->profile_field : '';
+    $hide_on_public_checked = ( $profile_field !== '' );
     $disabled      = $read_only ? 'disabled' : '';
     ?>
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:12px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;">
         <span style="margin-top:8px;font-weight:600;color:#666;min-width:24px;"><?php echo esc_html( $i + 1 ); ?>.</span>
 
         <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-            <input type="text"
-                   name="survey_questions[<?php echo esc_attr( $i ); ?>][body]"
-                   value="<?php echo $body; ?>"
-                   placeholder="<?php esc_attr_e( 'Etykieta / tytuł pola', 'openvote' ); ?>"
-                   maxlength="512"
-                   style="width:100%;"
-                   class="openvote-survey-field-body"
-                   <?php echo $disabled; ?>>
-
             <select name="survey_questions[<?php echo esc_attr( $i ); ?>][field_type]"
                     class="openvote-survey-field-type"
                     <?php echo $disabled; ?>>
@@ -216,18 +206,23 @@ function openvote_render_survey_field_row( int $i, ?object $q, array $labels, ar
                     </option>
                 <?php endforeach; ?>
             </select>
+            <input type="text"
+                   name="survey_questions[<?php echo esc_attr( $i ); ?>][body]"
+                   value="<?php echo $body; ?>"
+                   placeholder="<?php esc_attr_e( 'Pytanie', 'openvote' ); ?>"
+                   maxlength="512"
+                   style="width:100%;"
+                   class="openvote-survey-field-body"
+                   <?php echo $disabled; ?>>
 
-            <label style="font-size:11px;color:#666;"><?php esc_html_e( 'Pole profilu (na stronie /zgłoszenia/ dane wrażliwe są ukrywane)', 'openvote' ); ?></label>
-            <select name="survey_questions[<?php echo esc_attr( $i ); ?>][profile_field]"
-                    class="openvote-survey-field-profile"
-                    <?php echo $disabled; ?>>
-                <?php foreach ( $profile_options as $key => $label ) : ?>
-                    <option value="<?php echo esc_attr( $key ); ?>"
-                            <?php selected( $profile_field, $key ); ?>>
-                        <?php echo esc_html( $label ); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;">
+                <input type="checkbox"
+                       name="survey_questions[<?php echo esc_attr( $i ); ?>][hide_on_public]"
+                       value="1"
+                       <?php checked( $hide_on_public_checked ); ?>
+                       <?php echo $disabled; ?>>
+                <?php esc_html_e( 'Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie.', 'openvote' ); ?>
+            </label>
         </div>
 
         <?php if ( ! $read_only ) : ?>

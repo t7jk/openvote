@@ -3,14 +3,33 @@ defined( 'ABSPATH' ) || exit;
 
 class Openvote_Admin_Settings {
 
-    private const CAP   = 'manage_options';
-    private const NONCE = 'openvote_save_settings';
+    private const CAP            = 'manage_options';
+    private const NONCE         = 'openvote_save_settings';
+    private const CREATE_NONCE  = 'openvote_create_page';
 
     public function handle_form_submission(): void {
         // Route do czyszczenia bazy — osobny nonce, osobna akcja.
         if ( isset( $_POST['openvote_clean_nonce'] ) ) {
             $this->handle_clean_database();
             return;
+        }
+
+        // Osobna ścieżka: utworzenie strony (przycisk „Utwórz stronę…”). Akceptujemy nonce create LUB settings (po rename evoting→openvote oba mogą być w formularzu).
+        $has_create_button = ! empty( $_POST['openvote_create_vote_page'] )
+            || ! empty( $_POST['openvote_create_survey_page'] )
+            || ! empty( $_POST['openvote_create_submissions_page'] );
+        if ( $has_create_button && current_user_can( self::CAP ) ) {
+            $create_nonce_ok = isset( $_POST['openvote_create_page_nonce'] )
+                && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['openvote_create_page_nonce'] ) ), self::CREATE_NONCE );
+            $settings_nonce_ok = isset( $_POST['openvote_settings_nonce'] )
+                && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['openvote_settings_nonce'] ) ), self::NONCE );
+            if ( $create_nonce_ok || $settings_nonce_ok ) {
+                $redirect = $this->handle_create_page_only();
+                if ( $redirect ) {
+                    wp_safe_redirect( $redirect );
+                    exit;
+                }
+            }
         }
 
         if ( ! isset( $_POST['openvote_settings_nonce'] ) ) {
@@ -97,9 +116,9 @@ class Openvote_Admin_Settings {
         update_option( 'openvote_email_batch_delay', $batch_delay, false );
 
         $short_name = isset( $_POST['openvote_brand_short_name'] ) ? sanitize_text_field( wp_unslash( $_POST['openvote_brand_short_name'] ) ) : '';
-        $short_name = mb_substr( trim( $short_name ), 0, 6 );
+        $short_name = mb_substr( trim( $short_name ), 0, 12 );
         if ( $short_name === '' ) {
-            $short_name = 'Open Vote';
+            $short_name = 'OpenVote';
         }
         update_option( 'openvote_brand_short_name', $short_name, false );
 
@@ -156,6 +175,8 @@ class Openvote_Admin_Settings {
             $updated = self::update_survey_page_block( $survey_slug );
             if ( $updated ) {
                 $query_args['survey_page_updated'] = '1';
+            } else {
+                $query_args['survey_page_update_error'] = '1';
             }
         }
 
@@ -177,6 +198,8 @@ class Openvote_Admin_Settings {
             $updated = self::update_submissions_page_block( $submissions_slug );
             if ( $updated ) {
                 $query_args['submissions_page_updated'] = '1';
+            } else {
+                $query_args['submissions_page_update_error'] = '1';
             }
         }
 
@@ -184,6 +207,59 @@ class Openvote_Admin_Settings {
         exit;
     }
 
+    /**
+     * Obsługa żądania „tylko utwórz stronę” (osobny nonce, minimalny POST).
+     * Zwraca URL przekierowania lub null, gdy żaden przycisk tworzenia nie został wysłany.
+     */
+    private function handle_create_page_only(): ?string {
+        $base = add_query_arg( [ 'page' => 'openvote-settings', 'saved' => '1' ], admin_url( 'admin.php' ) );
+
+        if ( ! empty( $_POST['openvote_create_vote_page'] ) ) {
+            $slug = isset( $_POST['openvote_vote_page_slug'] ) ? sanitize_title( wp_unslash( $_POST['openvote_vote_page_slug'] ) ) : '';
+            $slug = $slug !== '' ? $slug : 'glosuj';
+            update_option( 'openvote_vote_page_slug', $slug, false );
+            if ( ! openvote_vote_page_exists() ) {
+                $page_id = self::create_vote_page( $slug );
+                if ( $page_id && ! is_wp_error( $page_id ) ) {
+                    flush_rewrite_rules();
+                    return add_query_arg( 'page_created', '1', $base );
+                }
+            }
+            return $base;
+        }
+
+        if ( ! empty( $_POST['openvote_create_survey_page'] ) ) {
+            $slug = isset( $_POST['openvote_survey_page_slug'] ) ? sanitize_title( wp_unslash( $_POST['openvote_survey_page_slug'] ) ) : '';
+            $slug = $slug !== '' ? $slug : 'ankieta';
+            update_option( 'openvote_survey_page_slug', $slug, false );
+            $surv_page = get_page_by_path( $slug, OBJECT, 'page' );
+            if ( ! $surv_page ) {
+                $page_id = self::create_survey_page( $slug );
+                if ( $page_id && ! is_wp_error( $page_id ) ) {
+                    flush_rewrite_rules();
+                    return add_query_arg( 'survey_page_created', '1', $base );
+                }
+            }
+            return $base;
+        }
+
+        if ( ! empty( $_POST['openvote_create_submissions_page'] ) ) {
+            $slug = isset( $_POST['openvote_submissions_page_slug'] ) ? sanitize_title( wp_unslash( $_POST['openvote_submissions_page_slug'] ) ) : '';
+            $slug = $slug !== '' ? $slug : 'zgloszenia';
+            update_option( 'openvote_submissions_page_slug', $slug, false );
+            $subm_page = get_page_by_path( $slug, OBJECT, 'page' );
+            if ( ! $subm_page ) {
+                $page_id = self::create_submissions_page( $slug );
+                if ( $page_id && ! is_wp_error( $page_id ) ) {
+                    flush_rewrite_rules();
+                    return add_query_arg( 'submissions_page_created', '1', $base );
+                }
+            }
+            return $base;
+        }
+
+        return null;
+    }
 
     /**
      * Aktualizuje tresc istniejącej strony głosowania do bloku openvote/voting-tabs.

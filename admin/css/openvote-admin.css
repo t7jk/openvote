@@ -77,7 +77,96 @@
     letter-spacing: 0.3px;
 }
 
+/* ── Konfiguracja: bloki URL stron (głosowanie, ankiety, zgłoszenia) ── */
+.openvote-settings-url-section {
+    max-width: 780px;
+    margin-top: 20px;
+    margin-bottom: 4px;
+    padding: 16px 20px 20px;
+    background: #f8f9fa;
+    border: 1px solid #e0e5e9;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
 
+.openvote-settings-url-section:first-of-type {
+    margin-top: 28px;
+}
+
+.openvote-settings-url-section__title {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e5e9;
+    font-size: 1.1em;
+}
+
+.openvote-settings-url-section__desc {
+    max-width: 100%;
+    margin: 0 0 12px !important;
+    color: #50575e;
+}
+
+.openvote-settings-url-section__table {
+    margin-bottom: 0 !important;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #e0e5e9;
+}
+
+.openvote-settings-url-section__table th,
+.openvote-settings-url-section__table td {
+    padding: 10px 14px;
+}
+
+/* ── Konfiguracja: wspólny kontener wysyłki e-mail ── */
+.openvote-settings-email-section {
+    max-width: 780px;
+    margin-top: 20px;
+    margin-bottom: 4px;
+    padding: 16px 20px 20px;
+    background: #f8f9fa;
+    border: 1px solid #e0e5e9;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.openvote-settings-email-section__table {
+    margin-bottom: 0 !important;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #e0e5e9;
+}
+
+.openvote-settings-email-section__table th,
+.openvote-settings-email-section__table td {
+    padding: 10px 14px;
+}
+
+.openvote-settings-email-section__smtp,
+.openvote-settings-email-section__sendgrid {
+    margin-top: 12px;
+}
+
+.openvote-settings-email-section__smtp .form-table,
+.openvote-settings-email-section__sendgrid .form-table {
+    max-width: 780px;
+    background: #fff;
+    border: 1px solid #e0e5e9;
+    border-radius: 4px;
+}
+
+.openvote-settings-email-section__batch-title {
+    margin: 20px 0 8px !important;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e5e9;
+}
+
+.openvote-settings-email-section__batch-desc {
+    max-width: 100%;
+    margin: 0 0 12px !important;
+    color: #50575e;
+}
 
 /* ── Questions ── */
 .openvote-question-block {
@@ -206,15 +295,18 @@ input.evoting-date-readonly {
 .openvote-results-summary p { margin: 4px 0 10px; }
 
 /* ── Frequency / participation table ── */
-.evoting-freq-table {
+.evoting-freq-table,
+.openvote-freq-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 8px;
 }
 
-.evoting-freq-table tr + tr td { padding-top: 8px; }
+.evoting-freq-table tr + tr td,
+.openvote-freq-table tr + tr td { padding-top: 8px; }
 
-.evoting-freq-label {
+.evoting-freq-label,
+.openvote-freq-label {
     width: 280px;
     font-weight: 600;
     font-size: 13px;
@@ -222,7 +314,8 @@ input.evoting-date-readonly {
     vertical-align: middle;
 }
 
-.evoting-freq-count {
+.evoting-freq-count,
+.openvote-freq-count {
     width: 50px;
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -230,7 +323,8 @@ input.evoting-date-readonly {
     vertical-align: middle;
 }
 
-.evoting-freq-pct {
+.evoting-freq-pct,
+.openvote-freq-pct {
     width: 52px;
     text-align: right;
     color: #555;
@@ -239,14 +333,64 @@ input.evoting-date-readonly {
     vertical-align: middle;
 }
 
-.evoting-freq-bar-cell {
+.evoting-freq-bar-cell,
+.openvote-freq-bar-cell {
     vertical-align: middle;
     width: 280px;
 }
 
-.evoting-bar--eligible { background: #0073aa; }
-.evoting-bar--voted    { background: #28a745; }
-.evoting-bar--absent   { background: #adb5bd; }
+/* Słupki wykresów — podstawa (wysokość, tło) + kolory */
+.evoting-bar,
+.openvote-bar {
+    height: 20px;
+    border-radius: 3px;
+    min-width: 2px;
+    transition: width 0.3s ease;
+    display: block;
+    background: #e0e0e0;
+}
+
+.evoting-bar--eligible,
+.openvote-bar--eligible { background: #0073aa; }
+.evoting-bar--voted,
+.openvote-bar--voted    { background: #28a745; }
+.evoting-bar--absent,
+.openvote-bar--absent   { background: #adb5bd; }
+
+.openvote-bar--za         { background: #28a745; }
+.openvote-bar--przeciw    { background: #dc3545; }
+.openvote-bar--wstrzymuje { background: #ffc107; }
+
+/* Tabela wyników pytań — ostatnia kolumna (Wykres) ma stałą szerokość, żeby słupki były widoczne */
+.openvote-results-questions-table {
+    table-layout: fixed;
+}
+.openvote-results-questions-table th:nth-child(4),
+.openvote-results-questions-table td:nth-child(4) {
+    width: 240px;
+    box-sizing: border-box;
+}
+
+/* Kontener słupka w tabeli wyników pytań */
+.openvote-result-bar-cell {
+    min-width: 200px;
+    width: 240px;
+    vertical-align: middle;
+}
+.openvote-bar-track {
+    display: block;
+    width: 100%;
+    min-width: 180px;
+    height: 20px;
+    background: #f0f0f1;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.openvote-bar-track .openvote-bar {
+    display: block;
+    height: 100%;
+    min-height: 20px;
+}
 
 .required { color: #d63638; }
 

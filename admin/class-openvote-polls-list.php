@@ -29,7 +29,7 @@ class Openvote_Polls_List extends WP_List_Table {
             'cb'         => '<input type="checkbox">',
             'title'      => __( 'Tytuł', 'openvote' ),
             'status'     => __( 'Status', 'openvote' ),
-            'groups'     => __( 'Grupy', 'openvote' ),
+            'groups'     => __( 'Sejmiki', 'openvote' ),
             'date_start' => __( 'Rozpoczęcie', 'openvote' ),
             'date_end'   => __( 'Zakończenie', 'openvote' ),
         ];
@@ -255,10 +255,18 @@ class Openvote_Polls_List extends WP_List_Table {
         }
 
         $title_link = ( 'draft' === $item->status ) ? $edit_url : $view_url;
+        $counts     = Openvote_Vote::get_turnout_counts( (int) $item->id );
+        $counts_html = sprintf(
+            ' <span class="openvote-poll-turnout" title="%s">(%d/%d)</span>',
+            esc_attr__( 'Oddane głosy / uprawnieni', 'openvote' ),
+            $counts['total_voters'],
+            $counts['total_eligible']
+        );
         return sprintf(
-            '<strong><a class="row-title" href="%s">%s</a></strong>%s',
+            '<strong><a class="row-title" href="%s">%s</a></strong>%s%s',
             esc_url( $title_link ),
             esc_html( $item->title ),
+            $counts_html,
             $this->row_actions( $actions )
         );
     }
