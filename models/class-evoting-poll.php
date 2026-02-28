@@ -447,11 +447,12 @@ class Evoting_Poll {
         $city_key = Evoting_Field_Map::get_field( 'city' );
 
         if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
-            $rows = $wpdb->get_col(
-                "SELECT DISTINCT {$city_key}
+            $safe_col = '`' . esc_sql( $city_key ) . '`';
+            $rows     = $wpdb->get_col(
+                "SELECT DISTINCT {$safe_col}
                  FROM {$wpdb->users}
-                 WHERE {$city_key} != ''
-                 ORDER BY {$city_key} ASC"
+                 WHERE {$safe_col} != ''
+                 ORDER BY {$safe_col} ASC"
             );
         } else {
             $rows = $wpdb->get_col(

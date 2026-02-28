@@ -255,7 +255,6 @@ class Evoting_Surveys_Rest_Controller {
                     if ( $user && $user->display_name === $user->nickname ) {
                         wp_update_user( [ 'ID' => $user_id, 'display_name' => $value ] );
                     }
-                    wp_update_user( [ 'ID' => $user_id, 'nickname' => $value ] );
                 }
 
             } elseif ( Evoting_Field_Map::NOT_SET_KEY === $actual_key ) {

@@ -58,6 +58,12 @@
         var nonce   = (block && block.dataset.nonce) ? block.dataset.nonce : (cfg.nonce || '');
         var restUrl = cfg.restUrl || '/wp-json/evoting/v1';
 
+        if (!nonce) {
+            showMessage(msgEl, i18n.voteError || 'Błąd konfiguracji formularza.', 'error');
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
         fetch(restUrl + '/polls/' + pollId + '/vote', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },

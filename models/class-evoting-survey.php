@@ -187,7 +187,7 @@ class Evoting_Survey {
             'description' => $original->description,
             'status'      => 'draft',
             'date_start'  => current_time( 'Y-m-d H:i:s' ),
-            'date_end'    => gmdate( 'Y-m-d H:i:s', strtotime( current_time( 'mysql' ) ) + 7 * DAY_IN_SECONDS ),
+            'date_end'    => wp_date( 'Y-m-d H:i:s', time() + 7 * DAY_IN_SECONDS ),
         ] );
 
         if ( ! $new_id ) {

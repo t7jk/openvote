@@ -223,6 +223,9 @@ class Evoting_Field_Map {
         $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [ 'phone', 'city' ] );
         $required = [];
         foreach ( array_keys( self::DEFAULTS ) as $logical ) {
+            if ( 'city' === $logical && self::is_city_disabled() ) {
+                continue;
+            }
             if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true )
                  || in_array( $logical, $saved, true ) ) {
                 $required[ $logical ] = self::LABELS[ $logical ];
@@ -235,6 +238,9 @@ class Evoting_Field_Map {
      * Whether a specific logical field is required for surveys.
      */
     public static function is_survey_required( string $logical ): bool {
+        if ( 'city' === $logical && self::is_city_disabled() ) {
+            return false;
+        }
         if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true ) ) {
             return true;
         }
@@ -329,7 +335,8 @@ class Evoting_Field_Map {
         $meta_keys = (array) $wpdb->get_col(
             "SELECT DISTINCT meta_key
              FROM {$wpdb->usermeta}
-             ORDER BY meta_key ASC"
+             ORDER BY meta_key ASC
+             LIMIT 500"
         );
 
         return [

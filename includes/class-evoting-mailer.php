@@ -252,7 +252,7 @@ class Evoting_Mailer {
         } else {
             global $phpmailer;
             $error = '';
-            if ( isset( $phpmailer ) && method_exists( $phpmailer, 'ErrorInfo' ) ) {
+            if ( isset( $phpmailer ) && property_exists( $phpmailer, 'ErrorInfo' ) ) {
                 $error = $phpmailer->ErrorInfo;
             }
             wp_send_json_error( __( 'Wysyłka nie powiodła się.', 'evoting' ) . ( $error ? ' ' . $error : '' ) );

@@ -117,7 +117,7 @@ class Evoting_Admin_Polls {
             return new \WP_Error( 'invalid_duration', __( 'Wybierz poprawny czas trwania głosowania.', 'evoting' ) );
         }
         $date_start = current_time( 'Y-m-d H:i:s' );
-        $date_end   = gmdate( 'Y-m-d H:i:s', strtotime( $date_start ) + $duration_seconds[ $duration_key ] );
+        $date_end   = wp_date( 'Y-m-d H:i:s', time() + $duration_seconds[ $duration_key ] );
 
         // Parse questions with nested answers.
         $raw_questions = (array) ( $_POST['questions'] ?? [] );

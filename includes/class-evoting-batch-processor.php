@@ -487,14 +487,18 @@ class Evoting_Batch_Processor {
         $target_groups = $poll->target_groups ? json_decode( $poll->target_groups, true ) : [];
 
         if ( ! empty( $target_groups ) ) {
-            $gm_table   = $wpdb->prefix . 'evoting_group_members';
-            $ids        = implode( ',', array_map( 'absint', (array) $target_groups ) );
-            $users      = $wpdb->get_results(
-                "SELECT u.ID, u.user_email, u.display_name
-                 FROM {$wpdb->users} u
-                 INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
-                 WHERE gm.group_id IN ({$ids}) AND u.user_email != ''
-                 GROUP BY u.ID"
+            $gm_table     = $wpdb->prefix . 'evoting_group_members';
+            $ids_clean    = array_map( 'absint', (array) $target_groups );
+            $placeholders = implode( ',', array_fill( 0, count( $ids_clean ), '%d' ) );
+            $users        = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT u.ID, u.user_email, u.display_name
+                     FROM {$wpdb->users} u
+                     INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                     WHERE gm.group_id IN ({$placeholders}) AND u.user_email != ''
+                     GROUP BY u.ID",
+                    ...$ids_clean
+                )
             );
         } else {
             $users = $wpdb->get_results(
@@ -535,10 +539,14 @@ class Evoting_Batch_Processor {
         $chunk_val  = array_chunk( $values, $chunk_size * 6 );
 
         foreach ( $chunk_fmt as $idx => $chunk ) {
+            // $chunk zawiera wyłącznie stałe stringi formatu (%s/%d) — nie dane użytkownika.
             $sql = "INSERT IGNORE INTO {$eq} (job_id, poll_id, user_id, email, name, created_at) VALUES "
                    . implode( ',', $chunk );
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql zawiera tylko nazwę tabeli z $wpdb->prefix i stałe placeholdery formatu
             $wpdb->query( $wpdb->prepare( $sql, ...$chunk_val[ $idx ] ) );
+            if ( $wpdb->last_error ) {
+                error_log( 'evoting: fill_email_queue INSERT error: ' . $wpdb->last_error );
+            }
         }
 
         // Reset wierszy 'failed' → 'pending' (ponowna próba wysyłki).

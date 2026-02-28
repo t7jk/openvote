@@ -137,8 +137,15 @@ class Evoting_Role_Manager {
         if ( ! self::is_user_in_administrators_group( $user_id ) ) {
             return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z grupy „Administratorzy” mogą zostać administratorami WordPress.', 'evoting' ) );
         }
+        $lock = 'evoting_wp_admin_lock';
+        if ( get_transient( $lock ) ) {
+            return new \WP_Error( 'concurrent_request', __( 'Operacja w toku. Spróbuj za chwilę.', 'evoting' ) );
+        }
+        set_transient( $lock, true, 30 );
+
         $current = self::get_wp_admins();
         if ( count( $current ) >= self::LIMIT_WP_ADMINS ) {
+            delete_transient( $lock );
             $names = implode( ', ', array_map( fn( $u ) => $u->display_name, $current ) );
             return new \WP_Error(
                 'limit_reached',
@@ -152,9 +159,11 @@ class Evoting_Role_Manager {
         }
         $user = get_userdata( $user_id );
         if ( ! $user ) {
+            delete_transient( $lock );
             return new \WP_Error( 'invalid_user', __( 'Nieprawidłowy użytkownik.', 'evoting' ) );
         }
         $user->set_role( 'administrator' );
+        delete_transient( $lock );
         return true;
     }
 

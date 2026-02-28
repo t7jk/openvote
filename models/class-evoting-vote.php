@@ -239,9 +239,17 @@ class Evoting_Vote {
                 $total_votes += $cnt;
             }
 
-            // Percentages relative to actual votes cast (non-voters are NOT counted).
+            // Nieuczestniczący są doliczani do odpowiedzi "Wstrzymuję się".
             foreach ( $answers as &$a ) {
-                $a['pct'] = $total_votes > 0 ? round( $a['count'] / $total_votes * 100, 1 ) : 0.0;
+                if ( $a['is_abstain'] ) {
+                    $a['count'] += $non_voters;
+                }
+            }
+            unset( $a );
+
+            // Procenty względem sumy uprawnionych (zgodnie ze specyfikacją).
+            foreach ( $answers as &$a ) {
+                $a['pct'] = $total_eligible > 0 ? round( $a['count'] / $total_eligible * 100, 1 ) : 0.0;
             }
             unset( $a );
 
@@ -249,7 +257,7 @@ class Evoting_Vote {
                 'question_id'   => (int) $question->id,
                 'question_text' => $question->body,
                 'answers'       => $answers,
-                'total'         => $total_votes,
+                'total'         => $total_eligible,
             ];
         }
 
