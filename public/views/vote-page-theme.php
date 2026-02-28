@@ -51,13 +51,13 @@ get_header();
 <div class="evoting-vote-page-wrap">
 
     <nav class="evoting-tabs" role="tablist" style="position:relative;">
-        <a href="<?php echo $tab_active_url; ?>"
+        <a href="<?php echo esc_url( $tab_active_url ); ?>"
            class="evoting-tab<?php echo 'active' === $active_tab ? ' evoting-tab--active' : ''; ?>"
            role="tab"
            aria-selected="<?php echo 'active' === $active_tab ? 'true' : 'false'; ?>">
             <?php esc_html_e( 'Trwające głosowania', 'evoting' ); ?>
         </a>
-        <a href="<?php echo $tab_closed_url; ?>"
+        <a href="<?php echo esc_url( $tab_closed_url ); ?>"
            class="evoting-tab<?php echo 'closed' === $active_tab ? ' evoting-tab--active' : ''; ?>"
            role="tab"
            aria-selected="<?php echo 'closed' === $active_tab ? 'true' : 'false'; ?>">

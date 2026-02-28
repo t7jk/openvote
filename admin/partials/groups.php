@@ -10,7 +10,7 @@ $gm_table     = $wpdb->prefix . 'evoting_group_members';
 $message = '';
 $error   = '';
 
-if ( isset( $_GET['updated'] ) && $_GET['updated'] === '1' && ! isset( $_POST['evoting_groups_nonce'] ) ) {
+if ( isset( $_GET['updated'] ) && sanitize_key( $_GET['updated'] ?? '' ) === '1' && ! isset( $_POST['evoting_groups_nonce'] ) ) {
     $msg = get_transient( 'evoting_groups_message' );
     $err = get_transient( 'evoting_groups_error' );
     if ( $msg !== false ) {

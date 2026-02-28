@@ -12,76 +12,76 @@ msgstr ""
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: admin/class-evoting-admin.php:26 admin/class-evoting-admin.php:27
 #: admin/class-evoting-admin.php:508 admin/partials/manual.php:62
 #: admin/partials/poll-list.php:7 admin/partials/settings.php:802
 msgid "Głosowania"
-msgstr ""
+msgstr "Polls"
 
 #: admin/class-evoting-admin.php:35 admin/class-evoting-admin.php:36
 #: admin/partials/settings.php:806 admin/partials/survey-list.php:9
 #: includes/class-evoting-survey-page.php:92
 msgid "Ankiety"
-msgstr ""
+msgstr "Surveys"
 
 #: admin/class-evoting-admin.php:44 admin/partials/groups.php:195
 #: admin/partials/manual.php:38 admin/partials/manual.php:127
 msgid "Grupy użytkowników"
-msgstr ""
+msgstr "User groups"
 
 #: admin/class-evoting-admin.php:45 admin/class-evoting-polls-list.php:32
 #: admin/partials/manual.php:64 admin/partials/roles.php:48
 #: admin/partials/settings.php:804
 msgid "Grupy"
-msgstr ""
+msgstr "Groups"
 
 #: admin/class-evoting-admin.php:53 admin/class-evoting-admin.php:54
 #: admin/partials/manual.php:39 admin/partials/manual.php:65
 #: admin/partials/manual.php:153 admin/partials/roles.php:23
 msgid "Koordynatorzy"
-msgstr ""
+msgstr "Coordinators"
 
 #: admin/class-evoting-admin.php:62 admin/class-evoting-admin.php:63
 #: admin/partials/settings.php:60
 msgid "Konfiguracja"
-msgstr ""
+msgstr "Settings"
 
 #: admin/class-evoting-admin.php:71
 msgid "Podręcznik użytkownika"
-msgstr ""
+msgstr "User manual"
 
 #: admin/class-evoting-admin.php:72
 msgid "📖 Podręcznik"
-msgstr ""
+msgstr "📖 Manual"
 
 #: admin/class-evoting-admin.php:80 admin/partials/law.php:10
 #: blocks/evoting-voting-tabs/render.php:120
 #: includes/class-evoting-law-page.php:108 public/views/vote-page-theme.php:69
 msgid "Przepisy prawne"
-msgstr ""
+msgstr "Legal provisions"
 
 #: admin/class-evoting-admin.php:81
 msgid "⚖️ Przepisy"
-msgstr ""
+msgstr "⚖️ Legal"
 
 #: admin/class-evoting-admin.php:89 admin/class-evoting-admin.php:90
 #: admin/partials/about.php:5
 msgid "O tym"
-msgstr ""
+msgstr "About"
 
 #: admin/class-evoting-admin.php:216
 msgid "Link wygasł lub jest nieprawidłowy."
-msgstr ""
+msgstr "Link has expired or is invalid."
 
 #: admin/class-evoting-admin.php:220 includes/class-evoting-eligibility.php:37
 msgid "Głosowanie nie istnieje."
-msgstr ""
+msgstr "Poll does not exist."
 
 #: admin/class-evoting-admin.php:380 admin/class-evoting-admin.php:431
 #: admin/class-evoting-admin.php:440 admin/class-evoting-admin.php:448
@@ -95,171 +95,169 @@ msgstr ""
 #: admin/class-evoting-admin-uninstall.php:19 admin/partials/groups.php:28
 #: includes/class-evoting-mailer.php:148 includes/class-evoting-mailer.php:188
 msgid "Brak uprawnień."
-msgstr ""
+msgstr "Insufficient permissions."
 
 #: admin/class-evoting-admin.php:510 admin/partials/poll-list.php:9
 msgid "Dodaj nowe"
-msgstr ""
+msgstr "Add new"
 
 #: admin/class-evoting-admin.php:516
 #, php-format
 msgid "Usunięto %d głosowanie."
 msgid_plural "Usunięto %d głosowań."
-msgstr[0] ""
-msgstr[1] ""
-
+msgstr[0] "Deleted %d poll."
+msgstr[1] "Deleted %d polls."
 #: admin/class-evoting-admin.php:522
 msgid "Głosowanie zostało uruchomione."
-msgstr ""
+msgstr "Poll has been started."
 
 #: admin/class-evoting-admin.php:529
 #, php-format
 msgid "Zakończono %d głosowanie."
 msgid_plural "Zakończono %d głosowań."
-msgstr[0] ""
-msgstr[1] ""
-
+msgstr[0] "Ended %d poll."
+msgstr[1] "Ended %d polls."
 #: admin/class-evoting-admin.php:535 admin/partials/poll-list.php:21
 msgid "Głosowanie zostało usunięte."
-msgstr ""
+msgstr "Poll has been deleted."
 
 #: admin/class-evoting-admin.php:541 admin/partials/poll-form.php:72
 msgid "Głosowanie zostało utworzone."
-msgstr ""
+msgstr "Poll has been created."
 
 #: admin/class-evoting-admin.php:547 admin/partials/roles.php:30
 msgid "Zmiany zostały zapisane."
-msgstr ""
+msgstr "Changes have been saved."
 
 #: admin/class-evoting-admin.php:553 includes/class-evoting-eligibility.php:43
 msgid "Głosowanie zostało zakończone."
-msgstr ""
+msgstr "Poll has ended."
 
 #: admin/class-evoting-admin.php:559
 msgid ""
 "Nie można edytować głosowania, które zostało rozpoczęte lub zakończone. "
 "Tylko szkice są edytowalne."
-msgstr ""
+msgstr "Cannot edit a poll that has been started or ended. Only drafts are editable."
 
 #: admin/class-evoting-admin.php:569
 msgid "Utworzono kopię głosowania. Znajdziesz ją na liście jako szkic."
-msgstr ""
+msgstr "Poll copy created. You will find it on the list as a draft."
 
 #: admin/class-evoting-admin.php:572
 msgid "Edytuj skopiowane głosowanie"
-msgstr ""
+msgstr "Edit copied poll"
 
 #: admin/class-evoting-admin.php:580
 msgid ""
 "Nie udało się skopiować głosowania. Upewnij się, że głosowanie ma pytania."
-msgstr ""
+msgstr "Failed to copy poll. Make sure the poll has questions."
 
 #: admin/class-evoting-admin.php:587
 msgid "Szukaj głosowania"
-msgstr ""
+msgstr "Search poll"
 
 #: admin/class-evoting-admin.php:733 admin/partials/survey-form.php:54
 msgid "— brak (pole dowolne)"
-msgstr ""
+msgstr "— none (optional)"
 
 #: admin/class-evoting-admin.php:738 admin/partials/survey-form.php:47
 msgid "Krótki tekst do 100 znaków"
-msgstr ""
+msgstr "Short text up to 100 characters"
 
 #: admin/class-evoting-admin.php:739 admin/partials/survey-form.php:48
 msgid "Długi tekst do 2000 znaków"
-msgstr ""
+msgstr "Long text up to 2000 characters"
 
 #: admin/class-evoting-admin.php:740 admin/partials/survey-form.php:49
 msgid "Numer do 30 cyfr"
-msgstr ""
+msgstr "Number up to 30 digits"
 
 #: admin/class-evoting-admin.php:741 admin/partials/survey-form.php:50
 msgid "Adres URL"
-msgstr ""
+msgstr "URL"
 
 #: admin/class-evoting-admin.php:742 admin/partials/about.php:27
 #: admin/partials/groups.php:286 admin/partials/manual.php:413
 #: admin/partials/poll-invitations.php:162 admin/partials/poll-results.php:486
 #: admin/partials/survey-form.php:51
 msgid "E-mail"
-msgstr ""
+msgstr "Email"
 
 #: admin/class-evoting-admin.php:743 admin/partials/survey-form.php:203
 msgid "Etykieta / tytuł pola"
-msgstr ""
+msgstr "Field label / title"
 
 #: admin/class-evoting-admin.php:744 admin/partials/survey-form.php:220
 msgid "Pole profilu (na stronie /zgłoszenia/ dane wrażliwe są ukrywane)"
-msgstr ""
+msgstr "Profile field (sensitive data is hidden on /submissions/ page)"
 
 #: admin/class-evoting-admin.php:745
 msgid "Limit znaków:"
-msgstr ""
+msgstr "Character limit:"
 
 #: admin/class-evoting-admin.php:746 admin/partials/survey-form.php:237
 msgid "Usuń pole"
-msgstr ""
+msgstr "Remove field"
 
 #: admin/class-evoting-admin.php:747
 msgid "Ankieta musi mieć co najmniej jedno pole."
-msgstr ""
+msgstr "Survey must have at least one field."
 
 #: admin/class-evoting-admin.php:748
 msgid "Wypełnij etykiety wszystkich pól."
-msgstr ""
+msgstr "Fill in all field labels."
 
 #: admin/class-evoting-admin.php:749
 msgid "Data zakończenia musi być późniejsza niż data rozpoczęcia."
-msgstr ""
+msgstr "End date must be after start date."
 
 #: admin/class-evoting-admin-polls.php:33
 msgid "Nie można edytować głosowania, które zostało rozpoczęte lub zakończone."
-msgstr ""
+msgstr "Cannot edit a poll that has been started or ended."
 
 #: admin/class-evoting-admin-polls.php:75
 msgid "Błąd zapisu głosowania."
-msgstr ""
+msgstr "Error saving poll."
 
 #: admin/class-evoting-admin-polls.php:100
 msgid "Tytuł jest wymagany."
-msgstr ""
+msgstr "Title is required."
 
 #: admin/class-evoting-admin-polls.php:103
 #: admin/class-evoting-admin-surveys.php:66
 msgid "Tytuł może zawierać maksymalnie 512 znaków."
-msgstr ""
+msgstr "Title may contain at most 512 characters."
 
 #: admin/class-evoting-admin-polls.php:117
 msgid "Wybierz poprawny czas trwania głosowania."
-msgstr ""
+msgstr "Select a valid poll duration."
 
 #: admin/class-evoting-admin-polls.php:136
 msgid "Każde pytanie może zawierać maksymalnie 512 znaków."
-msgstr ""
+msgstr "Each question may contain at most 512 characters."
 
 #: admin/class-evoting-admin-polls.php:150
 msgid ""
 "Każde pytanie musi mieć co najmniej 3 odpowiedzi (w tym obowiązkową "
 "abstencję)."
-msgstr ""
+msgstr "Each question must have at least 3 answers (including mandatory abstention)."
 
 #: admin/class-evoting-admin-polls.php:153
 msgid "Maksymalnie 12 odpowiedzi per pytanie."
-msgstr ""
+msgstr "Maximum 12 answers per question."
 
 #: admin/class-evoting-admin-polls.php:163
 msgid "Dodaj przynajmniej jedno pytanie."
-msgstr ""
+msgstr "Add at least one question."
 
 #: admin/class-evoting-admin-polls.php:166
 msgid "Maksymalnie 24 pytania."
-msgstr ""
+msgstr "Maximum 24 questions."
 
 #: admin/class-evoting-admin-polls.php:240
 #, php-format
 msgid "Nowe głosowanie: %s"
-msgstr ""
+msgstr "New poll: %s"
 
 #: admin/class-evoting-admin-polls.php:242
 #, php-format
@@ -268,227 +266,230 @@ msgid ""
 "\n"
 "Zaloguj się, aby oddać swój głos."
 msgstr ""
+"A new poll has been opened: %s\n"
+"\n"
+"Log in to cast your vote."
 
 #: admin/class-evoting-admin-roles.php:59
 msgid "Nie wybrano użytkownika lub grupy."
-msgstr ""
+msgstr "No user or group selected."
 
 #: admin/class-evoting-admin-roles.php:69
 msgid "Wystąpił błąd."
-msgstr ""
+msgstr "An error occurred."
 
 #: admin/class-evoting-admin-settings.php:232
 msgctxt "vote page title"
 msgid "Głosowanie"
-msgstr ""
+msgstr "Voting"
 
 #: admin/class-evoting-admin-settings.php:250
 msgctxt "survey page title"
 msgid "Ankiety"
-msgstr ""
+msgstr "Surveys"
 
 #: admin/class-evoting-admin-settings.php:283
 msgctxt "submissions page title"
 msgid "Zgłoszenia"
-msgstr ""
+msgstr "Submissions"
 
 #: admin/class-evoting-admin-settings.php:315
 #: admin/class-evoting-admin-uninstall.php:15
 msgid "Nieprawidłowy token zabezpieczający."
-msgstr ""
+msgstr "Invalid security token."
 
 #: admin/class-evoting-admin-settings.php:322
 msgid "Zaznacz pole potwierdzenia przed wyczyszczeniem."
-msgstr ""
+msgstr "Check the confirmation box before resetting."
 
 #: admin/class-evoting-admin-settings.php:355
 msgid "Baza danych i ustawienia zostały przywrócone do stanu fabrycznego."
-msgstr ""
+msgstr "Database and settings have been reset to defaults."
 
 #: admin/class-evoting-admin-surveys.php:46
 msgid "Błąd zapisu ankiety."
-msgstr ""
+msgstr "Error saving survey."
 
 #: admin/class-evoting-admin-surveys.php:63
 msgid "Tytuł ankiety jest wymagany."
-msgstr ""
+msgstr "Survey title is required."
 
 #: admin/class-evoting-admin-surveys.php:71
 msgid "Opis może zawierać maksymalnie 5000 znaków."
-msgstr ""
+msgstr "Description may contain at most 5000 characters."
 
 #: admin/class-evoting-admin-surveys.php:87
 msgid "Wybierz poprawny czas trwania ankiety."
-msgstr ""
+msgstr "Select a valid survey duration."
 
 #: admin/class-evoting-admin-surveys.php:106
 msgid "Etykieta pola może zawierać maksymalnie 512 znaków."
-msgstr ""
+msgstr "Field label may contain at most 512 characters."
 
 #: admin/class-evoting-admin-surveys.php:137
 msgid "Dodaj przynajmniej jedno pole ankiety."
-msgstr ""
+msgstr "Add at least one survey field."
 
 #: admin/class-evoting-admin-surveys.php:142
 #, php-format
 msgid "Maksymalnie %d pól ankiety."
-msgstr ""
+msgstr "Maximum %d survey fields."
 
 #: admin/class-evoting-admin-uninstall.php:24
 msgid "Zaznacz pole potwierdzenia przed usunięciem."
-msgstr ""
+msgstr "Check the confirmation box before deleting."
 
 #: admin/class-evoting-polls-list.php:17
 msgid "głosowanie"
-msgstr ""
+msgstr "poll"
 
 #: admin/class-evoting-polls-list.php:18
 #: public/views/partials/profile-complete.php:14
 msgid "głosowania"
-msgstr ""
+msgstr "polls"
 
 #: admin/class-evoting-polls-list.php:30
 #: admin/class-evoting-surveys-list.php:27 admin/partials/manual.php:188
 #: admin/partials/poll-form.php:106 admin/partials/poll-list.php:38
 #: admin/partials/survey-form.php:80
 msgid "Tytuł"
-msgstr ""
+msgstr "Title"
 
 #: admin/class-evoting-polls-list.php:31
 #: admin/class-evoting-surveys-list.php:28 admin/partials/manual.php:229
 #: admin/partials/poll-list.php:39
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: admin/class-evoting-polls-list.php:33
 #: admin/class-evoting-surveys-list.php:29
 msgid "Rozpoczęcie"
-msgstr ""
+msgstr "Start"
 
 #: admin/class-evoting-polls-list.php:34
 #: admin/class-evoting-surveys-list.php:30
 msgid "Zakończenie"
-msgstr ""
+msgstr "End"
 
 #: admin/class-evoting-polls-list.php:49 admin/class-evoting-polls-list.php:227
 #: admin/class-evoting-surveys-list.php:45
 #: admin/class-evoting-surveys-list.php:171
 msgid "Zakończ"
-msgstr ""
+msgstr "End"
 
 #: admin/class-evoting-polls-list.php:50 admin/class-evoting-polls-list.php:253
 #: admin/class-evoting-surveys-list.php:46
 #: admin/class-evoting-surveys-list.php:196
 #: admin/class-evoting-surveys-list.php:216 admin/partials/groups.php:310
 msgid "Usuń"
-msgstr ""
+msgstr "Delete"
 
 #: admin/class-evoting-polls-list.php:65
 #: admin/class-evoting-surveys-list.php:61
 msgid "Wszystkie"
-msgstr ""
+msgstr "All"
 
 #: admin/class-evoting-polls-list.php:66 admin/class-evoting-polls-list.php:268
 #: admin/class-evoting-surveys-list.php:62
 #: admin/class-evoting-surveys-list.php:240 admin/partials/manual.php:234
 #: admin/partials/poll-invitations.php:30 admin/partials/poll-list.php:55
 msgid "Szkic"
-msgstr ""
+msgstr "Draft"
 
 #: admin/class-evoting-polls-list.php:67 admin/class-evoting-polls-list.php:269
 #: admin/partials/manual.php:238 admin/partials/poll-invitations.php:31
 #: admin/partials/poll-list.php:56
 msgid "Rozpoczęte"
-msgstr ""
+msgstr "Open"
 
 #: admin/class-evoting-polls-list.php:68 admin/class-evoting-polls-list.php:270
 #: admin/partials/manual.php:242 admin/partials/poll-invitations.php:32
 #: admin/partials/poll-list.php:57
 msgid "Zakończone"
-msgstr ""
+msgstr "Closed"
 
 #: admin/class-evoting-polls-list.php:190 admin/partials/poll-list.php:82
 msgid "Wyniki"
-msgstr ""
+msgstr "Results"
 
 #: admin/class-evoting-polls-list.php:198
 #: admin/class-evoting-surveys-list.php:205 admin/partials/poll-list.php:78
 msgid "Edytuj"
-msgstr ""
+msgstr "Edit"
 
 #: admin/class-evoting-polls-list.php:206
 #: admin/class-evoting-surveys-list.php:160
 msgid "Podgląd"
-msgstr ""
+msgstr "Preview"
 
 #: admin/class-evoting-polls-list.php:215
 msgid "Zaproszenia"
-msgstr ""
+msgstr "Invitations"
 
 #: admin/class-evoting-polls-list.php:226
 msgid ""
 "Zakończyć głosowanie? Przyjmowanie głosów zostanie zatrzymane, data "
 "zakończenia ustawiona na dziś. Operacja nieodwracalna."
-msgstr ""
+msgstr "End the poll? Voting will be stopped and end date set to today. This cannot be undone."
 
 #: admin/class-evoting-polls-list.php:241
 #: admin/class-evoting-surveys-list.php:176
 #: admin/class-evoting-surveys-list.php:190
 #: admin/class-evoting-surveys-list.php:210
 msgid "Duplikuj"
-msgstr ""
+msgstr "Duplicate"
 
 #: admin/class-evoting-polls-list.php:252 admin/partials/poll-form.php:305
 msgid "Czy na pewno chcesz usunąć to głosowanie?"
-msgstr ""
+msgstr "Are you sure you want to delete this poll?"
 
 #: admin/class-evoting-surveys-list.php:14
 msgid "ankieta"
-msgstr ""
+msgstr "survey"
 
 #: admin/class-evoting-surveys-list.php:15
 #: public/views/partials/profile-complete.php:13
 msgid "ankiety"
-msgstr ""
+msgstr "surveys"
 
 #: admin/class-evoting-surveys-list.php:63
 #: admin/class-evoting-surveys-list.php:241
 msgid "Otwarta"
-msgstr ""
+msgstr "Open"
 
 #: admin/class-evoting-surveys-list.php:64
 #: admin/class-evoting-surveys-list.php:242
 msgid "Zamknięta"
-msgstr ""
+msgstr "Closed"
 
 #: admin/class-evoting-surveys-list.php:165
 #: admin/class-evoting-surveys-list.php:185
 msgid "Zgłoszenia"
-msgstr ""
+msgstr "Submissions"
 
 #: admin/class-evoting-surveys-list.php:170
 msgid "Zakończyć ankietę? Operacja nieodwracalna."
-msgstr ""
+msgstr "End the survey? This cannot be undone."
 
 #: admin/class-evoting-surveys-list.php:195
 #: admin/class-evoting-surveys-list.php:215
 msgid "Usunąć tę ankietę wraz z odpowiedziami?"
-msgstr ""
+msgstr "Delete this survey and all responses?"
 
 #: admin/partials/about.php:13
 msgid "Tytuł wtyczki"
-msgstr ""
+msgstr "Plugin title"
 
 #: admin/partials/about.php:14
 msgid "System e-głosowania"
-msgstr ""
+msgstr "E-voting system"
 
 #: admin/partials/about.php:17 admin/partials/manual.php:184
 #: admin/partials/manual.php:192 admin/partials/manual.php:357
 #: admin/partials/manual.php:407 admin/partials/poll-form.php:117
 #: admin/partials/survey-form.php:93
 msgid "Opis"
-msgstr ""
+msgstr "Description"
 
 #: admin/partials/about.php:19
 msgid ""
@@ -496,104 +497,103 @@ msgid ""
 "Umożliwia tworzenie głosowań z pytaniami i odpowiedziami, zarządzanie "
 "grupami uczestników, wysyłanie zaproszeń e-mail oraz przeglądanie wyników z "
 "zachowaniem anonimowości."
-msgstr ""
+msgstr "Plugin for running electronic polls and surveys in your organization. Create polls with questions and answers, manage participant groups, send email invitations, and view results with anonymity preserved."
 
 #: admin/partials/about.php:23
 msgid "Autor"
-msgstr ""
+msgstr "Author"
 
 #: admin/partials/about.php:33
 msgid "Wersja"
-msgstr ""
+msgstr "Version"
 
 #: admin/partials/about.php:39
 msgid "Licencja"
-msgstr ""
+msgstr "License"
 
 #: admin/partials/about.php:42
 msgid "Wersja Darmowa (Free Version)"
-msgstr ""
+msgstr "Free Version"
 
 #: admin/partials/groups.php:38
 msgid "Nazwa grupy jest wymagana."
-msgstr ""
+msgstr "Group name is required."
 
 #: admin/partials/groups.php:46
 msgid "Grupa została dodana."
-msgstr ""
+msgstr "Group has been added."
 
 #: admin/partials/groups.php:48
 msgid "Błąd zapisu — nazwa grupy może być już zajęta."
-msgstr ""
+msgstr "Save error — group name may already be in use."
 
 #: admin/partials/groups.php:54
 msgid "Nie wybrano grupy do usunięcia."
-msgstr ""
+msgstr "No group selected for deletion."
 
 #: admin/partials/groups.php:58
 msgid "Wybrana grupa nie istnieje."
-msgstr ""
+msgstr "Selected group does not exist."
 
 #: admin/partials/groups.php:63
 msgid "Grupa została usunięta."
-msgstr ""
+msgstr "Group has been removed."
 
 #: admin/partials/groups.php:70 admin/partials/groups.php:86
 msgid "Wybierz grupę i użytkownika."
-msgstr ""
+msgstr "Select group and user."
 
 #: admin/partials/groups.php:80
 msgid "Członek dodany."
-msgstr ""
+msgstr "Member added."
 
 #: admin/partials/groups.php:89
 msgid "Członek usunięty."
-msgstr ""
+msgstr "Member removed."
 
 #: admin/partials/groups.php:99
 msgid "Wybierz użytkownika z listy lub wpisz ID użytkownika."
-msgstr ""
+msgstr "Select a user from the list or enter user ID."
 
 #: admin/partials/groups.php:101
 msgid "Wybierz co najmniej jedną grupę."
-msgstr ""
+msgstr "Select at least one group."
 
 #. translators: %d: number of groups
 #: admin/partials/groups.php:121
 #, php-format
 msgid "Użytkownik dodany do %d grupy."
 msgid_plural "Użytkownik dodany do %d grup."
-msgstr[0] ""
-msgstr[1] ""
-
+msgstr[0] "User added to %d group."
+msgstr[1] "User added to %d groups."
 #: admin/partials/groups.php:140
 msgid "Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania."
-msgstr ""
+msgstr "User profile updated: place of residence added."
 
 #: admin/partials/groups.php:208
 msgid "Nazwa grupy"
-msgstr ""
+msgstr "Group name"
 
 #: admin/partials/groups.php:209
 msgid "Członkowie"
-msgstr ""
+msgstr "Members"
 
 #: admin/partials/groups.php:210 admin/partials/groups.php:289
 #: admin/partials/roles.php:49
 msgid "Akcja"
-msgstr ""
+msgstr "Action"
 
 #: admin/partials/groups.php:215
 msgid "Brak grup."
-msgstr ""
+msgstr "No groups."
 
 #: admin/partials/groups.php:231
 msgid "Usunąć tę grupę? Zostaną usunięci wszyscy jej członkowie (przypisania)."
-msgstr ""
+msgstr "Delete this group? All its members (assignments) will be removed."
 
 #: admin/partials/groups.php:232
 msgid "Usuń grupę"
-msgstr ""
+msgstr "Delete group"
 
 #: admin/partials/groups.php:268
 #, php-format
@@ -602,49 +602,49 @@ msgstr ""
 
 #: admin/partials/groups.php:277
 msgid "ID użytkownika"
-msgstr ""
+msgstr "User ID"
 
 #: admin/partials/groups.php:279
 msgid "Dodaj ręcznie"
-msgstr ""
+msgstr "Add manually"
 
 #: admin/partials/groups.php:285
 msgid "Użytkownik"
-msgstr ""
+msgstr "User"
 
 #: admin/partials/groups.php:287
 msgid "Źródło"
-msgstr ""
+msgstr "Source"
 
 #: admin/partials/groups.php:288
 msgid "Dodano"
-msgstr ""
+msgstr "Added"
 
 #: admin/partials/groups.php:294
 msgid "Brak członków."
-msgstr ""
+msgstr "No members."
 
 #: admin/partials/groups.php:309
 msgid "Usunąć z grupy?"
-msgstr ""
+msgstr "Remove from group?"
 
 #: admin/partials/groups.php:323
 msgid "Poprzednie"
-msgstr ""
+msgstr "Previous"
 
 #: admin/partials/groups.php:327
 msgid "Następne"
-msgstr ""
+msgstr "Next"
 
 #: admin/partials/groups.php:336
 msgid "Dodaj użytkownika do grup"
-msgstr ""
+msgstr "Add user to groups"
 
 #: admin/partials/groups.php:337
 msgid ""
 "Ręczne przypisanie użytkownika do jednej lub wielu grup (niezależnie od "
 "automatycznego przyporządkowania). Przydatne przy testach."
-msgstr ""
+msgstr "Manually assign a user to one or more groups. Useful for testing."
 
 #: admin/partials/groups.php:343 admin/partials/roles.php:113
 msgid "ID użytkownika (szybkie):"
@@ -691,7 +691,7 @@ msgstr ""
 
 #: admin/partials/groups.php:380 admin/partials/groups.php:390
 msgid "Dodaj grupę"
-msgstr ""
+msgstr "Add group"
 
 #: admin/partials/groups.php:386
 msgid "Nazwa"
@@ -699,7 +699,7 @@ msgstr ""
 
 #: admin/partials/groups.php:396
 msgid "Synchronizacja grup-miast"
-msgstr ""
+msgstr "City groups sync"
 
 #: admin/partials/groups.php:398
 msgid ""
@@ -710,7 +710,7 @@ msgstr ""
 
 #: admin/partials/groups.php:401
 msgid "Synchronizuj wszystkie grupy-miasta"
-msgstr ""
+msgstr "Sync all city groups"
 
 #: admin/partials/manual.php:7
 #, php-format
@@ -740,12 +740,12 @@ msgstr ""
 #: admin/partials/manual.php:42 admin/partials/manual.php:290
 #: admin/partials/poll-invitations.php:43
 msgid "Wyniki głosowania"
-msgstr ""
+msgstr "Poll results"
 
 #: admin/partials/manual.php:43 admin/partials/manual.php:322
 #: admin/partials/poll-results.php:347
 msgid "Zaproszenia e-mail"
-msgstr ""
+msgstr "Email invitations"
 
 #: admin/partials/manual.php:44 admin/partials/manual.php:351
 msgid "Konfiguracja wtyczki"
@@ -1189,7 +1189,7 @@ msgstr ""
 #: includes/class-evoting-vote-page.php:145 public/views/vote-page.php:26
 #: public/views/vote-page.php:54 public/views/vote-page-theme.php:58
 msgid "Trwające głosowania"
-msgstr ""
+msgstr "Active polls"
 
 #: admin/partials/manual.php:260
 msgid "aktywne głosowania, w których użytkownik może wziąć udział."
@@ -1198,7 +1198,7 @@ msgstr ""
 #: admin/partials/manual.php:261 blocks/evoting-voting-tabs/render.php:115
 #: public/views/vote-page-theme.php:64
 msgid "Zakończone głosowania"
-msgstr ""
+msgstr "Ended polls"
 
 #: admin/partials/manual.php:261
 msgid ""
@@ -1860,7 +1860,7 @@ msgstr ""
 
 #: admin/partials/poll-form.php:67 admin/partials/poll-results.php:19
 msgid "Edytuj głosowanie"
-msgstr ""
+msgstr "Edit poll"
 
 #: admin/partials/poll-form.php:67
 msgid "Nowe głosowanie"
@@ -1922,7 +1922,7 @@ msgstr ""
 
 #: admin/partials/poll-form.php:172 admin/partials/poll-list.php:40
 msgid "Pytania"
-msgstr ""
+msgstr "Questions"
 
 #: admin/partials/poll-form.php:172
 msgid "1–24 pytania, 3–12 odpowiedzi per pytanie"
@@ -1961,7 +1961,7 @@ msgstr ""
 
 #: admin/partials/poll-form.php:258
 msgid "Wstrzymuję się"
-msgstr ""
+msgstr "Abstain"
 
 #: admin/partials/poll-form.php:278
 msgid "Dodaj pytanie"
@@ -1995,7 +1995,7 @@ msgstr ""
 
 #: admin/partials/poll-invitations.php:39 admin/partials/poll-results.php:23
 msgid "Wszystkie głosowania"
-msgstr ""
+msgstr "All polls"
 
 #: admin/partials/poll-invitations.php:50
 #, php-format
@@ -2010,12 +2010,12 @@ msgstr ""
 #: admin/partials/poll-invitations.php:241 admin/partials/poll-results.php:66
 #: admin/partials/poll-results.php:355 admin/partials/poll-results.php:388
 msgid "Wyślij ponownie"
-msgstr ""
+msgstr "Send again"
 
 #: admin/partials/poll-invitations.php:59 admin/partials/poll-results.php:29
 #: admin/partials/poll-results.php:356
 msgid "Wyślij zaproszenia"
-msgstr ""
+msgstr "Send invitations"
 
 #: admin/partials/poll-invitations.php:73
 msgid "Wszystkie zaproszenia zostały wysłane."
@@ -2088,7 +2088,7 @@ msgstr ""
 #: admin/partials/poll-results.php:376 admin/partials/settings.php:306
 #: admin/partials/settings.php:337
 msgid "Wysyłanie…"
-msgstr ""
+msgstr "Sending…"
 
 #: admin/partials/poll-invitations.php:221 admin/partials/poll-results.php:382
 msgid "wysłanych"
@@ -2120,7 +2120,7 @@ msgstr ""
 
 #: admin/partials/poll-list.php:14
 msgid "Przepisy prawne obowiązujące w głosowaniach"
-msgstr ""
+msgstr "Legal provisions for voting"
 
 #: admin/partials/poll-list.php:15 blocks/evoting-voting-tabs/render.php:121
 #: public/views/vote-page-theme.php:70
@@ -2129,19 +2129,19 @@ msgstr ""
 
 #: admin/partials/poll-list.php:41
 msgid "Data rozpoczęcia"
-msgstr ""
+msgstr "Start date"
 
 #: admin/partials/poll-list.php:42
 msgid "Data zakończenia"
-msgstr ""
+msgstr "End date"
 
 #: admin/partials/poll-list.php:43
 msgid "Akcje"
-msgstr ""
+msgstr "Actions"
 
 #: admin/partials/poll-list.php:49
 msgid "Brak głosowań."
-msgstr ""
+msgstr "No polls."
 
 #: admin/partials/poll-results.php:15
 #, php-format
@@ -2150,7 +2150,7 @@ msgstr ""
 
 #: admin/partials/poll-results.php:63
 msgid "Wysyłka zakończona!"
-msgstr ""
+msgstr "Sending complete!"
 
 #: admin/partials/poll-results.php:80
 msgid "Wznów wysyłkę"
@@ -2164,7 +2164,7 @@ msgstr ""
 #: includes/class-evoting-results-pdf.php:85
 #: includes/class-evoting-vote-page.php:120 public/class-evoting-public.php:40
 msgid "Frekwencja"
-msgstr ""
+msgstr "Turnout"
 
 #: admin/partials/poll-results.php:119
 #: includes/class-evoting-results-pdf.php:79
@@ -2229,7 +2229,7 @@ msgstr ""
 #: includes/class-evoting-results-pdf.php:154
 #, php-format
 msgid "Lista głosujących (%d)"
-msgstr ""
+msgstr "List of voters (%d)"
 
 #: admin/partials/poll-results.php:209
 msgid ""
@@ -2255,11 +2255,11 @@ msgstr ""
 #: admin/partials/poll-results.php:238 admin/partials/poll-results.php:288
 #, php-format
 msgid "Załaduj więcej (pokazano %1$d–%2$d z %3$d)"
-msgstr ""
+msgstr "Load more (showing %1$d–%2$d of %3$d)"
 
 #: admin/partials/poll-results.php:248 admin/partials/poll-results.php:298
 msgid "Pokaż od początku"
-msgstr ""
+msgstr "Show from start"
 
 #: admin/partials/poll-results.php:252
 msgid "Nikt jeszcze nie głosował."
@@ -2269,7 +2269,7 @@ msgstr ""
 #: includes/class-evoting-results-pdf.php:184
 #, php-format
 msgid "Nie głosowali (%d)"
-msgstr ""
+msgstr "Did not vote (%d)"
 
 #: admin/partials/poll-results.php:263
 msgid ""
@@ -2294,7 +2294,7 @@ msgstr ""
 #: blocks/evoting-voting-tabs/render.php:241
 #: public/views/vote-page-theme.php:198
 msgid "Pobierz wyniki (PDF)"
-msgstr ""
+msgstr "Download results (PDF)"
 
 #: admin/partials/poll-results.php:315
 msgid "Aby pobrać wyniki w PDF, uruchom w katalogu wtyczki: composer install"
@@ -2966,9 +2966,8 @@ msgstr ""
 #, php-format
 msgid "%d rekord"
 msgid_plural "%d rekordów"
-msgstr[0] ""
-msgstr[1] ""
-
+msgstr[0] "%d record"
+msgstr[1] "%d records"
 #: admin/partials/settings.php:848
 msgid "Koordynatorzy (usermeta)"
 msgstr ""
@@ -2977,9 +2976,8 @@ msgstr ""
 #, php-format
 msgid "%d użytkownik"
 msgid_plural "%d użytkowników"
-msgstr[0] ""
-msgstr[1] ""
-
+msgstr[0] "%d user"
+msgstr[1] "%d users"
 #: admin/partials/settings.php:852
 msgid "Opcje konfiguracyjne wtyczki"
 msgstr ""
@@ -3278,7 +3276,7 @@ msgstr ""
 #: includes/class-evoting-vote-page.php:116 public/class-evoting-public.php:36
 #: rest-api/class-evoting-rest-controller.php:152
 msgid "Twój głos został zapisany. Dziękujemy!"
-msgstr ""
+msgstr "Your vote has been recorded. Thank you!"
 
 #: blocks/evoting-voting-tabs/render.php:45
 #: includes/class-evoting-vote-page.php:118 models/class-evoting-vote.php:120
@@ -3415,7 +3413,7 @@ msgstr ""
 
 #: evoting.php:63
 msgid "Ustawienia"
-msgstr ""
+msgstr "Settings"
 
 #: includes/class-evoting-eligibility.php:42
 msgid "Głosowanie jest jeszcze w przygotowaniu."
@@ -3439,17 +3437,17 @@ msgstr ""
 
 #: includes/class-evoting-eligibility.php:75
 msgid "Musisz być zalogowany, aby wziąć udział w głosowaniu."
-msgstr ""
+msgstr "You must be logged in to vote."
 
 #: includes/class-evoting-eligibility.php:80
 msgid "Konto użytkownika nie istnieje."
-msgstr ""
+msgstr "User account does not exist."
 
 #. translators: %s: nazwa pola
 #: includes/class-evoting-eligibility.php:91
 #, php-format
 msgid "Twój profil jest niekompletny. Brakuje: %s."
-msgstr ""
+msgstr "Your profile is incomplete. Missing: %s."
 
 #: includes/class-evoting-eligibility.php:123
 msgid ""
@@ -3534,7 +3532,7 @@ msgstr ""
 #: includes/class-evoting-results-pdf.php:189
 msgid ""
 "Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane."
-msgstr ""
+msgstr "Eligible users who did not vote. Nicknames anonymized."
 
 #: includes/class-evoting-results-pdf.php:220
 msgid "Wygenerowano:"
@@ -3635,7 +3633,7 @@ msgstr ""
 #: includes/evoting-render-poll.php:105
 #, php-format
 msgid "Głosuj jawnie - wyniki będą zawierać %1$s (%2$s) %3$s."
-msgstr ""
+msgstr "Vote publicly — results will show %1$s (%2$s) %3$s."
 
 #: includes/evoting-render-poll.php:111
 msgid "Głosuj jawnie - wyniki będą zawierać imię nazwisko (miasto) email."
@@ -3656,7 +3654,7 @@ msgstr ""
 
 #: includes/evoting-render-poll.php:130
 msgid "Oddaj głos"
-msgstr ""
+msgstr "Cast vote"
 
 #. translators: %s: start date
 #: includes/evoting-render-poll.php:140
@@ -3693,37 +3691,37 @@ msgstr ""
 
 #: models/class-evoting-vote.php:302 models/class-evoting-vote.php:462
 msgid "Anonimowy"
-msgstr ""
+msgstr "Anonymous"
 
 #: models/class-evoting-vote.php:473
 msgid "(brak imienia i nazwiska)"
-msgstr ""
+msgstr "(no name)"
 
 #: public/views/law-page.php:16
 msgid "Powrót do głosowań"
-msgstr ""
+msgstr "Back to polls"
 
 #. translators: 1: ankiety / głosowania, 2: lista brakujących pól
 #: public/views/partials/profile-complete.php:26
 #, php-format
 msgid "Aby wziąć udział w %1$s, uzupełnij swój profil. Brakujące pola: %2$s"
-msgstr ""
+msgstr "To participate in %1$s, complete your profile. Missing fields: %2$s"
 
 #: public/views/partials/profile-complete.php:35
 msgid ""
 "Proszę o wprowadzenie brakujących danych. Dane zostaną dodane do Twojego "
 "profilu użytkownika na tej stronie i będą dostępne do późniejszego "
 "wykorzystywania w następnych ankietach lub głosowaniach."
-msgstr ""
+msgstr "Please enter the missing data. It will be added to your user profile and used in future surveys or polls."
 
 #: public/views/vote-page.php:68
 msgid "Brak głosowań w tym momencie."
-msgstr ""
+msgstr "No polls at this time."
 
 #: rest-api/class-evoting-groups-rest-controller.php:122
 #: rest-api/class-evoting-groups-rest-controller.php:171
 msgid "Grupa nie istnieje."
-msgstr ""
+msgstr "Group does not exist."
 
 #: rest-api/class-evoting-groups-rest-controller.php:177
 msgid "Synchronizacja automatyczna działa tylko dla grup typu \"city\"."
@@ -3731,60 +3729,60 @@ msgstr ""
 
 #: rest-api/class-evoting-groups-rest-controller.php:189
 msgid "Synchronizacja uruchomiona."
-msgstr ""
+msgstr "Sync started."
 
 #: rest-api/class-evoting-groups-rest-controller.php:198
 msgid "Synchronizacja wszystkich grup-miast uruchomiona."
-msgstr ""
+msgstr "Sync of all city groups started."
 
 #: rest-api/class-evoting-groups-rest-controller.php:207
 #: rest-api/class-evoting-groups-rest-controller.php:218
 msgid "Zadanie wygasło lub nie istnieje."
-msgstr ""
+msgstr "Task has expired or does not exist."
 
 #: rest-api/class-evoting-rest-controller.php:165
 msgid "Wyniki dostępne po zakończeniu głosowania."
-msgstr ""
+msgstr "Results available after the poll has ended."
 
 #: rest-api/class-evoting-rest-controller.php:220
 msgid "Zaproszenia można wysyłać tylko do otwartych lub zakończonych głosowań."
-msgstr ""
+msgstr "Invitations can only be sent for open or ended polls."
 
 #: rest-api/class-evoting-rest-controller.php:238
 msgid "Wystąpił błąd podczas uruchamiania wysyłki zaproszeń."
-msgstr ""
+msgstr "An error occurred while starting the invitation send."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:85
 #: rest-api/class-evoting-surveys-rest-controller.php:106
 #: rest-api/class-evoting-surveys-rest-controller.php:171
 msgid "Ankieta nie istnieje."
-msgstr ""
+msgstr "Survey does not exist."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:111
 msgid "Ankieta nie jest aktualnie aktywna."
-msgstr ""
+msgstr "Survey is not currently active."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:120
 #, php-format
 msgid "Uzupełnij profil przed wypełnieniem ankiety. Brakujące pola: %s"
-msgstr ""
+msgstr "Complete your profile before filling the survey. Missing fields: %s"
 
 #: rest-api/class-evoting-surveys-rest-controller.php:153
 msgid "Błąd zapisu odpowiedzi."
-msgstr ""
+msgstr "Error saving response."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:160
 msgid "Twoja odpowiedź została zapisana jako Gotowa."
-msgstr ""
+msgstr "Your response has been saved as Ready."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:161
 msgid "Twoja odpowiedź została zapisana jako Szkic."
-msgstr ""
+msgstr "Your response has been saved as Draft."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:222
 msgid "Brak danych do zapisania."
-msgstr ""
+msgstr "No data to save."
 
 #: rest-api/class-evoting-surveys-rest-controller.php:243
 msgid "Nieprawidłowy adres e-mail."
-msgstr ""
+msgstr "Invalid email address."

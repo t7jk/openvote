@@ -79,7 +79,7 @@ class Evoting_Mailer {
             $api_key = evoting_get_sendgrid_api_key();
         }
         if ( $api_key === '' ) {
-            return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => 'Brak klucza API SendGrid.' ];
+            return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => __( 'Brak klucza API SendGrid.', 'evoting' ) ];
         }
 
         $from_email = evoting_get_from_email();
@@ -99,7 +99,7 @@ class Evoting_Mailer {
         }
 
         if ( empty( $personalizations ) ) {
-            return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => 'Brak prawidłowych adresów e-mail.' ];
+            return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => __( 'Brak prawidłowych adresów e-mail.', 'evoting' ) ];
         }
 
         $payload = [
