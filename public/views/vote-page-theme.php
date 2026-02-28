@@ -9,6 +9,21 @@ $is_logged     = is_user_logged_in();
 $user_id       = $is_logged ? get_current_user_id() : 0;
 $vote_page_url = evoting_get_vote_page_url();
 
+// Enqueue skrypt uzupełniania profilu.
+wp_enqueue_script(
+    'evoting-profile-complete',
+    EVOTING_PLUGIN_URL . 'public/js/profile-complete.js',
+    [],
+    EVOTING_VERSION,
+    true
+);
+wp_enqueue_style(
+    'evoting-public',
+    EVOTING_PLUGIN_URL . 'public/css/evoting-public.css',
+    [],
+    EVOTING_VERSION
+);
+
 // Aktywna zakładka: 'active' (trwające) lub 'closed' (zakończone).
 $active_tab = isset( $_GET['tab'] ) && $_GET['tab'] === 'closed' ? 'closed' : 'active';
 
@@ -73,7 +88,22 @@ get_header();
 
     <?php elseif ( 'active' === $active_tab ) : ?>
 
-        <?php if ( empty( $polls_active ) ) : ?>
+        <?php
+        // Sprawdź kompletność profilu użytkownika wymaganą do głosowania.
+        $poll_missing_fields = $is_logged
+            ? Evoting_Field_Map::get_missing_fields_for_user( $user_id )
+            : [];
+        ?>
+
+        <?php if ( ! empty( $poll_missing_fields ) ) : ?>
+            <?php
+            $context        = 'poll';
+            $missing_fields = $poll_missing_fields;
+            $nonce          = wp_create_nonce( 'wp_rest' );
+            include EVOTING_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
+            ?>
+
+        <?php elseif ( empty( $polls_active ) ) : ?>
             <p class="evoting-poll__no-polls">
                 <?php esc_html_e( 'Brak trwających głosowań w tym momencie.', 'evoting' ); ?>
             </p>

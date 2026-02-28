@@ -43,6 +43,7 @@ $brand = evoting_get_brand_short_name();
         <li><a href="#manual-invitations"><?php esc_html_e( 'Zaproszenia e-mail', 'evoting' ); ?></a></li>
         <li><a href="#manual-config"><?php esc_html_e( 'Konfiguracja wtyczki', 'evoting' ); ?></a></li>
         <li><a href="#manual-fieldmap"><?php esc_html_e( 'Mapowanie pól użytkownika', 'evoting' ); ?></a></li>
+        <li><a href="#manual-surveys"><?php esc_html_e( 'Ankiety i strona zgłoszeń', 'evoting' ); ?></a></li>
         <li><a href="#manual-faq"><?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'evoting' ); ?></a></li>
     </ol>
 </div>
@@ -369,6 +370,14 @@ $brand = evoting_get_brand_short_name();
         <td><?php esc_html_e( 'Pojawia się gdy strona istnieje, ale nie zawiera aktualnego bloku zakładek. Kliknij, aby zastąpić treść nowym blokiem.', 'evoting' ); ?></td>
     </tr>
     <tr>
+        <td><strong><?php esc_html_e( 'URL strony ankiet', 'evoting' ); ?></strong></td>
+        <td><?php esc_html_e( 'Slug strony z ankietami (np. "ankieta"). Strona powinna zawierać blok "Ankiety (E-głosowania)". Przyciski "Utwórz stronę ankiet" i "Zaktualizuj stronę ankiet (dodaj blok)" tworzą lub uzupełniają stronę.', 'evoting' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'URL strony zgłoszeń', 'evoting' ); ?></strong></td>
+        <td><?php esc_html_e( 'Slug strony ze zgłoszeniami ankiet oznaczonymi jako „Nie spam" (np. "zgloszenia"). Strona zawiera blok "Zgłoszenia (E-głosowania)". Na stronie publicznej wyświetlane są tylko imię i nazwisko oraz odpowiedzi na pytania — wartości pól uznanych za wrażliwe (E-mail, Miasto, Telefon, PESEL itd.) są ukrywane. Przyciski "Utwórz stronę zgłoszeń" i "Zaktualizuj stronę zgłoszeń (dodaj blok)" ułatwiają konfigurację.', 'evoting' ); ?></td>
+    </tr>
+    <tr>
         <td><strong><?php esc_html_e( 'E-mail nadawcy', 'evoting' ); ?></strong></td>
         <td><?php esc_html_e( 'Adres, z którego wysyłane są zaproszenia. Domyślnie noreply@twojadomena.pl.', 'evoting' ); ?></td>
     </tr>
@@ -415,15 +424,49 @@ $brand = evoting_get_brand_short_name();
 <h3><?php esc_html_e( 'Kolumna "Wymagane do głosowania"', 'evoting' ); ?></h3>
 <p><?php esc_html_e( 'Checkbox przy każdym polu oznacza, że użytkownik MUSI mieć wypełnione to pole, aby móc oddać głos. Pola "zawsze" (Imię, Nazwisko, Nickname, E-mail) nie mogą zostać odznaczone.', 'evoting' ); ?></p>
 
+<h3><?php esc_html_e( 'Dane wrażliwe na stronie zgłoszeń', 'evoting' ); ?></h3>
+<p><?php esc_html_e( 'Na publicznej stronie zgłoszeń (/zgloszenia lub inny skonfigurowany slug) wtyczka nie wyświetla wartości pól uznanych za wrażliwe. Są to pola z listy mapowania: E-mail, Nazwa miasta / miejsce spotkania, Numer telefonu, Numer PESEL, Numer dowodu osobistego, Ulica i numer domu, Kod pocztowy, Miejscowość. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta (pokazywane jest „—"), przy tworzeniu lub edycji ankiety należy przypisać do tego pytania odpowiednie „Pole profilu" w sekcji pól ankiety.', 'evoting' ); ?></p>
+
 <div class="evoting-manual__tip">
     <?php esc_html_e( 'Przykład: jeśli zaznaczysz PESEL jako wymagany, ale klucz pozostanie "nie określone", żaden użytkownik nie będzie mógł głosować (pole zawsze puste). Najpierw ustaw poprawny klucz meta, dopiero potem zaznacz jako wymagane.', 'evoting' ); ?>
 </div>
 </div>
 
 
-<!-- 11. FAQ -->
+<!-- 11. Ankiety i strona zgłoszeń -->
+<div class="evoting-manual__section" id="manual-surveys">
+<h2>11. <?php esc_html_e( 'Ankiety i strona zgłoszeń', 'evoting' ); ?></h2>
+<p><?php esc_html_e( 'Wtyczka umożliwia tworzenie ankiet (formularzy z pytaniami), zbieranie odpowiedzi użytkowników oraz publiczne wyświetlanie zatwierdzonych zgłoszeń na dedykowanej stronie.', 'evoting' ); ?></p>
+
+<h3><?php esc_html_e( 'Gdzie znajdziesz ankiety', 'evoting' ); ?></h3>
+<ul>
+    <li><?php esc_html_e( 'Lista ankiet: E-głosowania → Ankiety (lub z menu listy głosowań — opcja "Ankiety").', 'evoting' ); ?></li>
+    <li><?php esc_html_e( 'Tworzenie i edycja: tytuł, opis, czas trwania, pola ankiety (etykieta, typ pola, opcjonalnie powiązanie z polem profilu).', 'evoting' ); ?></li>
+    <li><?php esc_html_e( 'Dla każdej ankiety: lista zgłoszeń ze statusem (oczekuje / nie spam / spam), przycisk "To nie spam" do zatwierdzania zgłoszeń.', 'evoting' ); ?></li>
+</ul>
+
+<h3><?php esc_html_e( 'Pole profilu przy pytaniach ankiety', 'evoting' ); ?></h3>
+<p><?php esc_html_e( 'Przy każdym polu ankiety (pytaniu) można ustawić opcjonalne „Pole profilu": wybór z listy (Imię, Nazwisko, E-mail, Miasto, Numer telefonu, PESEL, Ulica, Kod pocztowy, Miejscowość itd.). To powiązanie służy stronie publicznej zgłoszeń:', 'evoting' ); ?></p>
+<ul>
+    <li><?php esc_html_e( 'Jeśli pole profilu jest puste (— brak), odpowiedź użytkownika na to pytanie jest na stronie /zgloszenia wyświetlana w całości.', 'evoting' ); ?></li>
+    <li><?php esc_html_e( 'Jeśli wybierzesz pole uznane za wrażliwe (E-mail, Miasto, Telefon, PESEL, Dowód, Ulica, Kod pocztowy, Miejscowość), wartość tej odpowiedzi na stronie zgłoszeń zostanie zastąpiona znakiem „—", aby nie ujawniać danych osobowych.', 'evoting' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'W nagłówku każdej karty zgłoszenia na stronie publicznej wyświetlane są wyłącznie imię i nazwisko; pozostałe dane z profilu (e-mail, telefon, data) nie są tam pokazywane.', 'evoting' ); ?></p>
+
+<h3><?php esc_html_e( 'Strona zgłoszeń (/zgloszenia)', 'evoting' ); ?></h3>
+<p><?php esc_html_e( 'Adres strony (slug) ustawiasz w Konfiguracji w sekcji „URL strony zgłoszeń". Strona powinna zawierać blok Gutenberg „Zgłoszenia (E-głosowania)" (evoting/survey-responses). Możesz utworzyć ją ręcznie w edytorze lub użyć przycisków w Konfiguracji: „Utwórz stronę zgłoszeń" lub „Zaktualizuj stronę zgłoszeń (dodaj blok)".', 'evoting' ); ?></p>
+<p><?php esc_html_e( 'Na stronie wyświetlane są tylko zgłoszenia ze statusem „Nie spam". Dla każdego zgłoszenia widać: tytuł ankiety, imię i nazwisko oraz listę pytań z odpowiedziami. Odpowiedzi powiązane z wrażliwymi polami profilu są ukrywane („—").', 'evoting' ); ?></p>
+
+<div class="evoting-manual__note">
+    <strong><?php esc_html_e( 'Strona ankiet', 'evoting' ); ?></strong><br>
+    <?php esc_html_e( 'Osobna opcja w Konfiguracji to „URL strony ankiet" — strona z blokiem „Ankiety (E-głosowania)", na której użytkownicy wypełniają ankiety. Slug możesz ustawić np. na "ankieta".', 'evoting' ); ?>
+</div>
+</div>
+
+
+<!-- 12. FAQ -->
 <div class="evoting-manual__section" id="manual-faq">
-<h2>11. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'evoting' ); ?></h2>
+<h2>12. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'evoting' ); ?></h2>
 
 <h4><?php esc_html_e( 'Użytkownik widzi "Twój profil jest niekompletny" — co robić?', 'evoting' ); ?></h4>
 <p><?php esc_html_e( 'Sprawdź, które pole jest brakujące (komunikat podaje nazwę pola). Poproś użytkownika o uzupełnienie profilu lub sprawdź w Konfiguracji → Mapowanie pól, czy klucz jest poprawny.', 'evoting' ); ?></p>

@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 class Evoting_Public {
 
     public function enqueue_styles(): void {
-        if ( ! has_block( 'evoting/poll' ) ) {
+        if ( ! has_block( 'evoting/poll' ) && ! has_block( 'evoting/survey-responses' ) ) {
             return;
         }
 

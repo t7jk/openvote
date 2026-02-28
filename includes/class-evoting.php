@@ -30,6 +30,9 @@ class Evoting {
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-settings.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-roles.php';
         require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-uninstall.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-admin-surveys.php';
+        require_once EVOTING_PLUGIN_DIR . 'admin/class-evoting-surveys-list.php';
+        require_once EVOTING_PLUGIN_DIR . 'models/class-evoting-survey.php';
 
         $admin = new Evoting_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
@@ -39,6 +42,7 @@ class Evoting {
         $this->loader->add_action( 'admin_init', $admin, 'handle_results_pdf_download', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_evoting_get_actions', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_polls_action', 5 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_evoting_surveys_get_actions', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'redirect_evoting_new' );
         $this->loader->add_action( 'admin_notices', $admin, 'render_brand_header' );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );
@@ -55,27 +59,41 @@ class Evoting {
 
         $uninstall = new Evoting_Admin_Uninstall();
         $this->loader->add_action( 'admin_init', $uninstall, 'handle_form_submission' );
+
+        $surveys_admin = new Evoting_Admin_Surveys();
+        $this->loader->add_action( 'admin_init', $surveys_admin, 'handle_form_submission' );
     }
 
     private function define_public_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'public/class-evoting-public.php';
         require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-vote-page.php';
         require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-law-page.php';
+        require_once EVOTING_PLUGIN_DIR . 'includes/class-evoting-survey-page.php';
 
         $public = new Evoting_Public();
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_styles' );
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_scripts' );
+
+        // Strona ankiet: rewrite + template (klasy statyczne — rejestrujemy wprost).
+        add_filter( 'query_vars',       [ 'Evoting_Survey_Page', 'register_query_var' ] );
+        add_action( 'init',             [ 'Evoting_Survey_Page', 'add_rewrite_rule' ] );
+        add_filter( 'template_include', [ 'Evoting_Survey_Page', 'filter_template' ] );
+        add_filter( 'body_class',       [ 'Evoting_Survey_Page', 'add_body_class' ] );
     }
 
     private function define_rest_hooks(): void {
         require_once EVOTING_PLUGIN_DIR . 'rest-api/class-evoting-rest-controller.php';
         require_once EVOTING_PLUGIN_DIR . 'rest-api/class-evoting-groups-rest-controller.php';
+        require_once EVOTING_PLUGIN_DIR . 'rest-api/class-evoting-surveys-rest-controller.php';
 
         $rest = new Evoting_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $rest, 'register_routes' );
 
         $groups_rest = new Evoting_Groups_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $groups_rest, 'register_routes' );
+
+        $surveys_rest = new Evoting_Surveys_Rest_Controller();
+        $this->loader->add_action( 'rest_api_init', $surveys_rest, 'register_routes' );
     }
 
     private function define_block_hooks(): void {
@@ -99,6 +117,34 @@ class Evoting {
             'editor_script'   => 'evoting-voting-tabs-editor',
             'render_callback' => [ $this, 'render_voting_tabs_block' ],
         ] );
+
+        // Blok formularza ankiety.
+        wp_register_script(
+            'evoting-survey-form-editor',
+            EVOTING_PLUGIN_URL . 'blocks/evoting-survey-form/editor.js',
+            [ 'wp-blocks', 'wp-element' ],
+            EVOTING_VERSION,
+            false
+        );
+
+        register_block_type( 'evoting/survey-form', [
+            'editor_script'   => 'evoting-survey-form-editor',
+            'render_callback' => [ $this, 'render_survey_form_block' ],
+        ] );
+
+        // Blok zgłoszeń ankiet (nie spam).
+        wp_register_script(
+            'evoting-survey-responses-editor',
+            EVOTING_PLUGIN_URL . 'blocks/evoting-survey-responses/editor.js',
+            [ 'wp-blocks', 'wp-element' ],
+            EVOTING_VERSION,
+            false
+        );
+
+        register_block_type( 'evoting/survey-responses', [
+            'editor_script'   => 'evoting-survey-responses-editor',
+            'render_callback' => [ $this, 'render_survey_responses_block' ],
+        ] );
     }
 
     /**
@@ -107,6 +153,33 @@ class Evoting {
     public function render_voting_tabs_block( array $attributes, string $content ): string {
         ob_start();
         include EVOTING_PLUGIN_DIR . 'blocks/evoting-voting-tabs/render.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Server-side render callback dla bloku evoting/survey-form.
+     */
+    public function render_survey_form_block( array $attributes, string $content ): string {
+        ob_start();
+        include EVOTING_PLUGIN_DIR . 'blocks/evoting-survey-form/render.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Server-side render callback dla bloku evoting/survey-responses.
+     */
+    public function render_survey_responses_block( array $attributes, string $content ): string {
+        ob_start();
+        include EVOTING_PLUGIN_DIR . 'blocks/evoting-survey-responses/render.php';
+        return ob_get_clean();
+    }
+
+    /**
+     * Publiczny alias — używany przez survey-page.php fallback.
+     */
+    public static function render_survey_form_block_static( array $attributes, string $content ): string {
+        ob_start();
+        include EVOTING_PLUGIN_DIR . 'blocks/evoting-survey-form/render.php';
         return ob_get_clean();
     }
 

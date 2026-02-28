@@ -16,6 +16,9 @@ class Evoting_Field_Map {
     /** Option key for storing which logical fields are required for voting. */
     const REQUIRED_FIELDS_OPTION = 'evoting_required_fields';
 
+    /** Option key for storing which logical fields are required for surveys. */
+    const SURVEY_REQUIRED_FIELDS_OPTION = 'evoting_survey_required_fields';
+
     /** Sentinel value meaning "field not mapped — treat as empty". */
     const NOT_SET_KEY = '__evoting_not_set__';
 
@@ -55,10 +58,38 @@ class Evoting_Field_Map {
     ];
 
     /**
+     * Klucze pól uznawane za wrażliwe na stronie publicznej zgłoszeń.
+     * Na /zgloszenia/ wartości tych pól nie są wyświetlane (tylko "—").
+     */
+    const SENSITIVE_FOR_PUBLIC = [
+        'email',
+        'city',
+        'phone',
+        'pesel',
+        'id_card',
+        'address',
+        'zip_code',
+        'town',
+    ];
+
+    /**
+     * Czy dane pole (logical key) jest wrażliwe i nie powinno być pokazywane publicznie.
+     */
+    public static function is_sensitive_for_public( string $logical ): bool {
+        return in_array( $logical, self::SENSITIVE_FOR_PUBLIC, true );
+    }
+
+    /**
      * Fields required by default (always required, regardless of admin config).
      * Admin can add more via checkboxes; these cannot be unchecked.
      */
     const ALWAYS_REQUIRED = [ 'first_name', 'last_name', 'nickname', 'email' ];
+
+    /**
+     * Fields always required for surveys (fixed, cannot be unchecked).
+     * Miasto (city) jest opcjonalne — admin może je zaznaczyć/odznaczyć w Konfiguracji.
+     */
+    const SURVEY_ALWAYS_REQUIRED = [ 'first_name', 'last_name', 'nickname', 'email' ];
 
     /**
      * WordPress core wp_users columns (not usermeta).
@@ -179,6 +210,79 @@ class Evoting_Field_Map {
             }
         }
         update_option( self::REQUIRED_FIELDS_OPTION, $clean, false );
+    }
+
+    // ── Survey required fields ────────────────────────────────────────────────
+
+    /**
+     * Returns required fields for surveys as [ 'logical' => 'Label' ].
+     * Always-required: first_name, last_name, nickname, email, city.
+     * Optional (default: phone is checked): saved in evoting_survey_required_fields.
+     */
+    public static function get_survey_required_fields(): array {
+        $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [ 'phone', 'city' ] );
+        $required = [];
+        foreach ( array_keys( self::DEFAULTS ) as $logical ) {
+            if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true )
+                 || in_array( $logical, $saved, true ) ) {
+                $required[ $logical ] = self::LABELS[ $logical ];
+            }
+        }
+        return $required;
+    }
+
+    /**
+     * Whether a specific logical field is required for surveys.
+     */
+    public static function is_survey_required( string $logical ): bool {
+        if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true ) ) {
+            return true;
+        }
+        $saved = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [ 'phone', 'city' ] );
+        return in_array( $logical, $saved, true );
+    }
+
+    /**
+     * Persist survey required fields from POST data.
+     */
+    public static function save_survey_required_fields( array $checked ): void {
+        $clean = [];
+        foreach ( array_keys( self::DEFAULTS ) as $logical ) {
+            if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true ) ) {
+                continue;
+            }
+            if ( in_array( $logical, $checked, true ) ) {
+                $clean[] = $logical;
+            }
+        }
+        update_option( self::SURVEY_REQUIRED_FIELDS_OPTION, $clean, false );
+    }
+
+    // ── Missing field helpers ─────────────────────────────────────────────────
+
+    /**
+     * Return logical fields that are required but missing for a given user.
+     * Used to display the inline profile completion form on public pages.
+     *
+     * @return array<string, string>  [ 'logical_key' => 'Human label', ... ]
+     */
+    public static function get_missing_fields_for_user( int $user_id ): array {
+        $user = get_userdata( $user_id );
+        if ( ! $user ) {
+            return [];
+        }
+
+        $required = self::get_required_fields();
+        $missing  = [];
+
+        foreach ( $required as $logical => $label ) {
+            $value = self::get_user_value( $user, $logical );
+            if ( '' === trim( $value ) ) {
+                $missing[ $logical ] = $label;
+            }
+        }
+
+        return $missing;
     }
 
     /**

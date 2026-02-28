@@ -543,3 +543,483 @@
 .evoting-law-back a:hover {
     text-decoration: underline;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANKIETY — strona publiczna
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Wrapper strony */
+.evoting-survey-page-wrap {
+    max-width: 860px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Kontener całości */
+.evoting-survey-wrap {
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+/* ── Karta ankiety ─────────────────────────────────────────────────────── */
+.evoting-survey-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+.evoting-survey-card__header {
+    background: var(--wp--preset--color--background, #f8f9fa);
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.evoting-survey-card__title {
+    margin: 0 0 .5rem;
+    font-size: 1.25rem;
+    color: var(--wp--preset--color--primary, #0073aa);
+}
+
+.evoting-survey-card__desc {
+    margin: 0 0 .5rem;
+    color: #555;
+    font-size: .95em;
+}
+
+.evoting-survey-card__meta {
+    margin: 0;
+    font-size: .85em;
+    color: #888;
+}
+
+/* ── Dane z profilu (read-only) ───────────────────────────────────────── */
+.evoting-survey-profile {
+    background: #f8f9fa;
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0 1.25rem;
+}
+
+.evoting-survey-profile__title {
+    margin: 0 0 .35em;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.evoting-survey-profile__desc {
+    margin: 0 0 .75rem;
+    font-size: .8125rem;
+    color: #646970;
+    line-height: 1.4;
+}
+
+.evoting-survey-profile__list {
+    margin: 0;
+    display: grid;
+    gap: 0;
+}
+
+.evoting-survey-profile__row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 2fr;
+    gap: .75rem 1rem;
+    align-items: baseline;
+    padding: .4rem 0;
+    border-bottom: 1px solid #e8eaed;
+}
+
+.evoting-survey-profile__row:last-child {
+    border-bottom: 0;
+}
+
+.evoting-survey-profile__label {
+    margin: 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: #50575e;
+}
+
+.evoting-survey-profile__required {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.evoting-survey-profile__required input[type="checkbox"] {
+    margin: 0;
+    width: 1rem;
+    height: 1rem;
+    accent-color: #0073aa;
+    pointer-events: none;
+}
+
+.evoting-survey-profile__value {
+    margin: 0;
+    font-size: .875rem;
+    color: #1d2327;
+}
+
+@media ( max-width: 480px ) {
+    .evoting-survey-profile__row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Powiadomienia wewnątrz karty ─────────────────────────────────────── */
+.evoting-survey-notice {
+    padding: .75rem 1.5rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.evoting-survey-notice p {
+    margin: 0;
+    font-size: .9em;
+}
+
+.evoting-survey-notice--success {
+    background: #edfaef;
+    color: #2a6930;
+    border-left: 4px solid #46b450;
+}
+
+.evoting-survey-notice--draft {
+    background: #f4f1fa;
+    color: #4a3a78;
+    border-left: 4px solid #826eb4;
+}
+
+.evoting-survey-notice--warning {
+    background: #fef8ee;
+    color: #7a4f00;
+    border-left: 4px solid #ffb900;
+}
+
+/* ── Formularz ankiety ─────────────────────────────────────────────────── */
+.evoting-survey-form {
+    padding: 1.2rem 1.5rem;
+}
+
+.evoting-survey-intro {
+    margin: 0 0 1.2rem;
+    font-size: 1em;
+    color: #444;
+}
+
+/* ── Jedno pole ankiety ──────────────────────────────────────────────── */
+.evoting-survey-field {
+    margin-bottom: 1rem;
+}
+
+.evoting-survey-field__label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: .35rem;
+    color: #333;
+    font-size: .95em;
+}
+
+.evoting-survey-field__input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: .5rem .75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    color: #333;
+    background: #fff;
+    transition: border-color .15s;
+}
+
+.evoting-survey-field__input:focus {
+    outline: none;
+    border-color: var(--wp--preset--color--primary, #0073aa);
+    box-shadow: 0 0 0 2px rgba(0,115,170,.15);
+}
+
+.evoting-survey-field__limit {
+    display: block;
+    margin-top: .25rem;
+    font-size: .75em;
+    color: #999;
+}
+
+/* ── Przyciski akcji ────────────────────────────────────────────────── */
+.evoting-survey-form__actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-top: 1.2rem;
+}
+
+.evoting-survey-btn {
+    display: inline-block;
+    padding: .55rem 1.25rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: .95em;
+    font-weight: 600;
+    transition: opacity .15s;
+}
+
+.evoting-survey-btn:hover:not(:disabled) {
+    opacity: .88;
+}
+
+.evoting-survey-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.evoting-survey-btn--draft {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.evoting-survey-btn--ready {
+    background: var(--wp--preset--color--primary, #0073aa);
+    color: #fff;
+}
+
+/* ── Brak ankiet / zaloguj ───────────────────────────────────────────── */
+.evoting-survey-empty,
+.evoting-survey-login-notice {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.evoting-survey-login-notice a {
+    font-weight: 600;
+    color: var(--wp--preset--color--primary, #0073aa);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Formularz uzupełnienia brakujących pól profilu (ankiety i głosowania)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.evoting-profile-complete {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0 1.5rem;
+}
+
+/* Baner ostrzeżenia */
+.evoting-profile-complete__notice {
+    background: #fff8e1;
+    border-left: 4px solid #f9a825;
+    padding: 0.75rem 1rem;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 1rem;
+}
+
+.evoting-profile-complete__notice p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #5a4000;
+}
+
+/* Tekst pomocniczy */
+.evoting-profile-complete__desc {
+    font-size: 0.875rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+/* Pola formularza */
+.evoting-profile-complete__fields {
+    display: grid;
+    grid-template-columns: repeat( auto-fill, minmax( 220px, 1fr ) );
+    gap: 0.875rem;
+    margin-bottom: 1.25rem;
+}
+
+.evoting-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.evoting-profile-field__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.evoting-profile-field__required {
+    color: #dc3232;
+}
+
+.evoting-profile-field__input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    color: #23282d;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+
+.evoting-profile-field__input:focus {
+    border-color: #0073aa;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}
+
+/* Footer z przyciskiem i komunikatem */
+.evoting-profile-complete__footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.evoting-profile-complete__btn {
+    padding: 0.5625rem 1.5rem;
+    background: var(--wp--preset--color--primary, #0073aa);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.evoting-profile-complete__btn:hover:not(:disabled) {
+    background: #005a87;
+}
+
+.evoting-profile-complete__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Komunikaty zwrotne */
+.evoting-profile-complete__message {
+    display: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.evoting-profile-complete__message--info    { color: #0073aa; }
+.evoting-profile-complete__message--success { color: #46b450; }
+.evoting-profile-complete__message--error   { color: #dc3232; }
+
+@media ( max-width: 480px ) {
+    .evoting-profile-complete__fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Blok: Zgłoszenia ankiet (Nie spam) ─────────────────────────────────── */
+.evoting-survey-responses-block {
+    margin: 1.5rem 0;
+}
+
+.evoting-survey-responses-block__title {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.evoting-survey-responses-block__empty {
+    color: #666;
+    font-style: italic;
+    margin: 0;
+}
+
+.evoting-survey-responses-block__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.evoting-survey-responses-block__card {
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.evoting-survey-responses-block__card-header {
+    background: #f8f9fa;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e4e7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.evoting-survey-responses-block__survey-title {
+    width: 100%;
+    font-weight: 600;
+    color: #0073aa;
+    margin-bottom: 0.25rem;
+}
+
+.evoting-survey-responses-block__user-name {
+    margin: 0;
+}
+
+.evoting-survey-responses-block__user-nick,
+.evoting-survey-responses-block__user-meta {
+    color: #555;
+}
+
+.evoting-survey-responses-block__date {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.8125rem;
+}
+
+.evoting-survey-responses-block__answers {
+    margin: 0;
+    padding: 0.75rem 1rem;
+}
+
+.evoting-survey-responses-block__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 0.5rem 1rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.evoting-survey-responses-block__row:last-child {
+    border-bottom: 0;
+}
+
+.evoting-survey-responses-block__q {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #666;
+    font-style: italic;
+}
+
+.evoting-survey-responses-block__a {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+@media ( max-width: 480px ) {
+    .evoting-survey-responses-block__row {
+        grid-template-columns: 1fr;
+    }
+}
+

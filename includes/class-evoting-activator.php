@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Evoting_Activator {
 
-    const DB_VERSION = '3.5.0';
+    const DB_VERSION = '4.2.0';
 
     public static function activate(): void {
         self::create_tables();
@@ -12,6 +12,10 @@ class Evoting_Activator {
         update_option( 'evoting_db_version', self::DB_VERSION );
         require_once __DIR__ . '/class-evoting-vote-page.php';
         Evoting_Vote_Page::add_rewrite_rule();
+
+        require_once __DIR__ . '/class-evoting-survey-page.php';
+        Evoting_Survey_Page::add_rewrite_rule();
+
         flush_rewrite_rules();
     }
 
@@ -26,12 +30,13 @@ class Evoting_Activator {
         $installed    = get_option( 'evoting_db_version', '1.0.0' );
         $version_old  = version_compare( $installed, self::DB_VERSION, '<' );
 
-        // Sprawdź czy tabela kolejki email fizycznie istnieje (może jej nie być
-        // gdy wtyczka była aktywna przed jej dodaniem do schematu).
-        $eq_table     = $wpdb->prefix . 'evoting_email_queue';
-        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $eq_table ) ) === $eq_table;
+        // Sprawdź czy tabele fizycznie istnieją.
+        $eq_table      = $wpdb->prefix . 'evoting_email_queue';
+        $surv_table    = $wpdb->prefix . 'evoting_surveys';
+        $table_missing = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $eq_table ) ) !== $eq_table
+                      || $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $surv_table ) ) !== $surv_table;
 
-        if ( $version_old || ! $table_exists ) {
+        if ( $version_old || $table_missing ) {
             self::create_tables();
             self::run_migrations();
             update_option( 'evoting_db_version', self::DB_VERSION );
@@ -48,7 +53,11 @@ class Evoting_Activator {
         $votes         = $wpdb->prefix . 'evoting_votes';
         $groups        = $wpdb->prefix . 'evoting_groups';
         $group_members = $wpdb->prefix . 'evoting_group_members';
-        $email_queue   = $wpdb->prefix . 'evoting_email_queue';
+        $email_queue      = $wpdb->prefix . 'evoting_email_queue';
+        $surveys          = $wpdb->prefix . 'evoting_surveys';
+        $survey_questions = $wpdb->prefix . 'evoting_survey_questions';
+        $survey_responses = $wpdb->prefix . 'evoting_survey_responses';
+        $survey_answers   = $wpdb->prefix . 'evoting_survey_answers';
 
         $sql = "CREATE TABLE {$polls} (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -142,6 +151,62 @@ class Evoting_Activator {
             UNIQUE KEY unique_poll_user (poll_id,user_id),
             KEY job_status (job_id,status),
             KEY poll_status (poll_id,status)
+        ) {$charset_collate};";
+
+        $sql .= "
+        CREATE TABLE {$surveys} (
+            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            title       VARCHAR(512) NOT NULL,
+            description TEXT,
+            status      ENUM('draft','open','closed') NOT NULL DEFAULT 'draft',
+            date_start  DATETIME NOT NULL,
+            date_end    DATETIME NOT NULL,
+            created_by  BIGINT UNSIGNED NOT NULL,
+            created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY status (status),
+            KEY date_start (date_start),
+            KEY date_end (date_end)
+        ) {$charset_collate};
+
+        CREATE TABLE {$survey_questions} (
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            survey_id     BIGINT UNSIGNED NOT NULL,
+            body          VARCHAR(512) NOT NULL,
+            field_type   ENUM('text_short','text_long','numeric','url','email') NOT NULL DEFAULT 'text_short',
+            max_chars     SMALLINT UNSIGNED NOT NULL DEFAULT 100,
+            sort_order    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            profile_field VARCHAR(64) NOT NULL DEFAULT '',
+            PRIMARY KEY (id),
+            KEY survey_id (survey_id)
+        ) {$charset_collate};
+
+        CREATE TABLE {$survey_responses} (
+            id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            survey_id         BIGINT UNSIGNED NOT NULL,
+            user_id           BIGINT UNSIGNED NOT NULL,
+            response_status   ENUM('draft','ready') NOT NULL DEFAULT 'draft',
+            spam_status       VARCHAR(20) NOT NULL DEFAULT 'pending',
+            user_first_name   VARCHAR(255) NOT NULL DEFAULT '',
+            user_last_name    VARCHAR(255) NOT NULL DEFAULT '',
+            user_nickname     VARCHAR(255) NOT NULL DEFAULT '',
+            user_phone        VARCHAR(50)  NOT NULL DEFAULT '',
+            user_email        VARCHAR(255) NOT NULL DEFAULT '',
+            submitted_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_response (survey_id, user_id),
+            KEY survey_status (survey_id, response_status)
+        ) {$charset_collate};
+
+        CREATE TABLE {$survey_answers} (
+            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            response_id BIGINT UNSIGNED NOT NULL,
+            question_id BIGINT UNSIGNED NOT NULL,
+            answer_text TEXT NOT NULL,
+            PRIMARY KEY (id),
+            KEY response_id (response_id),
+            KEY question_id (question_id)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -272,6 +337,24 @@ class Evoting_Activator {
                      ON e1.poll_id = e2.poll_id AND e1.user_id = e2.user_id AND e1.id < e2.id"
                 ); // phpcs:ignore
                 $wpdb->query( "ALTER TABLE {$eq} ADD UNIQUE KEY unique_poll_user (poll_id, user_id)" ); // phpcs:ignore
+            }
+        }
+
+        // ── 4.0.0 → 4.1.0 : spam_status w odpowiedziach na ankiety ───────────
+        if ( version_compare( $installed, '4.1.0', '<' ) ) {
+            $sr = $wpdb->prefix . 'evoting_survey_responses';
+            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$sr}" );
+            if ( ! empty( $cols ) && ! in_array( 'spam_status', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$sr} ADD COLUMN spam_status VARCHAR(20) NOT NULL DEFAULT 'pending' AFTER response_status" );
+            }
+        }
+
+        // ── 4.1.0 → 4.2.0 : profile_field w pytaniach ankiet (dane wrażliwe na /zgloszenia) ─
+        if ( version_compare( $installed, '4.2.0', '<' ) ) {
+            $sq = $wpdb->prefix . 'evoting_survey_questions';
+            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$sq}" );
+            if ( ! empty( $cols ) && ! in_array( 'profile_field', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$sq} ADD COLUMN profile_field VARCHAR(64) NOT NULL DEFAULT '' AFTER sort_order" );
             }
         }
     }

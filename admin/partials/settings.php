@@ -390,6 +390,117 @@ function evoting_settings_select( string $logical, string $current, array $core_
             </tr>
         </table>
 
+        <!-- ── URL strony ankiet ──────────────────────────────────────────── -->
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony ankiet', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Adres publicznej strony z ankietami. Najlepiej stwórz stronę WordPress i wstaw blok "Ankiety (E-głosowania)", aby korzystać z edytora Gutenberg.', 'evoting' ); ?>
+        </p>
+        <?php
+        if ( isset( $_GET['survey_page_created'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została utworzona.', 'evoting' ); ?></p></div>
+        <?php elseif ( isset( $_GET['survey_page_updated'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została zaktualizowana.', 'evoting' ); ?></p></div>
+        <?php endif; ?>
+
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><label for="evoting_survey_page_slug"><?php esc_html_e( 'Slug strony', 'evoting' ); ?></label></th>
+                <td>
+                    <input type="text" name="evoting_survey_page_slug" id="evoting_survey_page_slug"
+                           value="<?php echo esc_attr( class_exists( 'Evoting_Survey_Page' ) ? Evoting_Survey_Page::get_slug() : get_option( 'evoting_survey_page_slug', 'ankieta' ) ); ?>"
+                           class="regular-text" style="width:140px;" placeholder="ankieta" />
+                    <?php
+                    $surv_slug = class_exists( 'Evoting_Survey_Page' ) ? Evoting_Survey_Page::get_slug() : 'ankieta';
+                    $surv_page = get_page_by_path( $surv_slug, OBJECT, 'page' );
+                    if ( $surv_page && 'publish' === $surv_page->post_status ) {
+                        $surv_url = get_permalink( $surv_page->ID );
+                    } else {
+                        $surv_url = class_exists( 'Evoting_Survey_Page' ) ? Evoting_Survey_Page::get_url() : home_url( '/' . $surv_slug . '/' );
+                    }
+                    ?>
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Adres strony ankiet:', 'evoting' ); ?>
+                        <strong><a href="<?php echo esc_url( $surv_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $surv_url ); ?></a></strong>
+                        <?php if ( $surv_page ) : ?>
+                        &nbsp;|&nbsp;
+                        <a href="<?php echo esc_url( get_edit_post_link( $surv_page->ID ) ); ?>" target="_blank">
+                            <?php esc_html_e( 'Edytuj w Gutenberg', 'evoting' ); ?>
+                        </a>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ( ! $surv_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="evoting_create_survey_page" value="1" class="button">
+                            <?php esc_html_e( 'Utwórz stronę ankiet', 'evoting' ); ?>
+                        </button>
+                    </p>
+                    <?php elseif ( class_exists( 'Evoting_Survey_Page' ) && ! Evoting_Survey_Page::page_has_survey_block() ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="evoting_update_survey_page" value="1" class="button button-primary">
+                            <?php esc_html_e( 'Zaktualizuj stronę ankiet (dodaj blok)', 'evoting' ); ?>
+                        </button>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+
+        <!-- ── URL strony zgłoszeń ─────────────────────────────────────────── -->
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'URL strony zgłoszeń', 'evoting' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e( 'Adres publicznej strony ze zgłoszeniami oznaczonymi jako „Nie spam”. Stwórz stronę i wstaw blok „Zgłoszenia (E-głosowania)” lub użyj przycisków poniżej.', 'evoting' ); ?>
+        </p>
+        <?php
+        if ( isset( $_GET['submissions_page_created'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została utworzona.', 'evoting' ); ?></p></div>
+        <?php elseif ( isset( $_GET['submissions_page_updated'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została zaktualizowana.', 'evoting' ); ?></p></div>
+        <?php endif; ?>
+
+        <table class="form-table" role="presentation" style="max-width:780px;">
+            <tr>
+                <th scope="row"><label for="evoting_submissions_page_slug"><?php esc_html_e( 'Slug strony', 'evoting' ); ?></label></th>
+                <td>
+                    <?php $subm_slug = get_option( 'evoting_submissions_page_slug', 'zgloszenia' ); ?>
+                    <input type="text" name="evoting_submissions_page_slug" id="evoting_submissions_page_slug"
+                           value="<?php echo esc_attr( $subm_slug ); ?>"
+                           class="regular-text" style="width:140px;" placeholder="zgloszenia" />
+                    <?php
+                    $subm_page = get_page_by_path( $subm_slug, OBJECT, 'page' );
+                    if ( $subm_page && 'publish' === $subm_page->post_status ) {
+                        $subm_url = get_permalink( $subm_page->ID );
+                    } else {
+                        $subm_url = home_url( '/' . $subm_slug . '/' );
+                    }
+                    $has_block = class_exists( 'Evoting_Admin_Settings' ) && Evoting_Admin_Settings::page_has_submissions_block( $subm_slug );
+                    ?>
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Adres strony zgłoszeń:', 'evoting' ); ?>
+                        <strong><a href="<?php echo esc_url( $subm_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $subm_url ); ?></a></strong>
+                        <?php if ( $subm_page ) : ?>
+                        &nbsp;|&nbsp;
+                        <a href="<?php echo esc_url( get_edit_post_link( $subm_page->ID ) ); ?>" target="_blank">
+                            <?php esc_html_e( 'Edytuj w Gutenberg', 'evoting' ); ?>
+                        </a>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ( ! $subm_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="evoting_create_submissions_page" value="1" class="button">
+                            <?php esc_html_e( 'Utwórz stronę zgłoszeń', 'evoting' ); ?>
+                        </button>
+                    </p>
+                    <?php elseif ( ! $has_block ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="evoting_update_submissions_page" value="1" class="button button-primary">
+                            <?php esc_html_e( 'Zaktualizuj stronę zgłoszeń (dodaj blok)', 'evoting' ); ?>
+                        </button>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+
         <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'evoting' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
             <?php esc_html_e( 'Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania liczników.', 'evoting' ); ?>
@@ -470,20 +581,23 @@ function evoting_settings_select( string $logical, string $current, array $core_
             </p>
         </div>
 
-        <table class="widefat fixed evoting-settings-table" style="max-width:780px;">
+        <table class="widefat fixed evoting-settings-table" style="max-width:960px;">
             <thead>
                 <tr>
                     <th style="width:220px;"><?php esc_html_e( 'Pole logiczne', 'evoting' ); ?></th>
                     <th><?php esc_html_e( 'Klucz w bazie danych WordPress', 'evoting' ); ?></th>
                     <th style="width:110px;text-align:center;"><?php esc_html_e( 'Wymagane', 'evoting' ); ?><br><span style="font-weight:400;font-size:11px;color:#888;"><?php esc_html_e( 'do głosowania', 'evoting' ); ?></span></th>
+                    <th style="width:110px;text-align:center;"><?php esc_html_e( 'Wymagane', 'evoting' ); ?><br><span style="font-weight:400;font-size:11px;color:#888;"><?php esc_html_e( 'do ankiety', 'evoting' ); ?></span></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ( $labels as $logical => $label ) :
-                    $current_val = $current_map[ $logical ] ?? Evoting_Field_Map::DEFAULTS[ $logical ];
-                    $is_core     = Evoting_Field_Map::is_core_field( $current_val );
-                    $always_req  = in_array( $logical, Evoting_Field_Map::ALWAYS_REQUIRED, true );
-                    $is_req      = Evoting_Field_Map::is_required( $logical );
+                    $current_val      = $current_map[ $logical ] ?? Evoting_Field_Map::DEFAULTS[ $logical ];
+                    $is_core          = Evoting_Field_Map::is_core_field( $current_val );
+                    $always_req       = in_array( $logical, Evoting_Field_Map::ALWAYS_REQUIRED, true );
+                    $is_req           = Evoting_Field_Map::is_required( $logical );
+                    $survey_always    = in_array( $logical, Evoting_Field_Map::SURVEY_ALWAYS_REQUIRED, true );
+                    $is_survey_req    = Evoting_Field_Map::is_survey_required( $logical );
                 ?>
                 <tr>
                     <td>
@@ -542,14 +656,28 @@ function evoting_settings_select( string $logical, string $current, array $core_
                     </td>
                     <td style="text-align:center;vertical-align:middle;">
                         <?php if ( $always_req ) : ?>
-                            <input type="checkbox" checked disabled
-                                   title="<?php esc_attr_e( 'To pole jest zawsze wymagane', 'evoting' ); ?>">
+                            <span class="evoting-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane', 'evoting' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'evoting' ); ?>">
+                                <span class="evoting-always-required-box__check" aria-hidden="true">✓</span>
+                            </span>
                             <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'evoting' ); ?></span>
                         <?php else : ?>
                             <input type="checkbox"
                                    name="evoting_required_fields[]"
                                    value="<?php echo esc_attr( $logical ); ?>"
                                    <?php checked( $is_req ); ?>>
+                        <?php endif; ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;">
+                        <?php if ( $survey_always ) : ?>
+                            <span class="evoting-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane dla ankiet', 'evoting' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'evoting' ); ?>">
+                                <span class="evoting-always-required-box__check" aria-hidden="true">✓</span>
+                            </span>
+                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'evoting' ); ?></span>
+                        <?php else : ?>
+                            <input type="checkbox"
+                                   name="evoting_survey_required_fields[]"
+                                   value="<?php echo esc_attr( $logical ); ?>"
+                                   <?php checked( $is_survey_req ); ?>>
                         <?php endif; ?>
                     </td>
                 </tr>

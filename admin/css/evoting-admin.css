@@ -470,3 +470,23 @@ input.evoting-date-readonly {
     border-color: #6b1c1c !important;
     color: #fff !important;
 }
+
+/* Pola „zawsze wymagane” w Konfiguracji — wizualna ptaszek (nie input), nie da się jej zmienić */
+.evoting-always-required-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #8c8f94;
+    background: #f0f0f1;
+    color: #2c3338;
+    border-radius: 2px;
+    pointer-events: none;
+    user-select: none;
+}
+.evoting-always-required-box__check {
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+}

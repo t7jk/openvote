@@ -32,6 +32,15 @@ class Evoting_Admin {
 
         add_submenu_page(
             'evoting',
+            __( 'Ankiety', 'evoting' ),
+            __( 'Ankiety', 'evoting' ),
+            'read',
+            'evoting-surveys',
+            [ $this, 'render_surveys_page' ]
+        );
+
+        add_submenu_page(
+            'evoting',
             __( 'Grupy użytkowników', 'evoting' ),
             __( 'Grupy', 'evoting' ),
             'read',
@@ -73,6 +82,15 @@ class Evoting_Admin {
             'read',
             'evoting-law',
             [ $this, 'render_law_page' ]
+        );
+
+        add_submenu_page(
+            'evoting',
+            __( 'O tym', 'evoting' ),
+            __( 'O tym', 'evoting' ),
+            'read',
+            'evoting-about',
+            [ $this, 'render_about_page' ]
         );
     }
 
@@ -296,6 +314,135 @@ class Evoting_Admin {
         }
     }
 
+    /**
+     * Akcje GET na stronie ankiet (close, delete, duplicate) — w admin_init,
+     * zanim cokolwiek zostanie wysłane, żeby wp_safe_redirect() działał.
+     */
+    public function handle_evoting_surveys_get_actions(): void {
+        if ( ! isset( $_GET['page'] ) || 'evoting-surveys' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+
+        $action    = sanitize_text_field( $_GET['action'] ?? '' );
+        $survey_id = isset( $_GET['survey_id'] ) ? absint( $_GET['survey_id'] ) : 0;
+
+        if ( 'close' === $action && $survey_id ) {
+            if ( ! self::user_can_access_coordinators() ) {
+                return;
+            }
+            check_admin_referer( 'evoting_close_survey_' . $survey_id );
+            $s = Evoting_Survey::get( $survey_id );
+            if ( $s && 'open' === $s->status ) {
+                Evoting_Survey::update( $survey_id, [ 'status' => 'closed', 'date_end' => current_time( 'Y-m-d H:i:s' ) ] );
+            }
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting-surveys&closed=1' ) );
+            exit;
+        }
+
+        if ( 'delete' === $action && $survey_id ) {
+            if ( ! self::user_can_access_coordinators() ) {
+                return;
+            }
+            check_admin_referer( 'evoting_delete_survey_' . $survey_id );
+            Evoting_Survey::delete( $survey_id );
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting-surveys&deleted=1' ) );
+            exit;
+        }
+
+        if ( 'duplicate' === $action && $survey_id ) {
+            if ( ! self::user_can_access_coordinators() ) {
+                return;
+            }
+            check_admin_referer( 'evoting_duplicate_survey_' . $survey_id );
+            $new_id = Evoting_Survey::duplicate( $survey_id );
+            if ( $new_id ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=evoting-surveys&action=edit&survey_id=' . $new_id . '&duplicated=1' ) );
+            } else {
+                wp_safe_redirect( admin_url( 'admin.php?page=evoting-surveys&duplicate_error=1' ) );
+            }
+            exit;
+        }
+
+        $response_id = isset( $_GET['response_id'] ) ? absint( $_GET['response_id'] ) : 0;
+        if ( 'mark_not_spam' === $action && $survey_id && $response_id ) {
+            if ( ! self::user_can_access_coordinators() ) {
+                return;
+            }
+            check_admin_referer( 'evoting_mark_not_spam_' . $response_id );
+            Evoting_Survey::set_response_spam_status( $response_id, 'not_spam' );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-surveys', 'action' => 'responses', 'survey_id' => $survey_id, 'marked_not_spam' => 1 ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+    }
+
+    public function render_surveys_page(): void {
+        if ( ! self::user_can_access_coordinators() ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+
+        $action    = sanitize_text_field( $_GET['action'] ?? '' );
+        $survey_id = isset( $_GET['survey_id'] ) ? absint( $_GET['survey_id'] ) : 0;
+
+        // Akcje GET (close, delete, duplicate) są obsługiwane w admin_init — handle_evoting_surveys_get_actions().
+
+        if ( 'new' === $action ) {
+            $survey = null;
+            include EVOTING_PLUGIN_DIR . 'admin/partials/survey-form.php';
+            return;
+        }
+
+        if ( 'edit' === $action && $survey_id ) {
+            $survey = Evoting_Survey::get( $survey_id );
+            if ( $survey ) {
+                $is_read_only = false;
+                include EVOTING_PLUGIN_DIR . 'admin/partials/survey-form.php';
+                return;
+            }
+        }
+
+        if ( 'view' === $action && $survey_id ) {
+            $survey = Evoting_Survey::get( $survey_id );
+            if ( $survey ) {
+                $is_read_only = true;
+                include EVOTING_PLUGIN_DIR . 'admin/partials/survey-form.php';
+                return;
+            }
+        }
+
+        if ( 'responses' === $action && $survey_id ) {
+            $survey = Evoting_Survey::get( $survey_id );
+            if ( $survey ) {
+                include EVOTING_PLUGIN_DIR . 'admin/partials/survey-responses.php';
+                return;
+            }
+        }
+
+        if ( 'all_responses' === $action ) {
+            $survey = null;
+            include EVOTING_PLUGIN_DIR . 'admin/partials/survey-responses.php';
+            return;
+        }
+
+        include EVOTING_PLUGIN_DIR . 'admin/partials/survey-list.php';
+    }
+
+    public function render_surveys_new_page(): void {
+        if ( ! self::user_can_access_coordinators() ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+        $survey = null;
+        $is_read_only = false;
+        include EVOTING_PLUGIN_DIR . 'admin/partials/survey-form.php';
+    }
+
+    public function render_surveys_responses_page(): void {
+        if ( ! self::user_can_access_coordinators() ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+        $survey = null; // widok zbiorczy wszystkich zamkniętych ankiet
+        include EVOTING_PLUGIN_DIR . 'admin/partials/survey-responses.php';
+    }
+
     public function render_polls_page(): void {
         if ( ! current_user_can( self::CAP ) && ! self::user_can_access_coordinators() ) {
             wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
@@ -482,6 +629,10 @@ class Evoting_Admin {
         include EVOTING_PLUGIN_DIR . 'admin/partials/law.php';
     }
 
+    public function render_about_page(): void {
+        include EVOTING_PLUGIN_DIR . 'admin/partials/about.php';
+    }
+
     public function render_brand_header(): void {
         $screen = get_current_screen();
         if ( ! $screen || ! str_contains( $screen->id, 'evoting' ) ) {
@@ -563,6 +714,36 @@ class Evoting_Admin {
                 'apiRoot'    => esc_url_raw( rest_url( 'evoting/v1' ) ),
                 'nonce'      => wp_create_nonce( 'wp_rest' ),
                 'emailDelay' => evoting_get_email_batch_delay(),
+            ] );
+        }
+
+        // Edytor pól ankiet — tylko na stronie Ankiet.
+        if ( str_contains( $hook, 'evoting-surveys' ) ) {
+            wp_enqueue_script(
+                'evoting-survey-admin',
+                EVOTING_PLUGIN_URL . 'assets/js/survey-admin.js',
+                [],
+                EVOTING_VERSION,
+                true
+            );
+            $profile_opts = [ '' => __( '— brak (pole dowolne)', 'evoting' ) ] + Evoting_Field_Map::LABELS;
+            wp_localize_script( 'evoting-survey-admin', 'evotingSurveyAdmin', [
+                'maxFields'        => Evoting_Survey::MAX_QUESTIONS,
+                'profileFieldOpts' => $profile_opts,
+                'i18n'             => [
+                    'text_short'     => __( 'Krótki tekst do 100 znaków', 'evoting' ),
+                    'text_long'      => __( 'Długi tekst do 2000 znaków', 'evoting' ),
+                    'numeric'        => __( 'Numer do 30 cyfr', 'evoting' ),
+                    'url'            => __( 'Adres URL', 'evoting' ),
+                    'email'          => __( 'E-mail', 'evoting' ),
+                    'placeholder'    => __( 'Etykieta / tytuł pola', 'evoting' ),
+                    'profileLabel'   => __( 'Pole profilu (na stronie /zgłoszenia/ dane wrażliwe są ukrywane)', 'evoting' ),
+                    'maxChars'       => __( 'Limit znaków:', 'evoting' ),
+                    'remove'         => __( 'Usuń pole', 'evoting' ),
+                    'minOne'         => __( 'Ankieta musi mieć co najmniej jedno pole.', 'evoting' ),
+                    'emptyLabel'     => __( 'Wypełnij etykiety wszystkich pól.', 'evoting' ),
+                    'dateOrder'      => __( 'Data zakończenia musi być późniejsza niż data rozpoczęcia.', 'evoting' ),
+                ],
             ] );
         }
 
