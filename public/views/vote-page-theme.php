@@ -25,7 +25,7 @@ wp_enqueue_style(
 );
 
 // Aktywna zakładka: 'active' (trwające) lub 'closed' (zakończone).
-$active_tab = isset( $_GET['tab'] ) && $_GET['tab'] === 'closed' ? 'closed' : 'active';
+$active_tab = isset( $_GET['tab'] ) && sanitize_key( wp_unslash( $_GET['tab'] ) ) === 'closed' ? 'closed' : 'active';
 
 $polls_active = [];
 $polls_closed = [];

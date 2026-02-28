@@ -87,25 +87,28 @@ if ( $is_logged ) {
     }
 }
 
-// URL zakładek — dodajemy parametr ?tab= do aktualnego URL strony.
-$current_page_url = ( is_ssl() ? 'https://' : 'http://' ) . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) )
-    . sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) );
-$current_page_url = strtok( $current_page_url, '?' );
+// URL zakładek — używamy zaufanego URL strony głosowania (bez HTTP_HOST/REQUEST_URI).
+$vote_slug   = evoting_get_vote_page_slug();
+$wp_vote_page = $vote_slug !== '' ? get_page_by_path( $vote_slug, OBJECT, 'page' ) : null;
+$base_url    = ( $wp_vote_page && 'publish' === $wp_vote_page->post_status )
+    ? get_permalink( $wp_vote_page )
+    : evoting_get_vote_page_url();
+$base_url    = strtok( (string) $base_url, '?' );
 
-$tab_active_url = esc_url( add_query_arg( 'tab', 'active', $current_page_url ) );
-$tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $current_page_url ) );
+$tab_active_url = esc_url( add_query_arg( 'tab', 'active', $base_url ) );
+$tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
 $law_page_url   = class_exists( 'Evoting_Law_Page' ) ? Evoting_Law_Page::get_url() : '';
 ?>
 <div class="evoting-vote-page-wrap">
 
     <nav class="evoting-tabs" role="tablist" style="position:relative;">
-        <a href="<?php echo $tab_active_url; ?>"
+        <a href="<?php echo esc_url( $tab_active_url ); ?>"
            class="evoting-tab<?php echo 'active' === $active_tab ? ' evoting-tab--active' : ''; ?>"
            role="tab"
            aria-selected="<?php echo 'active' === $active_tab ? 'true' : 'false'; ?>">
             <?php esc_html_e( 'Trwające głosowania', 'evoting' ); ?>
         </a>
-        <a href="<?php echo $tab_closed_url; ?>"
+        <a href="<?php echo esc_url( $tab_closed_url ); ?>"
            class="evoting-tab<?php echo 'closed' === $active_tab ? ' evoting-tab--active' : ''; ?>"
            role="tab"
            aria-selected="<?php echo 'closed' === $active_tab ? 'true' : 'false'; ?>">

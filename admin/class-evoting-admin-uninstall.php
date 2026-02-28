@@ -52,25 +52,52 @@ class Evoting_Admin_Uninstall {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_groups" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_email_queue" );
 
-        // Delete plugin options.
-        delete_option( 'evoting_version' );
-        delete_option( 'evoting_db_version' );
-        delete_option( 'evoting_field_map' );
-        delete_option( 'evoting_vote_page_slug' );
-        delete_option( 'evoting_time_offset_hours' );
-        delete_option( 'evoting_logo_attachment_id' );
-        delete_option( 'evoting_banner_attachment_id' );
-        delete_option( 'evoting_brand_short_name' );
-        delete_option( 'evoting_brand_full_name' );
-        delete_option( 'evoting_from_email' );
-        delete_option( 'evoting_mail_method' );
-        delete_option( 'evoting_smtp_host' );
-        delete_option( 'evoting_smtp_port' );
-        delete_option( 'evoting_smtp_encryption' );
-        delete_option( 'evoting_smtp_username' );
-        delete_option( 'evoting_smtp_password' );
-        delete_option( 'evoting_sendgrid_api_key' );
-        delete_option( 'evoting_email_batch_size' );
-        delete_option( 'evoting_email_batch_delay' );
+        // Survey tables (answers → responses → questions → surveys).
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_survey_answers" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_survey_responses" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_survey_questions" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}evoting_surveys" );
+
+        // Delete all plugin options (single source of list).
+        foreach ( self::get_option_keys() as $key ) {
+            delete_option( $key );
+        }
+    }
+
+    /**
+     * List of all evoting option keys to remove on uninstall.
+     *
+     * @return string[]
+     */
+    public static function get_option_keys(): array {
+        return [
+            'evoting_version',
+            'evoting_db_version',
+            'evoting_field_map',
+            'evoting_vote_page_slug',
+            'evoting_survey_page_slug',
+            'evoting_submissions_page_slug',
+            'evoting_time_offset_hours',
+            'evoting_logo_attachment_id',
+            'evoting_banner_attachment_id',
+            'evoting_brand_short_name',
+            'evoting_brand_full_name',
+            'evoting_from_email',
+            'evoting_mail_method',
+            'evoting_smtp_host',
+            'evoting_smtp_port',
+            'evoting_smtp_encryption',
+            'evoting_smtp_username',
+            'evoting_smtp_password',
+            'evoting_sendgrid_api_key',
+            'evoting_email_batch_size',
+            'evoting_email_batch_delay',
+            'evoting_email_subject',
+            'evoting_email_from_template',
+            'evoting_email_body',
+            'evoting_required_fields',
+            'evoting_survey_required_fields',
+            'evoting_law_slug',
+        ];
     }
 }

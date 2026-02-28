@@ -95,7 +95,7 @@ class Evoting_Admin_Polls {
      * @return array|\WP_Error
      */
     private function sanitize_form_data(): array|\WP_Error {
-        $title = sanitize_text_field( $_POST['poll_title'] ?? '' );
+        $title = sanitize_text_field( wp_unslash( $_POST['poll_title'] ?? '' ) );
         if ( '' === $title ) {
             return new \WP_Error( 'missing_title', __( 'Tytuł jest wymagany.', 'evoting' ) );
         }
@@ -103,7 +103,7 @@ class Evoting_Admin_Polls {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'evoting' ) );
         }
 
-        $duration_key = sanitize_text_field( $_POST['poll_duration'] ?? '7d' );
+        $duration_key = sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) );
         $duration_seconds = [
             '1h'  => 3600,
             '1d'  => DAY_IN_SECONDS,
@@ -128,7 +128,7 @@ class Evoting_Admin_Polls {
                 continue;
             }
 
-            $q_text = trim( sanitize_text_field( $q['text'] ?? '' ) );
+            $q_text = trim( sanitize_text_field( wp_unslash( $q['text'] ?? '' ) ) );
             if ( '' === $q_text ) {
                 continue;
             }
@@ -140,7 +140,7 @@ class Evoting_Admin_Polls {
             $answers     = [];
 
             foreach ( $raw_answers as $a_text ) {
-                $a_text = trim( sanitize_text_field( $a_text ) );
+                $a_text = trim( sanitize_text_field( wp_unslash( $a_text ) ) );
                 if ( '' !== $a_text ) {
                     $answers[] = $a_text;
                 }
@@ -172,7 +172,7 @@ class Evoting_Admin_Polls {
 
         return [
             'title'         => $title,
-            'description'   => sanitize_textarea_field( $_POST['poll_description'] ?? '' ),
+            'description'   => sanitize_textarea_field( wp_unslash( $_POST['poll_description'] ?? '' ) ),
             'date_start'    => $date_start,
             'date_end'      => $date_end,
             'target_groups' => $target_groups,

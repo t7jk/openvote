@@ -145,7 +145,7 @@ class Evoting_Vote {
                 return new \WP_Error( 'invalid_answer', __( 'Nieprawidłowa odpowiedź.', 'evoting' ), [ 'status' => 400 ] );
             }
 
-            $wpdb->insert(
+            $inserted = $wpdb->insert(
                 self::table(),
                 [
                     'poll_id'      => $poll_id,
@@ -157,6 +157,13 @@ class Evoting_Vote {
                 ],
                 [ '%d', '%d', '%d', '%d', '%d', '%s' ]
             );
+
+            if ( $inserted === false ) {
+                if ( $wpdb->last_error && strpos( $wpdb->last_error, 'Duplicate' ) !== false ) {
+                    return new \WP_Error( 'already_voted', __( 'Już oddałeś głos w tym głosowaniu.', 'evoting' ), [ 'status' => 403 ] );
+                }
+                return new \WP_Error( 'vote_failed', __( 'Nie udało się zapisać głosu. Spróbuj ponownie.', 'evoting' ), [ 'status' => 500 ] );
+            }
         }
 
         return true;

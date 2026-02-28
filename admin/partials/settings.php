@@ -93,7 +93,7 @@ function evoting_settings_select( string $logical, string $current, array $core_
         </div>
     <?php endif; ?>
 
-    <form method="post" action="">
+    <form method="post" action="" id="evoting-settings-form">
         <?php wp_nonce_field( 'evoting_save_settings', 'evoting_settings_nonce' ); ?>
 
         <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Nazwa systemu', 'evoting' ); ?></h2>
@@ -791,4 +791,18 @@ function evoting_settings_select( string $logical, string $current, array $core_
     <hr style="margin-top:32px;margin-bottom:20px;">
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'evoting' ); ?></h2>
     <?php include EVOTING_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
+
+    <script>
+    ( function () {
+        var form = document.getElementById( 'evoting-settings-form' );
+        if ( form ) {
+            form.addEventListener( 'submit', function () {
+                var btns = form.querySelectorAll( 'button[type="submit"], input[type="submit"]' );
+                for ( var i = 0; i < btns.length; i++ ) {
+                    btns[ i ].disabled = true;
+                }
+            } );
+        }
+    } )();
+    </script>
 </div>

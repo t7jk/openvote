@@ -89,7 +89,8 @@ $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups
         <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $error ); ?></p></div>
     <?php endif; ?>
 
-    <form method="post" action="" id="evoting-poll-form"<?php echo $is_read_only ? ' class="evoting-form-readonly"' : ''; ?>>
+    <form method="post" action="" id="evoting-poll-form"<?php echo $is_read_only ? ' class="evoting-form-readonly"' : ''; ?>
+          <?php if ( ! $is_read_only ) : ?>onsubmit="var b=this.querySelectorAll('button[type=submit],input[type=submit]');for(var i=0;i<b.length;i++)b[i].disabled=true;"<?php endif; ?>>
         <?php if ( ! $is_read_only ) : ?>
             <?php wp_nonce_field( 'evoting_save_poll', 'evoting_poll_nonce' ); ?>
             <?php if ( $is_edit ) : ?>

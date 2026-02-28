@@ -456,6 +456,7 @@ $brand = evoting_get_brand_short_name();
 <h3><?php esc_html_e( 'Strona zgłoszeń (/zgloszenia)', 'evoting' ); ?></h3>
 <p><?php esc_html_e( 'Adres strony (slug) ustawiasz w Konfiguracji w sekcji „URL strony zgłoszeń". Strona powinna zawierać blok Gutenberg „Zgłoszenia (E-głosowania)" (evoting/survey-responses). Możesz utworzyć ją ręcznie w edytorze lub użyć przycisków w Konfiguracji: „Utwórz stronę zgłoszeń" lub „Zaktualizuj stronę zgłoszeń (dodaj blok)".', 'evoting' ); ?></p>
 <p><?php esc_html_e( 'Na stronie wyświetlane są tylko zgłoszenia ze statusem „Nie spam". Dla każdego zgłoszenia widać: tytuł ankiety, imię i nazwisko oraz listę pytań z odpowiedziami. Odpowiedzi powiązane z wrażliwymi polami profilu są ukrywane („—").', 'evoting' ); ?></p>
+<p><?php esc_html_e( 'Dostęp do listy zgłoszeń ma każdy, kto może wyświetlić stronę. Aby ograniczyć dostęp (np. tylko dla zalogowanych lub wybranej roli), umieść blok na stronie chronionej hasłem lub ustaw widoczność strony na „Prywatna".', 'evoting' ); ?></p>
 
 <div class="evoting-manual__note">
     <strong><?php esc_html_e( 'Strona ankiet', 'evoting' ); ?></strong><br>

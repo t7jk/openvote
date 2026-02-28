@@ -58,7 +58,7 @@ class Evoting_Admin_Surveys {
      * @return array|\WP_Error
      */
     private function sanitize_form_data(): array|\WP_Error {
-        $title = sanitize_text_field( $_POST['survey_title'] ?? '' );
+        $title = sanitize_text_field( wp_unslash( $_POST['survey_title'] ?? '' ) );
         if ( '' === $title ) {
             return new \WP_Error( 'missing_title', __( 'Tytuł ankiety jest wymagany.', 'evoting' ) );
         }
@@ -66,7 +66,7 @@ class Evoting_Admin_Surveys {
             return new \WP_Error( 'title_too_long', __( 'Tytuł może zawierać maksymalnie 512 znaków.', 'evoting' ) );
         }
 
-        $description = sanitize_textarea_field( $_POST['survey_description'] ?? '' );
+        $description = sanitize_textarea_field( wp_unslash( $_POST['survey_description'] ?? '' ) );
         if ( mb_strlen( $description ) > 5000 ) {
             return new \WP_Error( 'desc_too_long', __( 'Opis może zawierać maksymalnie 5000 znaków.', 'evoting' ) );
         }
@@ -98,7 +98,7 @@ class Evoting_Admin_Surveys {
             if ( ! is_array( $q ) ) {
                 continue;
             }
-            $body = trim( sanitize_text_field( $q['body'] ?? '' ) );
+            $body = trim( sanitize_text_field( wp_unslash( $q['body'] ?? '' ) ) );
             if ( '' === $body ) {
                 continue;
             }
@@ -106,7 +106,7 @@ class Evoting_Admin_Surveys {
                 return new \WP_Error( 'question_too_long', __( 'Etykieta pola może zawierać maksymalnie 512 znaków.', 'evoting' ) );
             }
 
-            $field_type = sanitize_key( $q['field_type'] ?? 'text_short' );
+            $field_type = sanitize_key( wp_unslash( $q['field_type'] ?? 'text_short' ) );
             if ( ! in_array( $field_type, [ 'text_short', 'text_long', 'numeric', 'url', 'email' ], true ) ) {
                 $field_type = 'text_short';
             }

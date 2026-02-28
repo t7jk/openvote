@@ -54,7 +54,9 @@ class Evoting_Admin_Roles {
         }
 
         if ( $result === null ) {
-            return;
+            set_transient( 'evoting_roles_error', __( 'Nie wybrano użytkownika lub grupy.', 'evoting' ), 30 );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-roles' ], admin_url( 'admin.php' ) ) );
+            exit;
         }
 
         if ( true === $result ) {

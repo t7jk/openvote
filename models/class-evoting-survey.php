@@ -269,8 +269,20 @@ class Evoting_Survey {
 
         $qt = self::questions_table();
         $at = self::answers_table();
+        $rt = self::responses_table();
 
-        // Usuń stare odpowiedzi uczestników (pytania zostaną zastąpione).
+        // Usuń wszystkie zgłoszenia ankiety (responses + survey_answers), aby uniknąć niespójności po zmianie pytań.
+        $response_ids = $wpdb->get_col(
+            $wpdb->prepare( 'SELECT id FROM %i WHERE survey_id = %d', $rt, $survey_id )
+        );
+        if ( $response_ids ) {
+            $in = implode( ',', array_map( 'intval', $response_ids ) );
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $wpdb->query( "DELETE FROM {$at} WHERE response_id IN ({$in})" );
+        }
+        $wpdb->delete( $rt, [ 'survey_id' => $survey_id ], [ '%d' ] );
+
+        // Usuń stare odpowiedzi uczestników powiązane ze starymi pytaniami, potem stare pytania.
         $old_ids = $wpdb->get_col(
             $wpdb->prepare( 'SELECT id FROM %i WHERE survey_id = %d', $qt, $survey_id )
         );

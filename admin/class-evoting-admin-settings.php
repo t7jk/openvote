@@ -64,7 +64,9 @@ class Evoting_Admin_Settings {
         update_option( 'evoting_mail_method', $mail_method, false );
 
         update_option( 'evoting_smtp_host',       sanitize_text_field( wp_unslash( $_POST['evoting_smtp_host']       ?? '' ) ), false );
-        update_option( 'evoting_smtp_port',        (int) ( $_POST['evoting_smtp_port'] ?? 587 ), false );
+        $smtp_port = (int) ( $_POST['evoting_smtp_port'] ?? 587 );
+        $smtp_port = max( 1, min( 65535, $smtp_port ) );
+        update_option( 'evoting_smtp_port', $smtp_port, false );
         $enc = in_array( $_POST['evoting_smtp_encryption'] ?? '', [ 'tls', 'ssl', 'none' ], true )
             ? sanitize_key( $_POST['evoting_smtp_encryption'] )
             : 'tls';

@@ -377,6 +377,9 @@ class Evoting_Poll {
     public static function delete( int $poll_id ): bool {
         global $wpdb;
 
+        $eq_table = $wpdb->prefix . 'evoting_email_queue';
+        $wpdb->delete( $eq_table, [ 'poll_id' => $poll_id ], [ '%d' ] );
+
         // Delete answers → votes → questions → poll.
         $question_ids = $wpdb->get_col(
             $wpdb->prepare( "SELECT id FROM %i WHERE poll_id = %d", self::questions_table(), $poll_id )
@@ -476,6 +479,30 @@ class Evoting_Poll {
             return array_map( 'absint', $decoded );
         }
         return [];
+    }
+
+    /**
+     * Remove a group ID from target_groups in all polls (e.g. after group is deleted).
+     */
+    public static function remove_group_from_all_polls( int $group_id ): void {
+        global $wpdb;
+
+        $polls = $wpdb->get_results( "SELECT id, target_groups FROM " . self::polls_table() );
+        foreach ( $polls as $poll ) {
+            $ids = self::get_target_group_ids( $poll );
+            if ( ! in_array( $group_id, $ids, true ) ) {
+                continue;
+            }
+            $new_ids = array_values( array_filter( $ids, fn( $id ) => (int) $id !== $group_id ) );
+            $new_json = empty( $new_ids ) ? null : wp_json_encode( $new_ids );
+            $wpdb->update(
+                self::polls_table(),
+                [ 'target_groups' => $new_json ],
+                [ 'id' => $poll->id ],
+                [ '%s' ],
+                [ '%d' ]
+            );
+        }
     }
 
     /**

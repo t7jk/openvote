@@ -287,16 +287,34 @@ class Evoting_Field_Map {
 
     /**
      * Validate and persist a new field map from POST data.
+     * Values are restricted to allowed keys (core + usermeta + NOT_SET_KEY, NO_CITY_KEY).
      */
     public static function save( array $raw ): void {
-        $clean = [];
+        $allowed = self::get_allowed_field_values();
+        $clean   = [];
         foreach ( array_keys( self::DEFAULTS ) as $key ) {
             $val = sanitize_text_field( $raw[ $key ] ?? '' );
-            if ( '' !== $val ) {
+            if ( '' === $val ) {
+                continue;
+            }
+            if ( in_array( $val, $allowed, true ) ) {
                 $clean[ $key ] = $val;
             }
         }
         update_option( self::OPTION_KEY, $clean, false );
+    }
+
+    /**
+     * All allowed values for field map (core columns + usermeta keys + sentinels).
+     *
+     * @return string[]
+     */
+    public static function get_allowed_field_values(): array {
+        $keys   = self::available_keys();
+        $allowed = array_merge( $keys['core'], $keys['meta'] );
+        $allowed[] = self::NOT_SET_KEY;
+        $allowed[] = self::NO_CITY_KEY;
+        return array_values( array_unique( $allowed ) );
     }
 
     /**

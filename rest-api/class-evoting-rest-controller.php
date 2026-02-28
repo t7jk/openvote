@@ -122,8 +122,14 @@ class Evoting_Rest_Controller {
     public function cast_vote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $poll_id      = $request->get_param( 'id' );
         $answers      = $request->get_param( 'answers' );
-        $is_anonymous = (bool) $request->get_param( 'is_anonymous' );
         $user_id      = get_current_user_id();
+
+        $poll = Evoting_Poll::get( $poll_id );
+        if ( $poll && isset( $poll->vote_mode ) && $poll->vote_mode === 'anonymous' ) {
+            $is_anonymous = true;
+        } else {
+            $is_anonymous = (bool) $request->get_param( 'is_anonymous' );
+        }
 
         // Sanitize: question_id → int, answer_id → int.
         $clean_answers = [];
@@ -155,9 +161,15 @@ class Evoting_Rest_Controller {
             return new WP_Error( 'poll_not_ended', __( 'Wyniki dostępne po zakończeniu głosowania.', 'evoting' ), [ 'status' => 403 ] );
         }
 
-        $results    = Evoting_Vote::get_results( $poll_id );
-        $voters     = Evoting_Vote::get_voters_anonymous( $poll_id );
-        $non_voters = Evoting_Vote::get_non_voters( $poll_id );
+        $results = Evoting_Vote::get_results( $poll_id );
+
+        if ( isset( $poll->vote_mode ) && $poll->vote_mode === 'anonymous' ) {
+            $voters     = [];
+            $non_voters = [];
+        } else {
+            $voters     = Evoting_Vote::get_voters_anonymous( $poll_id );
+            $non_voters = Evoting_Vote::get_non_voters( $poll_id );
+        }
 
         return new WP_REST_Response( [
             'poll_id'          => $poll_id,
@@ -199,7 +211,14 @@ class Evoting_Rest_Controller {
             $job_id = Evoting_Batch_Processor::start_job( 'send_invitations', [ 'poll_id' => $poll_id ] );
         } catch ( \Throwable $e ) {
             $wpdb->suppress_errors( $suppress );
-            return new WP_Error( 'job_error', $e->getMessage(), [ 'status' => 500 ] );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'Evoting send_invitations: ' . $e->getMessage() );
+            }
+            return new WP_Error(
+                'job_error',
+                __( 'Wystąpił błąd podczas uruchamiania wysyłki zaproszeń.', 'evoting' ),
+                [ 'status' => 500 ]
+            );
         }
 
         $wpdb->suppress_errors( $suppress );

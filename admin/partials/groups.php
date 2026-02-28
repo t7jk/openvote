@@ -10,6 +10,19 @@ $gm_table     = $wpdb->prefix . 'evoting_group_members';
 $message = '';
 $error   = '';
 
+if ( isset( $_GET['updated'] ) && $_GET['updated'] === '1' && ! isset( $_POST['evoting_groups_nonce'] ) ) {
+    $msg = get_transient( 'evoting_groups_message' );
+    $err = get_transient( 'evoting_groups_error' );
+    if ( $msg !== false ) {
+        $message = $msg;
+        delete_transient( 'evoting_groups_message' );
+    }
+    if ( $err !== false ) {
+        $error = $err;
+        delete_transient( 'evoting_groups_error' );
+    }
+}
+
 if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_groups_action', 'evoting_groups_nonce' ) ) {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
@@ -37,15 +50,25 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
         }
     } elseif ( 'delete' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
-        if ( $group_id ) {
-            $wpdb->delete( $gm_table, [ 'group_id' => $group_id ], [ '%d' ] );
-            $wpdb->delete( $groups_table, [ 'id' => $group_id ], [ '%d' ] );
-            $message = __( 'Grupa została usunięta.', 'evoting' );
+        if ( ! $group_id ) {
+            $error = __( 'Nie wybrano grupy do usunięcia.', 'evoting' );
+        } else {
+            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE id = %d", $group_id ) );
+            if ( ! $exists ) {
+                $error = __( 'Wybrana grupa nie istnieje.', 'evoting' );
+            } else {
+                $wpdb->delete( $gm_table, [ 'group_id' => $group_id ], [ '%d' ] );
+                $wpdb->delete( $groups_table, [ 'id' => $group_id ], [ '%d' ] );
+                Evoting_Poll::remove_group_from_all_polls( $group_id );
+                $message = __( 'Grupa została usunięta.', 'evoting' );
+            }
         }
     } elseif ( 'add_member' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
         $user_id  = absint( $_POST['member_user_id'] ?? 0 );
-        if ( $group_id && $user_id ) {
+        if ( ! $group_id || ! $user_id ) {
+            $error = __( 'Wybierz grupę i użytkownika.', 'evoting' );
+        } else {
             $wpdb->query(
                 $wpdb->prepare(
                     "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
@@ -59,7 +82,9 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
     } elseif ( 'remove_member' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
         $user_id  = absint( $_POST['member_user_id'] ?? 0 );
-        if ( $group_id && $user_id ) {
+        if ( ! $group_id || ! $user_id ) {
+            $error = __( 'Wybierz grupę i użytkownika.', 'evoting' );
+        } else {
             $wpdb->delete( $gm_table, [ 'group_id' => $group_id, 'user_id' => $user_id ], [ '%d', '%d' ] );
             $message = __( 'Członek usunięty.', 'evoting' );
         }
@@ -110,6 +135,17 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
                 }
             }
         }
+    }
+
+    if ( $message || $error ) {
+        if ( $message ) {
+            set_transient( 'evoting_groups_message', $message, 30 );
+        }
+        if ( $error ) {
+            set_transient( 'evoting_groups_error', $error, 30 );
+        }
+        wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-groups', 'updated' => '1' ], admin_url( 'admin.php' ) ) );
+        exit;
     }
 }
 

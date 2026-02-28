@@ -327,9 +327,12 @@ class Evoting_Activator {
 
         // ── 3.4.0 → 3.5.0 : UNIQUE KEY (poll_id, user_id) w tabeli kolejki ──
         if ( version_compare( $installed, '3.5.0', '<' ) ) {
-            $eq = $wpdb->prefix . 'evoting_email_queue';
-            $indexes = $wpdb->get_col( "SHOW INDEX FROM {$eq}" );  // phpcs:ignore
-            if ( ! in_array( 'unique_poll_user', (array) $indexes, true ) ) {
+            $eq      = $wpdb->prefix . 'evoting_email_queue';
+            $indexes = $wpdb->get_col( "SHOW INDEX FROM {$eq}", 2 );  // phpcs:ignore — kolumna 2 = Key_name
+            if ( ! is_array( $indexes ) ) {
+                $indexes = (array) $indexes;
+            }
+            if ( ! in_array( 'unique_poll_user', $indexes, true ) ) {
                 // Usuń duplikaty przed dodaniem klucza (zostaw najnowszy wpis).
                 $wpdb->query(
                     "DELETE e1 FROM {$eq} e1
