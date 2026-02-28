@@ -221,8 +221,17 @@ class Evoting_Admin_Polls {
         return false;
     }
 
+    /**
+     * Legacy: wysyłka powiadomień e-mail do użytkowników (max 500 w jednym żądaniu).
+     * Dla dużych baz (np. 10k+) należy używać systemu zaproszeń (batch) z ekranu Wyniki / Zaproszenia.
+     */
     private function send_notifications( int $poll_id, string $title ): void {
-        $users = get_users( [ 'fields' => [ 'user_email' ] ] );
+        $max_recipients = 500;
+        $users = get_users( [
+            'fields'  => [ 'user_email' ],
+            'number'  => $max_recipients,
+            'orderby' => 'ID',
+        ] );
 
         if ( empty( $users ) ) {
             return;

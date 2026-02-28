@@ -254,16 +254,24 @@ class Evoting_Role_Manager {
 
     /**
      * Ile lokalnych koordynatorów jest przypisanych do danej grupy?
+     * Jedno zapytanie SQL zamiast ładowania wszystkich edytorów (wydajność przy dużej liczbie użytkowników).
      */
     public static function count_editors_in_group( int $group_id ): int {
-        $editors = self::get_poll_editors();
-        $count   = 0;
-        foreach ( $editors as $user ) {
-            if ( in_array( $group_id, self::get_user_groups( $user->ID ), true ) ) {
-                ++$count;
-            }
+        global $wpdb;
+        $group_id = absint( $group_id );
+        if ( $group_id <= 0 ) {
+            return 0;
         }
-        return $count;
+        // evoting_groups jest zapisane jako JSON np. [1,2,3]. Sprawdzamy zawieranie group_id w tablicy.
+        $sql = "SELECT COUNT(*) FROM {$wpdb->usermeta} um1
+                INNER JOIN {$wpdb->usermeta} um2 ON um1.user_id = um2.user_id
+                  AND um2.meta_key = %s AND ( um2.meta_value LIKE %s OR um2.meta_value LIKE %s OR um2.meta_value LIKE %s OR um2.meta_value = %s )
+                WHERE um1.meta_key = %s AND um1.meta_value = %s";
+        $like1 = '[' . $group_id . ',%';
+        $like2 = '%,' . $group_id . ',%';
+        $like3 = '%,' . $group_id . ']';
+        $exact = '[' . $group_id . ']';
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, self::META_GROUPS, $like1, $like2, $like3, $exact, self::META_ROLE, self::ROLE_POLL_EDITOR ) );
     }
 
     // ─── Nadawanie ról ───────────────────────────────────────────────────────

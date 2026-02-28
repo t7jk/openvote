@@ -220,8 +220,8 @@ class Evoting_Admin {
             wp_die( esc_html__( 'Głosowanie nie istnieje.', 'evoting' ) );
         }
         $results         = Evoting_Vote::get_results( $poll_id );
-        $voters          = Evoting_Vote::get_voters_admin( $poll_id );
-        $non_voters_list = Evoting_Vote::get_non_voters( $poll_id );
+        $voters          = Evoting_Vote::get_voters_admin( $poll_id, 0, 0 );
+        $non_voters_list = Evoting_Vote::get_non_voters( $poll_id, 0, 0 );
         Evoting_Results_Pdf::output_download( $poll, $results, $voters, $non_voters_list );
         exit;
     }
@@ -478,8 +478,12 @@ class Evoting_Admin {
             $poll = Evoting_Poll::get( $poll_id );
             if ( $poll ) {
                 $results          = Evoting_Vote::get_results( $poll_id );
-                $voters           = Evoting_Vote::get_voters_admin( $poll_id );
-                $non_voters_list  = Evoting_Vote::get_non_voters( $poll_id );
+                $voters_page_size = 100;
+                $non_voters_page_size = 100;
+                $voters_offset    = isset( $_GET['voters_offset'] ) ? max( 0, absint( $_GET['voters_offset'] ) ) : 0;
+                $non_voters_offset = isset( $_GET['non_voters_offset'] ) ? max( 0, absint( $_GET['non_voters_offset'] ) ) : 0;
+                $voters           = Evoting_Vote::get_voters_admin( $poll_id, $voters_page_size, $voters_offset );
+                $non_voters_list  = Evoting_Vote::get_non_voters( $poll_id, $non_voters_page_size, $non_voters_offset );
                 include EVOTING_PLUGIN_DIR . 'admin/partials/poll-results.php';
                 return;
             }

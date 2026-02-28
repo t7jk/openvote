@@ -198,14 +198,16 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
         <p><?php esc_html_e( 'Brak pytań w tym głosowaniu.', 'evoting' ); ?></p>
     <?php endif; ?>
 
-    <?php // ── Voter list (per-vote: jawnie = dane, anonimowo = Anonimowy) ── ?>
-    <?php if ( ! empty( $voters ) ) :
-        $voters_total = count( $voters );
-        $page_size    = 100;
+    <?php // ── Voter list (per-vote: jawnie = dane, anonimowo = Anonimowy). Paginacja po 100 ze względu na wydajność. ── ?>
+    <?php
+    $voters_total = (int) ( $results['total_voters'] ?? 0 );
+    $voters_page_size = isset( $voters_page_size ) ? (int) $voters_page_size : 100;
+    $voters_offset   = isset( $voters_offset ) ? (int) $voters_offset : 0;
     ?>
+    <?php if ( $voters_total > 0 ) : ?>
         <h2><?php printf( esc_html__( 'Lista głosujących (%d)', 'evoting' ), $voters_total ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Widoczne: imię i nazwisko oraz zanonimizowany adres e-mail. Pozostałe dane są utajnione.', 'evoting' ); ?></p>
-        <table class="widefat fixed striped evoting-paginated-table" id="evoting-voters-table" style="max-width:700px;">
+        <p class="description"><?php esc_html_e( 'Widoczne: imię i nazwisko oraz zanonimizowany adres e-mail. Pozostałe dane są utajnione. Wyświetlanie partiami po 100.', 'evoting' ); ?></p>
+        <table class="widefat fixed striped" id="evoting-voters-table" style="max-width:700px;">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Imię i Nazwisko', 'evoting' ); ?></th>
@@ -214,8 +216,8 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( $voters as $idx => $voter ) : ?>
-                    <tr<?php echo $idx >= $page_size ? ' class="evoting-row-hidden" style="display:none;"' : ''; ?>>
+                <?php foreach ( $voters as $voter ) : ?>
+                    <tr>
                         <td><?php echo esc_html( $voter['name'] ); ?></td>
                         <td><code><?php echo esc_html( $voter['email_anon'] ); ?></code></td>
                         <td><?php echo esc_html( $voter['voted_at'] ); ?></td>
@@ -223,46 +225,80 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <?php if ( $voters_total > $page_size ) : ?>
+        <?php if ( ( $voters_offset + $voters_page_size ) < $voters_total ) : ?>
+            <?php
+            $next_voters_offset = $voters_offset + $voters_page_size;
+            $base_results_url = add_query_arg( [ 'page' => 'evoting', 'action' => 'results', 'poll_id' => (int) $poll->id ], admin_url( 'admin.php' ) );
+            if ( $non_voters_offset > 0 ) {
+                $base_results_url = add_query_arg( 'non_voters_offset', $non_voters_offset, $base_results_url );
+            }
+            $next_url = add_query_arg( 'voters_offset', $next_voters_offset, $base_results_url );
+            ?>
             <p style="margin-top:8px;">
-                <button type="button" class="button evoting-load-more" data-table="evoting-voters-table" data-page-size="<?php echo (int) $page_size; ?>">
-                    <?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d z %2$d)', 'evoting' ), min( $page_size, $voters_total ), $voters_total ); ?>
-                </button>
+                <a href="<?php echo esc_url( $next_url ); ?>" class="button"><?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d–%2$d z %3$d)', 'evoting' ), $voters_offset + 1, min( $voters_offset + $voters_page_size, $voters_total ), $voters_total ); ?></a>
+            </p>
+        <?php elseif ( $voters_offset > 0 ) : ?>
+            <?php
+            $base_results_url = add_query_arg( [ 'page' => 'evoting', 'action' => 'results', 'poll_id' => (int) $poll->id ], admin_url( 'admin.php' ) );
+            if ( $non_voters_offset > 0 ) {
+                $base_results_url = add_query_arg( 'non_voters_offset', $non_voters_offset, $base_results_url );
+            }
+            ?>
+            <p style="margin-top:8px;">
+                <a href="<?php echo esc_url( $base_results_url ); ?>" class="button"><?php esc_html_e( 'Pokaż od początku', 'evoting' ); ?></a>
             </p>
         <?php endif; ?>
     <?php else : ?>
         <p class="description"><?php esc_html_e( 'Nikt jeszcze nie głosował.', 'evoting' ); ?></p>
     <?php endif; ?>
 
-    <?php // ── Non-voter list ── ?>
-    <?php if ( ! empty( $non_voters_list ) ) :
-        $non_voters_total = count( $non_voters_list );
-        $page_size_nv     = 100;
+    <?php // ── Non-voter list. Paginacja po 100. ── ?>
+    <?php
+    $non_voters_total     = (int) ( $results['non_voters'] ?? 0 );
+    $non_voters_page_size = isset( $non_voters_page_size ) ? (int) $non_voters_page_size : 100;
+    $non_voters_offset   = isset( $non_voters_offset ) ? (int) $non_voters_offset : 0;
     ?>
+    <?php if ( $non_voters_total > 0 ) : ?>
         <h2><?php printf( esc_html__( 'Nie głosowali (%d)', 'evoting' ), $non_voters_total ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane.', 'evoting' ); ?></p>
-        <table class="widefat fixed striped evoting-paginated-table" id="evoting-non-voters-table" style="max-width:400px;">
+        <p class="description"><?php esc_html_e( 'Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane. Wyświetlanie partiami po 100.', 'evoting' ); ?></p>
+        <table class="widefat fixed striped" id="evoting-non-voters-table" style="max-width:400px;">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Pseudonim (zanonimizowany)', 'evoting' ); ?></th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( $non_voters_list as $idx => $nv ) : ?>
-                    <tr<?php echo $idx >= $page_size_nv ? ' class="evoting-row-hidden" style="display:none;"' : ''; ?>>
+                <?php foreach ( $non_voters_list as $nv ) : ?>
+                    <tr>
                         <td><?php echo esc_html( $nv['nicename'] ); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <?php if ( $non_voters_total > $page_size_nv ) : ?>
+        <?php if ( ( $non_voters_offset + $non_voters_page_size ) < $non_voters_total ) : ?>
+            <?php
+            $next_nv_offset = $non_voters_offset + $non_voters_page_size;
+            $base_results_url_nv = add_query_arg( [ 'page' => 'evoting', 'action' => 'results', 'poll_id' => (int) $poll->id ], admin_url( 'admin.php' ) );
+            if ( $voters_offset > 0 ) {
+                $base_results_url_nv = add_query_arg( 'voters_offset', $voters_offset, $base_results_url_nv );
+            }
+            $next_nv_url = add_query_arg( 'non_voters_offset', $next_nv_offset, $base_results_url_nv );
+            ?>
             <p style="margin-top:8px;">
-                <button type="button" class="button evoting-load-more" data-table="evoting-non-voters-table" data-page-size="<?php echo (int) $page_size_nv; ?>">
-                    <?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d z %2$d)', 'evoting' ), min( $page_size_nv, $non_voters_total ), $non_voters_total ); ?>
-                </button>
+                <a href="<?php echo esc_url( $next_nv_url ); ?>" class="button"><?php printf( esc_html__( 'Załaduj więcej (pokazano %1$d–%2$d z %3$d)', 'evoting' ), $non_voters_offset + 1, min( $non_voters_offset + $non_voters_page_size, $non_voters_total ), $non_voters_total ); ?></a>
+            </p>
+        <?php elseif ( $non_voters_offset > 0 ) : ?>
+            <?php
+            $base_results_url_nv = add_query_arg( [ 'page' => 'evoting', 'action' => 'results', 'poll_id' => (int) $poll->id ], admin_url( 'admin.php' ) );
+            if ( $voters_offset > 0 ) {
+                $base_results_url_nv = add_query_arg( 'voters_offset', $voters_offset, $base_results_url_nv );
+            }
+            ?>
+            <p style="margin-top:8px;">
+                <a href="<?php echo esc_url( $base_results_url_nv ); ?>" class="button"><?php esc_html_e( 'Pokaż od początku', 'evoting' ); ?></a>
             </p>
         <?php endif; ?>
-    <?php elseif ( isset( $non_voters_list ) ) : ?>
+    <?php elseif ( isset( $results['non_voters'] ) && (int) $results['non_voters'] === 0 ) : ?>
         <h2><?php esc_html_e( 'Nie głosowali (0)', 'evoting' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Wszyscy uprawnieni użytkownicy oddali głos.', 'evoting' ); ?></p>
     <?php endif; ?>

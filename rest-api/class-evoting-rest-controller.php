@@ -41,13 +41,17 @@ class Evoting_Rest_Controller {
             ],
         ] );
 
-        // Get results (public after poll ends).
+        // Get results (public after poll ends). Listy głosujących i niegłosujących są zwracane partiami (domyślnie po 100) ze względu na wydajność.
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/results', [
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => [ $this, 'get_results' ],
             'permission_callback' => '__return_true',
             'args'                => [
-                'id' => [ 'sanitize_callback' => 'absint' ],
+                'id'                  => [ 'sanitize_callback' => 'absint' ],
+                'voters_limit'        => [ 'sanitize_callback' => 'absint', 'default' => 100 ],
+                'voters_offset'       => [ 'sanitize_callback' => 'absint', 'default' => 0 ],
+                'non_voters_limit'    => [ 'sanitize_callback' => 'absint', 'default' => 100 ],
+                'non_voters_offset'   => [ 'sanitize_callback' => 'absint', 'default' => 0 ],
             ],
         ] );
 
@@ -163,12 +167,23 @@ class Evoting_Rest_Controller {
 
         $results = Evoting_Vote::get_results( $poll_id );
 
+        $voters_limit      = max( 0, min( 500, (int) $request->get_param( 'voters_limit' ) ) );
+        $voters_offset     = max( 0, (int) $request->get_param( 'voters_offset' ) );
+        $non_voters_limit  = max( 0, min( 500, (int) $request->get_param( 'non_voters_limit' ) ) );
+        $non_voters_offset = max( 0, (int) $request->get_param( 'non_voters_offset' ) );
+        if ( $voters_limit === 0 ) {
+            $voters_limit = 100;
+        }
+        if ( $non_voters_limit === 0 ) {
+            $non_voters_limit = 100;
+        }
+
         if ( isset( $poll->vote_mode ) && $poll->vote_mode === 'anonymous' ) {
             $voters     = [];
             $non_voters = [];
         } else {
-            $voters     = Evoting_Vote::get_voters_anonymous( $poll_id );
-            $non_voters = Evoting_Vote::get_non_voters( $poll_id );
+            $voters     = Evoting_Vote::get_voters_anonymous( $poll_id, $voters_limit, $voters_offset );
+            $non_voters = Evoting_Vote::get_non_voters( $poll_id, $non_voters_limit, $non_voters_offset );
         }
 
         return new WP_REST_Response( [
@@ -180,6 +195,10 @@ class Evoting_Rest_Controller {
             'questions'        => $results['questions'],
             'voters'           => $voters,
             'non_voters_list'  => $non_voters,
+            'voters_limit'     => $voters_limit,
+            'voters_offset'    => $voters_offset,
+            'non_voters_limit' => $non_voters_limit,
+            'non_voters_offset'=> $non_voters_offset,
         ], 200 );
     }
 

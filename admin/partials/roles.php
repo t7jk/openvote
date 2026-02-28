@@ -8,10 +8,12 @@ $poll_admins = Evoting_Role_Manager::get_poll_admins();
 $editors     = Evoting_Role_Manager::get_poll_editors();
 $current_uid = get_current_user_id();
 
-// Lista zawiera wszystkich oprócz Koordynatorów Głosowania Polska — obecni koordynatorzy (edytorzy) zostają na liście, żeby można było dopisywać ich do kolejnych grup.
+// Lista do wyboru koordynatora — limit 300 ze względu na wydajność przy dużej bazie (np. 10k+).
+$evoting_roles_list_limit = 300;
 $all_users_for_role = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
+    'number'  => $evoting_roles_list_limit,
     'exclude' => array_map( fn( $u ) => $u->ID, $poll_admins ),
 ] );
 
@@ -108,9 +110,14 @@ $groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" 
             <input type="hidden" name="evoting_roles_action" value="add_poll_editor">
             <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
                 <div>
-                    <label for="evoting_add_editor_user"><?php esc_html_e( 'Koordynator:', 'evoting' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Przewiń listę, wybierz jedną osobę.', 'evoting' ); ?></p>
-                    <select name="user_id" id="evoting_add_editor_user" required size="15" style="min-width:280px; display:block;">
+                    <label for="evoting_add_editor_user_id_by_input"><?php esc_html_e( 'ID użytkownika (szybkie):', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Wpisz ID użytkownika, jeśli znasz.', 'evoting' ); ?></p>
+                    <input type="number" name="evoting_add_editor_user_id_by_input" id="evoting_add_editor_user_id_by_input" min="1" placeholder="<?php esc_attr_e( 'opcjonalnie', 'evoting' ); ?>" style="width:120px;">
+                </div>
+                <div>
+                    <label for="evoting_add_editor_user"><?php esc_html_e( 'Koordynator (z listy):', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php printf( esc_html__( 'Pokazano max %d użytkowników. Przewiń listę lub wpisz ID powyżej.', 'evoting' ), (int) $evoting_roles_list_limit ); ?></p>
+                    <select name="user_id" id="evoting_add_editor_user" size="15" style="min-width:280px; display:block;">
                         <option value="">— <?php esc_html_e( 'Wybierz', 'evoting' ); ?> —</option>
                         <?php foreach ( $all_users_for_role as $u ) :
                             $nickname = Evoting_Field_Map::get_user_value( $u, 'nickname' );

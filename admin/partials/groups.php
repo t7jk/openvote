@@ -89,9 +89,17 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
             $message = __( 'Członek usunięty.', 'evoting' );
         }
     } elseif ( 'add_user_to_groups' === $action ) {
-        $user_id   = absint( $_POST['evoting_add_user_id'] ?? 0 );
+        $user_id = absint( $_POST['evoting_add_user_id_by_input'] ?? 0 );
+        if ( ! $user_id ) {
+            $user_id = absint( $_POST['evoting_add_user_id'] ?? 0 );
+        }
         $group_ids = array_map( 'absint', (array) ( $_POST['evoting_user_groups'] ?? [] ) );
         $group_ids = array_filter( $group_ids );
+        if ( ! $user_id ) {
+            $error = __( 'Wybierz użytkownika z listy lub wpisz ID użytkownika.', 'evoting' );
+        } elseif ( empty( $group_ids ) ) {
+            $error = __( 'Wybierz co najmniej jedną grupę.', 'evoting' );
+        }
         if ( $user_id && ! empty( $group_ids ) ) {
             $added = 0;
             foreach ( $group_ids as $gid ) {
@@ -149,10 +157,12 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
     }
 }
 
-// Lista użytkowników do ręcznego dodawania do grup (jak przy Koordynatorach).
+// Lista użytkowników do ręcznego dodawania do grup — limit 300 ze względu na wydajność przy dużej bazie (np. 10k+).
+$evoting_users_list_limit = 300;
 $all_users_for_groups = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
+    'number'  => $evoting_users_list_limit,
 ] );
 
 // Aktualizuj liczniki i pobierz grupy.
@@ -330,9 +340,14 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
             <input type="hidden" name="evoting_groups_action" value="add_user_to_groups">
             <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
                 <div>
-                    <label for="evoting_add_user_id"><?php esc_html_e( 'Użytkownik:', 'evoting' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Przewiń listę, wybierz jedną osobę.', 'evoting' ); ?></p>
-                    <select name="evoting_add_user_id" id="evoting_add_user_id" required size="15" style="min-width:280px; display:block;">
+                    <label for="evoting_add_user_id_by_input"><?php esc_html_e( 'ID użytkownika (szybkie):', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Wpisz ID użytkownika, jeśli znasz (np. z listy członków).', 'evoting' ); ?></p>
+                    <input type="number" name="evoting_add_user_id_by_input" id="evoting_add_user_id_by_input" min="1" placeholder="<?php esc_attr_e( 'opcjonalnie', 'evoting' ); ?>" style="width:120px;">
+                </div>
+                <div>
+                    <label for="evoting_add_user_id"><?php esc_html_e( 'Użytkownik (z listy):', 'evoting' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php printf( esc_html__( 'Pokazano max %d użytkowników. Przewiń listę lub wpisz ID powyżej.', 'evoting' ), (int) $evoting_users_list_limit ); ?></p>
+                    <select name="evoting_add_user_id" id="evoting_add_user_id" size="15" style="min-width:280px; display:block;">
                         <option value="">— <?php esc_html_e( 'Wybierz', 'evoting' ); ?> —</option>
                         <?php foreach ( $all_users_for_groups as $u ) :
                             $city = Evoting_Field_Map::get_user_value( $u, 'city' );

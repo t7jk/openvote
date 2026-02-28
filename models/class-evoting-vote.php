@@ -265,23 +265,27 @@ class Evoting_Vote {
      * Get voter list for public results — one entry per voter.
      * Each voter chose jawnie or anonimowo; anonymous voters shown as "Anonimowy".
      *
+     * @param int $poll_id
+     * @param int $limit  0 = no limit.
+     * @param int $offset
      * @return array<int, array{nicename: string}>
      */
-    public static function get_voters_anonymous( int $poll_id ): array {
+    public static function get_voters_anonymous( int $poll_id, int $limit = 0, int $offset = 0 ): array {
         global $wpdb;
 
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, u.user_nicename
-                 FROM %i v
+        $sql = "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, u.user_nicename
+                 FROM " . self::table() . " v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
                  WHERE v.poll_id = %d
                  GROUP BY v.user_id, u.user_nicename
-                 ORDER BY u.user_nicename ASC",
-                self::table(),
-                $poll_id
-            )
-        );
+                 ORDER BY u.user_nicename ASC";
+        $params = [ $poll_id ];
+        if ( $limit > 0 ) {
+            $sql   .= " LIMIT %d OFFSET %d";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$params ) );
 
         $voters = [];
         foreach ( $rows as $row ) {
@@ -299,9 +303,12 @@ class Evoting_Vote {
      * Returns list of eligible users who did NOT vote in the given poll.
      * Each entry contains anonymized nicename (same rules as voters list).
      *
+     * @param int $poll_id
+     * @param int $limit  0 = no limit (e.g. for PDF export).
+     * @param int $offset
      * @return array<int, array{nicename: string}>
      */
-    public static function get_non_voters( int $poll_id ): array {
+    public static function get_non_voters( int $poll_id, int $limit = 0, int $offset = 0 ): array {
         global $wpdb;
 
         $poll = Evoting_Poll::get( $poll_id );
@@ -365,6 +372,12 @@ class Evoting_Vote {
                 WHERE " . implode( ' AND ', $where ) . "
                 ORDER BY u.user_nicename ASC";
 
+        if ( $limit > 0 ) {
+            $sql   .= " LIMIT %d OFFSET %d";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+
         if ( ! empty( $params ) ) {
             $rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$params ) );
         } else {
@@ -382,24 +395,56 @@ class Evoting_Vote {
     /**
      * Admin voter list — full name + anonymized email only.
      * GSM, location and other data are hidden even from admins.
+     * Uses a single query with usermeta joins to avoid N+1 get_userdata() on large lists.
      *
+     * @param int $poll_id
+     * @param int $limit  0 = no limit (e.g. for PDF export).
+     * @param int $offset
      * @return array<int, array{name: string, email_anon: string, voted_at: string}>
      */
-    public static function get_voters_admin( int $poll_id ): array {
+    public static function get_voters_admin( int $poll_id, int $limit = 0, int $offset = 0 ): array {
         global $wpdb;
 
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, MIN(v.voted_at) AS voted_at, u.user_email
-                 FROM %i v
+        $map       = Evoting_Field_Map::get();
+        $fn_key    = sanitize_key( $map['first_name'] ?? 'first_name' );
+        $ln_key    = sanitize_key( $map['last_name'] ?? 'last_name' );
+        $fn_core   = Evoting_Field_Map::is_core_field( $map['first_name'] ?? 'first_name' );
+        $ln_core   = Evoting_Field_Map::is_core_field( $map['last_name'] ?? 'last_name' );
+
+        $fn_select = $fn_core ? "u.{$fn_key}" : 'um_fn.meta_value';
+        $ln_select = $ln_core ? "u.{$ln_key}" : 'um_ln.meta_value';
+
+        $joins = '';
+        if ( ! $fn_core ) {
+            $joins .= " LEFT JOIN {$wpdb->usermeta} um_fn ON u.ID = um_fn.user_id AND um_fn.meta_key = '" . esc_sql( $fn_key ) . "'";
+        }
+        if ( ! $ln_core ) {
+            $joins .= " LEFT JOIN {$wpdb->usermeta} um_ln ON u.ID = um_ln.user_id AND um_ln.meta_key = '" . esc_sql( $ln_key ) . "'";
+        }
+
+        $group_by = 'v.user_id, u.user_email';
+        if ( ! $fn_core ) {
+            $group_by .= ', um_fn.meta_value';
+        }
+        if ( ! $ln_core ) {
+            $group_by .= ', um_ln.meta_value';
+        }
+        $sql = "SELECT v.user_id, MAX(v.is_anonymous) AS is_anon, MIN(v.voted_at) AS voted_at, u.user_email, {$fn_select} AS first_name, {$ln_select} AS last_name
+                 FROM " . self::table() . " v
                  INNER JOIN {$wpdb->users} u ON v.user_id = u.ID
+                 {$joins}
                  WHERE v.poll_id = %d
-                 GROUP BY v.user_id, u.user_email
-                 ORDER BY voted_at ASC",
-                self::table(),
-                $poll_id
-            )
-        );
+                 GROUP BY {$group_by}
+                 ORDER BY voted_at ASC";
+
+        $params = [ $poll_id ];
+        if ( $limit > 0 ) {
+            $sql   .= " LIMIT %d OFFSET %d";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$params ) );
 
         $voters = [];
         foreach ( $rows as $row ) {
@@ -413,17 +458,16 @@ class Evoting_Vote {
                 continue;
             }
 
-            $user = get_userdata( (int) $row->user_id );
-            if ( ! $user ) {
-                continue;
+            $first_name = isset( $row->first_name ) ? trim( (string) $row->first_name ) : '';
+            $last_name  = isset( $row->last_name ) ? trim( (string) $row->last_name ) : '';
+            $name       = trim( $first_name . ' ' . $last_name );
+            if ( '' === $name ) {
+                $name = __( '(brak imienia i nazwiska)', 'evoting' );
             }
 
-            $first_name = Evoting_Field_Map::get_user_value( $user, 'first_name' );
-            $last_name  = Evoting_Field_Map::get_user_value( $user, 'last_name' );
-
             $voters[] = [
-                'name'       => trim( $first_name . ' ' . $last_name ),
-                'email_anon' => self::anonymize_email( $row->user_email ),
+                'name'       => $name,
+                'email_anon' => self::anonymize_email( $row->user_email ?? '' ),
                 'voted_at'   => $row->voted_at,
             ];
         }

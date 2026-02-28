@@ -20,7 +20,9 @@ class Evoting_Admin_Roles {
         }
 
         $action   = sanitize_text_field( $_POST['evoting_roles_action'] ?? '' );
-        $user_id  = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+        $user_id  = isset( $_POST['evoting_add_editor_user_id_by_input'] ) && (int) $_POST['evoting_add_editor_user_id_by_input'] > 0
+            ? absint( $_POST['evoting_add_editor_user_id_by_input'] )
+            : ( isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0 );
         $group_id = isset( $_POST['group_id'] ) ? absint( $_POST['group_id'] ) : 0;
         $current_user_id = get_current_user_id();
 
