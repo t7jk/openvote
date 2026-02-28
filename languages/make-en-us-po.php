@@ -1,12 +1,12 @@
 <?php
 /**
- * Generates evoting-en_US.po from evoting.pot using PL→EN translations.
+ * Generates openvote-en_US.po from openvote.pot using PL→EN translations.
  * Run from plugin root: php languages/make-en-us-po.php
- * Then: msgfmt -o languages/evoting-en_US.mo languages/evoting-en_US.po
+ * Then: msgfmt -o languages/openvote-en_US.mo languages/openvote-en_US.po
  */
 
-$pot_path = __DIR__ . '/evoting.pot';
-$po_path  = __DIR__ . '/evoting-en_US.po';
+$pot_path = __DIR__ . '/openvote.pot';
+$po_path  = __DIR__ . '/openvote-en_US.po';
 
 $translations = [
     // Menu & main
@@ -213,7 +213,7 @@ if ( $pot === false ) {
     exit( 1 );
 }
 
-$en_header = '"Project-Id-Version: EP-RWL E-Voting\n"
+$en_header = '"Project-Id-Version: Open Vote\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: ' . date( 'Y-m-d H:iO' ) . '\n"
 "PO-Revision-Date: ' . date( 'Y-m-d H:iO' ) . '\n"
@@ -287,4 +287,4 @@ $po_content = implode( "\n", $out );
 // Plural forms: leave msgstr[0]/msgstr[1] as in .pot; fix manually in .po if needed.
 file_put_contents( $po_path, $po_content );
 echo "Written $po_path\n";
-echo "Run: msgfmt -o " . __DIR__ . "/evoting-en_US.mo $po_path\n";
+echo "Run: msgfmt -o " . __DIR__ . "/openvote-en_US.mo $po_path\n";

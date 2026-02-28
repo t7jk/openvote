@@ -13,44 +13,44 @@ $page_num = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
 if ( isset( $survey ) && $survey ) {
     // ── Widok pojedynczej ankiety ────────────────────────────────────────
     $surveys_to_show = [ $survey ];
-    $page_title      = sprintf( __( 'Odpowiedzi: %s', 'evoting' ), $survey->title );
+    $page_title      = sprintf( __( 'Odpowiedzi: %s', 'openvote' ), $survey->title );
 } else {
     // ── Widok zbiorczy — wszystkie zamknięte ankiety ─────────────────────
-    $surveys_to_show = Evoting_Survey::get_all( [ 'status' => 'closed', 'orderby' => 'title', 'order' => 'ASC' ] );
-    $page_title      = __( 'Odpowiedzi — zakończone ankiety', 'evoting' );
+    $surveys_to_show = Openvote_Survey::get_all( [ 'status' => 'closed', 'orderby' => 'title', 'order' => 'ASC' ] );
+    $page_title      = __( 'Odpowiedzi — zakończone ankiety', 'openvote' );
 }
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php echo esc_html( $page_title ); ?></h1>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-surveys' ) ); ?>" class="page-title-action">
-        ← <?php esc_html_e( 'Powrót do listy', 'evoting' ); ?>
+    <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-surveys' ) ); ?>" class="page-title-action">
+        ← <?php esc_html_e( 'Powrót do listy', 'openvote' ); ?>
     </a>
     <hr class="wp-header-end">
 
     <?php if ( isset( $_GET['marked_not_spam'] ) ) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Zgłoszenie oznaczono jako „Nie spam”.', 'evoting' ); ?></p></div>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Zgłoszenie oznaczono jako „Nie spam”.', 'openvote' ); ?></p></div>
     <?php endif; ?>
 
     <?php if ( empty( $surveys_to_show ) ) : ?>
-        <p><?php esc_html_e( 'Brak zamkniętych ankiet.', 'evoting' ); ?></p>
+        <p><?php esc_html_e( 'Brak zamkniętych ankiet.', 'openvote' ); ?></p>
     <?php endif; ?>
 
     <?php foreach ( $surveys_to_show as $s ) :
-        $total     = Evoting_Survey::count_responses( (int) $s->id );
-        $responses = Evoting_Survey::get_responses( (int) $s->id, $page_num, $per_page );
-        $questions = Evoting_Survey::get_questions( (int) $s->id );
+        $total     = Openvote_Survey::count_responses( (int) $s->id );
+        $responses = Openvote_Survey::get_responses( (int) $s->id, $page_num, $per_page );
+        $questions = Openvote_Survey::get_questions( (int) $s->id );
         $q_map     = [];
         foreach ( $questions as $q ) {
             $q_map[ (int) $q->id ] = $q->body;
         }
         ?>
-        <div class="evoting-survey-responses-group" style="margin-bottom:36px;">
+        <div class="openvote-survey-responses-group" style="margin-bottom:36px;">
 
             <h2 style="padding:10px 16px;background:#f0f0f1;border-left:4px solid #0073aa;margin:0 0 0;">
                 <?php echo esc_html( $s->title ); ?>
                 <span style="font-size:.75em;font-weight:400;color:#666;margin-left:8px;">
                     <?php printf(
-                        esc_html__( '%d odpowiedzi (gotowe)', 'evoting' ),
+                        esc_html__( '%d odpowiedzi (gotowe)', 'openvote' ),
                         $total
                     ); ?>
                 </span>
@@ -62,7 +62,7 @@ if ( isset( $survey ) && $survey ) {
             <?php endif; ?>
 
             <?php if ( empty( $responses ) ) : ?>
-                <p style="padding:12px 16px;color:#888;"><?php esc_html_e( 'Brak gotowych odpowiedzi.', 'evoting' ); ?></p>
+                <p style="padding:12px 16px;color:#888;"><?php esc_html_e( 'Brak gotowych odpowiedzi.', 'openvote' ); ?></p>
             <?php else : ?>
 
                 <?php foreach ( $responses as $resp ) : ?>
@@ -88,10 +88,10 @@ if ( isset( $survey ) && $survey ) {
                             <?php
                             $spam_status = $resp->spam_status ?? 'pending';
                             if ( 'not_spam' === $spam_status ) : ?>
-                                <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-size:.8em;"><?php esc_html_e( 'Nie spam', 'evoting' ); ?></span>
+                                <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-size:.8em;"><?php esc_html_e( 'Nie spam', 'openvote' ); ?></span>
                             <?php else : ?>
-                                <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'evoting-surveys', 'action' => 'mark_not_spam', 'survey_id' => $s->id, 'response_id' => $resp->id ], admin_url( 'admin.php' ) ), 'evoting_mark_not_spam_' . $resp->id ) ); ?>"
-                                   class="button button-small"><?php esc_html_e( 'To nie spam', 'evoting' ); ?></a>
+                                <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'openvote-surveys', 'action' => 'mark_not_spam', 'survey_id' => $s->id, 'response_id' => $resp->id ], admin_url( 'admin.php' ) ), 'openvote_mark_not_spam_' . $resp->id ) ); ?>"
+                                   class="button button-small"><?php esc_html_e( 'To nie spam', 'openvote' ); ?></a>
                             <?php endif; ?>
                         </div>
 
@@ -118,7 +118,7 @@ if ( isset( $survey ) && $survey ) {
                 <?php if ( $total > $per_page ) :
                     $total_pages = (int) ceil( $total / $per_page );
                     $base_url    = add_query_arg( [
-                        'page'      => 'evoting-surveys',
+                        'page'      => 'openvote-surveys',
                         'action'    => 'responses',
                         'survey_id' => $s->id,
                     ], admin_url( 'admin.php' ) );

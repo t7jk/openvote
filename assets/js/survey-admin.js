@@ -1,21 +1,21 @@
-/* globals evotingSurveyAdmin */
+/* globals openvoteSurveyAdmin */
 ( function () {
     'use strict';
 
-    const MAX_FIELDS = evotingSurveyAdmin.maxFields || 20;
+    const MAX_FIELDS = openvoteSurveyAdmin.maxFields || 20;
 
-    const container  = document.getElementById( 'evoting-survey-fields' );
+    const container  = document.getElementById( 'openvote-survey-fields' );
     const addBtn     = document.getElementById( 'evoting-add-survey-field' );
-    const countLabel = document.getElementById( 'evoting-survey-field-count' );
-    const startBtn   = document.getElementById( 'evoting-survey-start-btn' );
-    const form       = document.getElementById( 'evoting-survey-form' );
+    const countLabel = document.getElementById( 'openvote-survey-field-count' );
+    const startBtn   = document.getElementById( 'openvote-survey-start-btn' );
+    const form       = document.getElementById( 'openvote-survey-form' );
 
     if ( ! container ) return;
 
     // ── Licznik pól ──────────────────────────────────────────────────────────
 
     function getFieldCount() {
-        return container.querySelectorAll( '.evoting-survey-field-row' ).length;
+        return container.querySelectorAll( '.openvote-survey-field-row' ).length;
     }
 
     function updateCounter() {
@@ -31,7 +31,7 @@
     // ── Przeindeksowanie name atrybutów po usunięciu ─────────────────────────
 
     function reindexRows() {
-        container.querySelectorAll( '.evoting-survey-field-row' ).forEach( function ( row, i ) {
+        container.querySelectorAll( '.openvote-survey-field-row' ).forEach( function ( row, i ) {
             row.dataset.index = i;
             const numLabel = row.querySelector( 'span[style*="font-weight:600"]' );
             if ( numLabel ) numLabel.textContent = ( i + 1 ) + '.';
@@ -47,23 +47,23 @@
 
     function buildFieldRow( index ) {
         const wrap = document.createElement( 'div' );
-        wrap.className    = 'evoting-survey-field-row';
+        wrap.className    = 'openvote-survey-field-row';
         wrap.dataset.index = index;
 
         const types = [
-            { v: 'text_short', l: evotingSurveyAdmin.i18n.text_short },
-            { v: 'text_long',  l: evotingSurveyAdmin.i18n.text_long  },
-            { v: 'numeric',    l: evotingSurveyAdmin.i18n.numeric    },
-            { v: 'url',        l: evotingSurveyAdmin.i18n.url        },
-            { v: 'email',      l: evotingSurveyAdmin.i18n.email      },
+            { v: 'text_short', l: openvoteSurveyAdmin.i18n.text_short },
+            { v: 'text_long',  l: openvoteSurveyAdmin.i18n.text_long  },
+            { v: 'numeric',    l: openvoteSurveyAdmin.i18n.numeric    },
+            { v: 'url',        l: openvoteSurveyAdmin.i18n.url        },
+            { v: 'email',      l: openvoteSurveyAdmin.i18n.email      },
         ];
 
         const opts = types.map( function ( t ) {
             return '<option value="' + t.v + '">' + t.l + '</option>';
         } ).join( '' );
 
-        const profileOpts  = evotingSurveyAdmin.profileFieldOpts || {};
-        const profileLabel = evotingSurveyAdmin.i18n.profileLabel || 'Pole profilu';
+        const profileOpts  = openvoteSurveyAdmin.profileFieldOpts || {};
+        const profileLabel = openvoteSurveyAdmin.i18n.profileLabel || 'Pole profilu';
 
         wrap.innerHTML = `
             <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding:12px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px;">
@@ -71,27 +71,27 @@
                 <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
                     <input type="text"
                            name="survey_questions[${ index }][body]"
-                           placeholder="${ evotingSurveyAdmin.i18n.placeholder }"
+                           placeholder="${ openvoteSurveyAdmin.i18n.placeholder }"
                            maxlength="512"
                            style="width:100%;"
-                           class="evoting-survey-field-body">
+                           class="openvote-survey-field-body">
                     <select name="survey_questions[${ index }][field_type]"
-                            class="evoting-survey-field-type">
+                            class="openvote-survey-field-type">
                         ${ opts }
                     </select>
                     <label style="font-size:11px;color:#666;">${ profileLabel }</label>
                     <select name="survey_questions[${ index }][profile_field]"
-                            class="evoting-survey-field-profile">
+                            class="openvote-survey-field-profile">
                     </select>
                 </div>
                 <button type="button"
                         class="button evoting-remove-survey-field"
                         style="margin-top:4px;"
-                        title="${ evotingSurveyAdmin.i18n.remove }">✕</button>
+                        title="${ openvoteSurveyAdmin.i18n.remove }">✕</button>
             </div>`;
 
         // Wypełnij opcje profilu przez DOM (nie innerHTML) — zapobiega XSS jeśli etykiety zawierają znaki HTML.
-        const profileSelect = wrap.querySelector( '.evoting-survey-field-profile' );
+        const profileSelect = wrap.querySelector( '.openvote-survey-field-profile' );
         Object.keys( profileOpts ).forEach( function ( k ) {
             const opt = document.createElement( 'option' );
             opt.value = k;
@@ -107,10 +107,10 @@
     container.addEventListener( 'click', function ( e ) {
         if ( e.target.classList.contains( 'evoting-remove-survey-field' ) ) {
             if ( getFieldCount() <= 1 ) {
-                alert( evotingSurveyAdmin.i18n.minOne );
+                alert( openvoteSurveyAdmin.i18n.minOne );
                 return;
             }
-            const row = e.target.closest( '.evoting-survey-field-row' );
+            const row = e.target.closest( '.openvote-survey-field-row' );
             if ( row ) {
                 row.remove();
                 reindexRows();
@@ -127,7 +127,7 @@
             const row = buildFieldRow( idx );
             container.appendChild( row );
             updateMaxCharsVisibility( row );
-            row.querySelector( '.evoting-survey-field-body' ).focus();
+            row.querySelector( '.openvote-survey-field-body' ).focus();
             reindexRows();
         } );
     }
@@ -136,11 +136,11 @@
 
     if ( form ) {
         form.addEventListener( 'submit', function ( e ) {
-            const rows = container.querySelectorAll( '.evoting-survey-field-row' );
+            const rows = container.querySelectorAll( '.openvote-survey-field-row' );
             let valid = true;
 
             rows.forEach( function ( row ) {
-                const bodyInput = row.querySelector( '.evoting-survey-field-body' );
+                const bodyInput = row.querySelector( '.openvote-survey-field-body' );
                 if ( bodyInput && bodyInput.value.trim() === '' ) {
                     bodyInput.style.borderColor = '#b32d2e';
                     valid = false;
@@ -151,7 +151,7 @@
 
             if ( ! valid ) {
                 e.preventDefault();
-                alert( evotingSurveyAdmin.i18n.emptyLabel );
+                alert( openvoteSurveyAdmin.i18n.emptyLabel );
                 return;
             }
 

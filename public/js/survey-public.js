@@ -1,15 +1,15 @@
-/* globals evotingSurveyPublic */
+/* globals openvoteSurveyPublic */
 ( function () {
     'use strict';
 
-    if ( typeof evotingSurveyPublic === 'undefined' ) return;
+    if ( typeof openvoteSurveyPublic === 'undefined' ) return;
 
-    var cfg = evotingSurveyPublic;
+    var cfg = openvoteSurveyPublic;
 
-    document.querySelectorAll( '.evoting-survey-form' ).forEach( function ( form ) {
+    document.querySelectorAll( '.openvote-survey-form' ).forEach( function ( form ) {
         var surveyId     = form.dataset.surveyId;
-        var msgBox       = form.querySelector( '.evoting-survey-form__message' );
-        var submitBtns   = form.querySelectorAll( '.evoting-survey-btn' );
+        var msgBox       = form.querySelector( '.openvote-survey-form__message' );
+        var submitBtns   = form.querySelectorAll( '.openvote-survey-btn' );
 
         // Przywróć zapisane odpowiedzi z API przy załadowaniu strony (jeśli zalogowany).
         if ( cfg.loggedIn ) {
@@ -48,7 +48,7 @@
                     var msg = ( status === 'ready' ) ? cfg.i18n.savedReady : cfg.i18n.savedDraft;
                     showMessage( msgBox, msg, status === 'ready' ? 'success' : 'draft' );
                     // Zaktualizuj banner statusu.
-                    updateStatusBanner( form.closest( '.evoting-survey-card' ), status );
+                    updateStatusBanner( form.closest( '.openvote-survey-card' ), status );
                 } else {
                     showMessage( msgBox, data.message || cfg.i18n.error, 'error' );
                 }
@@ -105,15 +105,15 @@
 
     function updateStatusBanner( card, status ) {
         if ( ! card ) return;
-        var existing = card.querySelector( '.evoting-survey-notice' );
+        var existing = card.querySelector( '.openvote-survey-notice' );
         if ( existing ) {
-            existing.classList.remove( 'evoting-survey-notice--success', 'evoting-survey-notice--draft' );
+            existing.classList.remove( 'openvote-survey-notice--success', 'openvote-survey-notice--draft' );
             if ( status === 'ready' ) {
-                existing.classList.add( 'evoting-survey-notice--success' );
-                existing.querySelector( 'p' ).textContent = evotingSurveyPublic.i18n.savedReady;
+                existing.classList.add( 'openvote-survey-notice--success' );
+                existing.querySelector( 'p' ).textContent = openvoteSurveyPublic.i18n.savedReady;
             } else {
-                existing.classList.add( 'evoting-survey-notice--draft' );
-                existing.querySelector( 'p' ).textContent = evotingSurveyPublic.i18n.savedDraft;
+                existing.classList.add( 'openvote-survey-notice--draft' );
+                existing.querySelector( 'p' ).textContent = openvoteSurveyPublic.i18n.savedDraft;
             }
         }
     }

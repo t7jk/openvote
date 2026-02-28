@@ -1,6 +1,12 @@
 {
-    "name": "ep-rwl/evoting",
-    "description": "E-Parlament Ruch Wolnych Ludzi — system e-głosowania",
+    "name": "ep-rwl/openvote",
+    "description": "Open Vote — system e-głosowania (ankiety i głosowania)",
+    "authors": [
+        {
+            "name": "Tomasz Kalinowski",
+            "email": "t7jk@protonmail.com"
+        }
+    ],
     "require": {
         "php": ">=8.1",
         "tecnickcom/tcpdf": "^6.7"

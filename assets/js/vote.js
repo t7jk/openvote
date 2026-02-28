@@ -15,7 +15,7 @@
     /* ── Voting Forms ── */
 
     function initVotingForms() {
-        document.querySelectorAll('.evoting-poll__form').forEach(function (form) {
+        document.querySelectorAll('.openvote-poll__form').forEach(function (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 handleSubmit(form);
@@ -25,15 +25,15 @@
 
     function handleSubmit(form) {
         var pollId    = form.dataset.pollId;
-        var msgEl     = form.querySelector('.evoting-poll__message');
-        var submitBtn = form.querySelector('.evoting-poll__submit');
+        var msgEl     = form.querySelector('.openvote-poll__message');
+        var submitBtn = form.querySelector('.openvote-poll__submit');
         var i18n      = cfg.i18n || {};
 
         // Collect answers: question_id → answer_id.
         var answers     = {};
         var allAnswered = true;
 
-        form.querySelectorAll('.evoting-poll__question').forEach(function (fs) {
+        form.querySelectorAll('.openvote-poll__question').forEach(function (fs) {
             var checked = fs.querySelector('input[type="radio"]:checked');
             if (!checked) { allAnswered = false; return; }
             var qId = parseInt(checked.name.replace('question_', ''), 10);
@@ -54,9 +54,9 @@
 
         if (submitBtn) submitBtn.disabled = true;
 
-        var block   = form.closest('.evoting-poll-block');
+        var block   = form.closest('.openvote-poll-block');
         var nonce   = (block && block.dataset.nonce) ? block.dataset.nonce : (cfg.nonce || '');
-        var restUrl = cfg.restUrl || '/wp-json/evoting/v1';
+        var restUrl = cfg.restUrl || '/wp-json/openvote/v1';
 
         if (!nonce) {
             showMessage(msgEl, i18n.voteError || 'Błąd konfiguracji formularza.', 'error');
@@ -88,17 +88,17 @@
     function showMessage(el, text, type) {
         if (!el) return;
         el.textContent = text;
-        el.className = 'evoting-poll__message evoting-poll__message--' + type;
+        el.className = 'openvote-poll__message openvote-poll__message--' + type;
     }
 
     /* ── Results (ended polls) ── */
 
     function initResults() {
-        document.querySelectorAll('.evoting-poll__results[data-poll-id]').forEach(function (container) {
+        document.querySelectorAll('.openvote-poll__results[data-poll-id]').forEach(function (container) {
             var pollId  = container.dataset.pollId;
-            var block   = container.closest('.evoting-poll-block');
+            var block   = container.closest('.openvote-poll-block');
             var nonce   = (block && block.dataset.nonce) ? block.dataset.nonce : (cfg.nonce || '');
-            var restUrl = cfg.restUrl || '/wp-json/evoting/v1';
+            var restUrl = cfg.restUrl || '/wp-json/openvote/v1';
 
             fetch(restUrl + '/polls/' + pollId + '/results', {
                 headers: { 'X-WP-Nonce': nonce },

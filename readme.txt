@@ -1,5 +1,5 @@
-=== EP-RWL E-Voting ===
-Contributors: ep-rwl
+=== Open Vote ===
+Contributors: t7jk
 Tags: voting, polls, surveys, e-voting, anonymous voting, groups, email invitations, elections
 Requires at least: 6.4
 Tested up to: 6.7
@@ -12,7 +12,7 @@ Organisation polls and surveys: create votes with questions, manage groups, send
 
 == Description ==
 
-EP-RWL E-Voting is a WordPress plugin for running electronic polls and surveys within your organisation. It lets you create polls with multiple questions and answers, manage participant groups (including by city or custom groups), send email invitations in batches, and view results with optional anonymity.
+Open Vote is a WordPress plugin for running electronic polls and surveys within your organisation. It lets you create polls with multiple questions and answers, manage participant groups (including by city or custom groups), send email invitations in batches, and view results with optional anonymity.
 
 = Features =
 

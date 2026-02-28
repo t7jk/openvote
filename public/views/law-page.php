@@ -8,12 +8,12 @@ defined( 'ABSPATH' ) || exit;
 get_header();
 ?>
 
-<div class="evoting-law-page-wrap">
-    <?php require EVOTING_PLUGIN_DIR . 'includes/evoting-law-content.php'; ?>
+<div class="openvote-law-page-wrap">
+    <?php require OPENVOTE_PLUGIN_DIR . 'includes/openvote-law-content.php'; ?>
 
-    <p class="evoting-law-back">
-        <a href="<?php echo esc_url( evoting_get_vote_page_url() ); ?>">
-            ← <?php esc_html_e( 'Powrót do głosowań', 'evoting' ); ?>
+    <p class="openvote-law-back">
+        <a href="<?php echo esc_url( openvote_get_vote_page_url() ); ?>">
+            ← <?php esc_html_e( 'Powrót do głosowań', 'openvote' ); ?>
         </a>
     </p>
 </div>

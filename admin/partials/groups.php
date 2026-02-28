@@ -2,40 +2,40 @@
 defined( 'ABSPATH' ) || exit;
 
 global $wpdb;
-$groups_table = $wpdb->prefix . 'evoting_groups';
-$gm_table     = $wpdb->prefix . 'evoting_group_members';
+$groups_table = $wpdb->prefix . 'openvote_groups';
+$gm_table     = $wpdb->prefix . 'openvote_group_members';
 
 // ─── Obsługa formularzy (PHP, bez AJAX) ───────────────────────────────────
 
 $message = '';
 $error   = '';
 
-if ( isset( $_GET['updated'] ) && sanitize_key( $_GET['updated'] ?? '' ) === '1' && ! isset( $_POST['evoting_groups_nonce'] ) ) {
-    $msg = get_transient( 'evoting_groups_message' );
-    $err = get_transient( 'evoting_groups_error' );
+if ( isset( $_GET['updated'] ) && sanitize_key( $_GET['updated'] ?? '' ) === '1' && ! isset( $_POST['openvote_groups_nonce'] ) ) {
+    $msg = get_transient( 'openvote_groups_message' );
+    $err = get_transient( 'openvote_groups_error' );
     if ( $msg !== false ) {
         $message = $msg;
-        delete_transient( 'evoting_groups_message' );
+        delete_transient( 'openvote_groups_message' );
     }
     if ( $err !== false ) {
         $error = $err;
-        delete_transient( 'evoting_groups_error' );
+        delete_transient( 'openvote_groups_error' );
     }
 }
 
-if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_groups_action', 'evoting_groups_nonce' ) ) {
+if ( isset( $_POST['openvote_groups_nonce'] ) && check_admin_referer( 'openvote_groups_action', 'openvote_groups_nonce' ) ) {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
     }
 
-    $action = sanitize_text_field( $_POST['evoting_groups_action'] ?? '' );
+    $action = sanitize_text_field( $_POST['openvote_groups_action'] ?? '' );
 
     if ( 'add' === $action ) {
         $name = sanitize_text_field( $_POST['group_name'] ?? '' );
         $type = 'custom'; // Grupy dodawane ręcznie są zawsze typu „własna”.
 
         if ( '' === $name ) {
-            $error = __( 'Nazwa grupy jest wymagana.', 'evoting' );
+            $error = __( 'Nazwa grupy jest wymagana.', 'openvote' );
         } else {
             $inserted = $wpdb->insert(
                 $groups_table,
@@ -43,31 +43,31 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
                 [ '%s', '%s', '%s' ]
             );
             if ( $inserted ) {
-                $message = __( 'Grupa została dodana.', 'evoting' );
+                $message = __( 'Grupa została dodana.', 'openvote' );
             } else {
-                $error = __( 'Błąd zapisu — nazwa grupy może być już zajęta.', 'evoting' );
+                $error = __( 'Błąd zapisu — nazwa grupy może być już zajęta.', 'openvote' );
             }
         }
     } elseif ( 'delete' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
         if ( ! $group_id ) {
-            $error = __( 'Nie wybrano grupy do usunięcia.', 'evoting' );
+            $error = __( 'Nie wybrano grupy do usunięcia.', 'openvote' );
         } else {
             $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE id = %d", $group_id ) );
             if ( ! $exists ) {
-                $error = __( 'Wybrana grupa nie istnieje.', 'evoting' );
+                $error = __( 'Wybrana grupa nie istnieje.', 'openvote' );
             } else {
                 $wpdb->delete( $gm_table, [ 'group_id' => $group_id ], [ '%d' ] );
                 $wpdb->delete( $groups_table, [ 'id' => $group_id ], [ '%d' ] );
-                Evoting_Poll::remove_group_from_all_polls( $group_id );
-                $message = __( 'Grupa została usunięta.', 'evoting' );
+                Openvote_Poll::remove_group_from_all_polls( $group_id );
+                $message = __( 'Grupa została usunięta.', 'openvote' );
             }
         }
     } elseif ( 'add_member' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
         $user_id  = absint( $_POST['member_user_id'] ?? 0 );
         if ( ! $group_id || ! $user_id ) {
-            $error = __( 'Wybierz grupę i użytkownika.', 'evoting' );
+            $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
         } else {
             $wpdb->query(
                 $wpdb->prepare(
@@ -77,28 +77,28 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
                     current_time( 'mysql' )
                 )
             );
-            $message = __( 'Członek dodany.', 'evoting' );
+            $message = __( 'Członek dodany.', 'openvote' );
         }
     } elseif ( 'remove_member' === $action ) {
         $group_id = absint( $_POST['group_id'] ?? 0 );
         $user_id  = absint( $_POST['member_user_id'] ?? 0 );
         if ( ! $group_id || ! $user_id ) {
-            $error = __( 'Wybierz grupę i użytkownika.', 'evoting' );
+            $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
         } else {
             $wpdb->delete( $gm_table, [ 'group_id' => $group_id, 'user_id' => $user_id ], [ '%d', '%d' ] );
-            $message = __( 'Członek usunięty.', 'evoting' );
+            $message = __( 'Członek usunięty.', 'openvote' );
         }
     } elseif ( 'add_user_to_groups' === $action ) {
-        $user_id = absint( $_POST['evoting_add_user_id_by_input'] ?? 0 );
+        $user_id = absint( $_POST['openvote_add_user_id_by_input'] ?? 0 );
         if ( ! $user_id ) {
-            $user_id = absint( $_POST['evoting_add_user_id'] ?? 0 );
+            $user_id = absint( $_POST['openvote_add_user_id'] ?? 0 );
         }
-        $group_ids = array_map( 'absint', (array) ( $_POST['evoting_user_groups'] ?? [] ) );
+        $group_ids = array_map( 'absint', (array) ( $_POST['openvote_user_groups'] ?? [] ) );
         $group_ids = array_filter( $group_ids );
         if ( ! $user_id ) {
-            $error = __( 'Wybierz użytkownika z listy lub wpisz ID użytkownika.', 'evoting' );
+            $error = __( 'Wybierz użytkownika z listy lub wpisz ID użytkownika.', 'openvote' );
         } elseif ( empty( $group_ids ) ) {
-            $error = __( 'Wybierz co najmniej jedną grupę.', 'evoting' );
+            $error = __( 'Wybierz co najmniej jedną grupę.', 'openvote' );
         }
         if ( $user_id && ! empty( $group_ids ) ) {
             $added = 0;
@@ -118,7 +118,7 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
             if ( $added > 0 ) {
                 $message = sprintf(
                     /* translators: %d: number of groups */
-                    _n( 'Użytkownik dodany do %d grupy.', 'Użytkownik dodany do %d grup.', $added, 'evoting' ),
+                    _n( 'Użytkownik dodany do %d grupy.', 'Użytkownik dodany do %d grup.', $added, 'openvote' ),
                     $added
                 );
             }
@@ -126,18 +126,18 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
             if ( count( $group_ids ) === 1 ) {
                 $user = get_userdata( $user_id );
                 if ( $user instanceof WP_User ) {
-                    $current_city = Evoting_Field_Map::get_user_value( $user, 'city' );
+                    $current_city = Openvote_Field_Map::get_user_value( $user, 'city' );
                     $current_city = trim( (string) $current_city );
                     if ( '' === $current_city ) {
                         $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_ids[0] ) );
                         if ( $group_row && $group_row->name !== '' ) {
-                            $city_key = Evoting_Field_Map::get_field( 'city' );
-                            if ( ! Evoting_Field_Map::is_core_field( $city_key ) ) {
+                            $city_key = Openvote_Field_Map::get_field( 'city' );
+                            if ( ! Openvote_Field_Map::is_core_field( $city_key ) ) {
                                 update_user_meta( $user_id, $city_key, $group_row->name );
                             } else {
                                 wp_update_user( [ 'ID' => $user_id, $city_key => $group_row->name ] );
                             }
-                            $message = ( $message ? $message . ' ' : '' ) . __( 'Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania.', 'evoting' );
+                            $message = ( $message ? $message . ' ' : '' ) . __( 'Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania.', 'openvote' );
                         }
                     }
                 }
@@ -147,22 +147,22 @@ if ( isset( $_POST['evoting_groups_nonce'] ) && check_admin_referer( 'evoting_gr
 
     if ( $message || $error ) {
         if ( $message ) {
-            set_transient( 'evoting_groups_message', $message, 30 );
+            set_transient( 'openvote_groups_message', $message, 30 );
         }
         if ( $error ) {
-            set_transient( 'evoting_groups_error', $error, 30 );
+            set_transient( 'openvote_groups_error', $error, 30 );
         }
-        wp_safe_redirect( add_query_arg( [ 'page' => 'evoting-groups', 'updated' => '1' ], admin_url( 'admin.php' ) ) );
+        wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-groups', 'updated' => '1' ], admin_url( 'admin.php' ) ) );
         exit;
     }
 }
 
 // Lista użytkowników do ręcznego dodawania do grup — limit 300 ze względu na wydajność przy dużej bazie (np. 10k+).
-$evoting_users_list_limit = 300;
+$openvote_users_list_limit = 300;
 $all_users_for_groups = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
-    'number'  => $evoting_users_list_limit,
+    'number'  => $openvote_users_list_limit,
 ] );
 
 // Aktualizuj liczniki i pobierz grupy.
@@ -179,20 +179,20 @@ foreach ( $groups as $group ) {
 
 // Parametry AJAX przekazane do JS.
 wp_enqueue_script(
-    'evoting-batch-progress',
-    EVOTING_PLUGIN_URL . 'assets/js/batch-progress.js',
+    'openvote-batch-progress',
+    OPENVOTE_PLUGIN_URL . 'assets/js/batch-progress.js',
     [],
-    EVOTING_VERSION,
+    OPENVOTE_VERSION,
     true
 );
-wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
-    'apiRoot'    => esc_url_raw( rest_url( 'evoting/v1' ) ),
+wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
+    'apiRoot'    => esc_url_raw( rest_url( 'openvote/v1' ) ),
     'nonce'      => wp_create_nonce( 'wp_rest' ),
-    'emailDelay' => evoting_get_email_batch_delay(),
+    'emailDelay' => openvote_get_email_batch_delay(),
 ] );
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Grupy użytkowników', 'evoting' ); ?></h1>
+    <h1><?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></h1>
 
     <?php if ( $message ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
@@ -205,31 +205,31 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
     <table class="wp-list-table widefat fixed striped" style="max-width:900px;margin-bottom:30px;">
         <thead>
             <tr>
-                <th style="width:250px;"><?php esc_html_e( 'Nazwa grupy', 'evoting' ); ?></th>
-                <th style="width:100px;"><?php esc_html_e( 'Członkowie', 'evoting' ); ?></th>
-                <th style="width:120px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
+                <th style="width:250px;"><?php esc_html_e( 'Nazwa grupy', 'openvote' ); ?></th>
+                <th style="width:100px;"><?php esc_html_e( 'Członkowie', 'openvote' ); ?></th>
+                <th style="width:120px;"><?php esc_html_e( 'Akcja', 'openvote' ); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if ( empty( $groups ) ) : ?>
-                <tr><td colspan="3"><?php esc_html_e( 'Brak grup.', 'evoting' ); ?></td></tr>
+                <tr><td colspan="3"><?php esc_html_e( 'Brak grup.', 'openvote' ); ?></td></tr>
             <?php else : ?>
                 <?php foreach ( $groups as $group ) : ?>
                     <tr>
                         <td><strong><?php echo esc_html( $group->name ); ?></strong></td>
                         <td>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $group->id ) ); ?>">
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $group->id ) ); ?>">
                                 <?php echo esc_html( $group->member_count ); ?>
                             </a>
                         </td>
                         <td>
                             <form method="post" action="" style="display:inline;">
-                                <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
-                                <input type="hidden" name="evoting_groups_action" value="delete">
+                                <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+                                <input type="hidden" name="openvote_groups_action" value="delete">
                                 <input type="hidden" name="group_id" value="<?php echo esc_attr( $group->id ); ?>">
                                 <button type="submit" class="button button-small button-link-delete"
-                                        onclick="return confirm('<?php echo esc_js( __( 'Usunąć tę grupę? Zostaną usunięci wszyscy jej członkowie (przypisania).', 'evoting' ) ); ?>');">
-                                    <?php esc_html_e( 'Usuń grupę', 'evoting' ); ?>
+                                        onclick="return confirm('<?php echo esc_js( __( 'Usunąć tę grupę? Zostaną usunięci wszyscy jej członkowie (przypisania).', 'openvote' ) ); ?>');">
+                                    <?php esc_html_e( 'Usuń grupę', 'openvote' ); ?>
                                 </button>
                             </form>
                         </td>
@@ -265,33 +265,33 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
             );
         ?>
         <hr>
-        <h2><?php printf( esc_html__( 'Członkowie grupy: %s', 'evoting' ), esc_html( $group->name ) ); ?>
-            <span class="evoting-badge evoting-badge--meta"><?php echo esc_html( $total_members ); ?></span>
+        <h2><?php printf( esc_html__( 'Członkowie grupy: %s', 'openvote' ), esc_html( $group->name ) ); ?>
+            <span class="openvote-badge openvote-badge--meta"><?php echo esc_html( $total_members ); ?></span>
         </h2>
 
         <?php // Dodaj członka ręcznie ?>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $view_gid ) ); ?>" style="margin-bottom:16px;">
-            <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
-            <input type="hidden" name="evoting_groups_action" value="add_member">
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid ) ); ?>" style="margin-bottom:16px;">
+            <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+            <input type="hidden" name="openvote_groups_action" value="add_member">
             <input type="hidden" name="group_id" value="<?php echo esc_attr( $view_gid ); ?>">
-            <input type="number" name="member_user_id" placeholder="<?php esc_attr_e( 'ID użytkownika', 'evoting' ); ?>"
+            <input type="number" name="member_user_id" placeholder="<?php esc_attr_e( 'ID użytkownika', 'openvote' ); ?>"
                    min="1" style="width:160px;" required>
-            <button type="submit" class="button"><?php esc_html_e( 'Dodaj ręcznie', 'evoting' ); ?></button>
+            <button type="submit" class="button"><?php esc_html_e( 'Dodaj ręcznie', 'openvote' ); ?></button>
         </form>
 
         <table class="wp-list-table widefat fixed striped" style="max-width:800px;margin-bottom:16px;">
             <thead>
                 <tr>
-                    <th><?php esc_html_e( 'Użytkownik', 'evoting' ); ?></th>
-                    <th><?php esc_html_e( 'E-mail', 'evoting' ); ?></th>
-                    <th style="width:80px;"><?php esc_html_e( 'Źródło', 'evoting' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Dodano', 'evoting' ); ?></th>
-                    <th style="width:80px;"><?php esc_html_e( 'Akcja', 'evoting' ); ?></th>
+                    <th><?php esc_html_e( 'Użytkownik', 'openvote' ); ?></th>
+                    <th><?php esc_html_e( 'E-mail', 'openvote' ); ?></th>
+                    <th style="width:80px;"><?php esc_html_e( 'Źródło', 'openvote' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Dodano', 'openvote' ); ?></th>
+                    <th style="width:80px;"><?php esc_html_e( 'Akcja', 'openvote' ); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ( empty( $members ) ) : ?>
-                    <tr><td colspan="5"><?php esc_html_e( 'Brak członków.', 'evoting' ); ?></td></tr>
+                    <tr><td colspan="5"><?php esc_html_e( 'Brak członków.', 'openvote' ); ?></td></tr>
                 <?php else : ?>
                     <?php foreach ( $members as $m ) : ?>
                         <tr>
@@ -300,14 +300,14 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
                             <td><?php echo esc_html( $m->source ); ?></td>
                             <td><?php echo esc_html( $m->added_at ); ?></td>
                             <td>
-                                <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $view_gid ) ); ?>">
-                                    <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
-                                    <input type="hidden" name="evoting_groups_action" value="remove_member">
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid ) ); ?>">
+                                    <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+                                    <input type="hidden" name="openvote_groups_action" value="remove_member">
                                     <input type="hidden" name="group_id" value="<?php echo esc_attr( $view_gid ); ?>">
                                     <input type="hidden" name="member_user_id" value="<?php echo esc_attr( $m->user_id ); ?>">
                                     <button type="submit" class="button button-small button-link-delete"
-                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć z grupy?', 'evoting' ); ?>');">
-                                        <?php esc_html_e( 'Usuń', 'evoting' ); ?>
+                                            onclick="return confirm('<?php esc_attr_e( 'Usunąć z grupy?', 'openvote' ); ?>');">
+                                        <?php esc_html_e( 'Usuń', 'openvote' ); ?>
                                     </button>
                                 </form>
                             </td>
@@ -319,12 +319,12 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
 
         <?php // Paginacja ?>
         <?php if ( $page_offset > 0 ) : ?>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $view_gid . '&member_offset=' . max( 0, $page_offset - 100 ) ) ); ?>"
-               class="button">&laquo; <?php esc_html_e( 'Poprzednie', 'evoting' ); ?></a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid . '&member_offset=' . max( 0, $page_offset - 100 ) ) ); ?>"
+               class="button">&laquo; <?php esc_html_e( 'Poprzednie', 'openvote' ); ?></a>
         <?php endif; ?>
         <?php if ( ( $page_offset + 100 ) < $total_members ) : ?>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=evoting-groups&action=members&group_id=' . $view_gid . '&member_offset=' . ( $page_offset + 100 ) ) ); ?>"
-               class="button"><?php esc_html_e( 'Następne', 'evoting' ); ?> &raquo;</a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid . '&member_offset=' . ( $page_offset + 100 ) ) ); ?>"
+               class="button"><?php esc_html_e( 'Następne', 'openvote' ); ?> &raquo;</a>
         <?php endif; ?>
 
         <?php endif; // if $group ?>
@@ -333,26 +333,26 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
     <?php if ( 'members' !== $view_action && ! empty( $groups ) ) : ?>
         <?php // ─── Dodaj użytkownika do grup (ręcznie, np. do testów) ───────── ?>
         <hr>
-        <h2><?php esc_html_e( 'Dodaj użytkownika do grup', 'evoting' ); ?></h2>
-        <p class="description" style="margin:4px 0 12px;"><?php esc_html_e( 'Ręczne przypisanie użytkownika do jednej lub wielu grup (niezależnie od automatycznego przyporządkowania). Przydatne przy testach.', 'evoting' ); ?></p>
+        <h2><?php esc_html_e( 'Dodaj użytkownika do grup', 'openvote' ); ?></h2>
+        <p class="description" style="margin:4px 0 12px;"><?php esc_html_e( 'Ręczne przypisanie użytkownika do jednej lub wielu grup (niezależnie od automatycznego przyporządkowania). Przydatne przy testach.', 'openvote' ); ?></p>
         <form method="post" action="">
-            <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
-            <input type="hidden" name="evoting_groups_action" value="add_user_to_groups">
+            <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+            <input type="hidden" name="openvote_groups_action" value="add_user_to_groups">
             <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
                 <div>
-                    <label for="evoting_add_user_id_by_input"><?php esc_html_e( 'ID użytkownika (szybkie):', 'evoting' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Wpisz ID użytkownika, jeśli znasz (np. z listy członków).', 'evoting' ); ?></p>
-                    <input type="number" name="evoting_add_user_id_by_input" id="evoting_add_user_id_by_input" min="1" placeholder="<?php esc_attr_e( 'opcjonalnie', 'evoting' ); ?>" style="width:120px;">
+                    <label for="openvote_add_user_id_by_input"><?php esc_html_e( 'ID użytkownika (szybkie):', 'openvote' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Wpisz ID użytkownika, jeśli znasz (np. z listy członków).', 'openvote' ); ?></p>
+                    <input type="number" name="openvote_add_user_id_by_input" id="openvote_add_user_id_by_input" min="1" placeholder="<?php esc_attr_e( 'opcjonalnie', 'openvote' ); ?>" style="width:120px;">
                 </div>
                 <div>
-                    <label for="evoting_add_user_id"><?php esc_html_e( 'Użytkownik (z listy):', 'evoting' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php printf( esc_html__( 'Pokazano max %d użytkowników. Przewiń listę lub wpisz ID powyżej.', 'evoting' ), (int) $evoting_users_list_limit ); ?></p>
-                    <select name="evoting_add_user_id" id="evoting_add_user_id" size="15" style="min-width:280px; display:block;">
-                        <option value="">— <?php esc_html_e( 'Wybierz', 'evoting' ); ?> —</option>
+                    <label for="openvote_add_user_id"><?php esc_html_e( 'Użytkownik (z listy):', 'openvote' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php printf( esc_html__( 'Pokazano max %d użytkowników. Przewiń listę lub wpisz ID powyżej.', 'openvote' ), (int) $openvote_users_list_limit ); ?></p>
+                    <select name="openvote_add_user_id" id="openvote_add_user_id" size="15" style="min-width:280px; display:block;">
+                        <option value="">— <?php esc_html_e( 'Wybierz', 'openvote' ); ?> —</option>
                         <?php foreach ( $all_users_for_groups as $u ) :
-                            $city = Evoting_Field_Map::get_user_value( $u, 'city' );
-                            $city_label = ( $city !== '' ) ? $city : __( 'brak', 'evoting' );
-                            $nick = Evoting_Field_Map::get_user_value( $u, 'nickname' );
+                            $city = Openvote_Field_Map::get_user_value( $u, 'city' );
+                            $city_label = ( $city !== '' ) ? $city : __( 'brak', 'openvote' );
+                            $nick = Openvote_Field_Map::get_user_value( $u, 'nickname' );
                             if ( $nick === '' ) { $nick = $u->user_login; }
                         ?>
                             <option value="<?php echo esc_attr( $u->ID ); ?>"><?php echo esc_html( $nick . ' (' . $city_label . ')' ); ?></option>
@@ -360,12 +360,12 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
                     </select>
                 </div>
                 <div style="align-self:center;">
-                    <button type="submit" class="button" style="margin-top:24px;"><?php esc_html_e( 'Dodaj', 'evoting' ); ?></button>
+                    <button type="submit" class="button" style="margin-top:24px;"><?php esc_html_e( 'Dodaj', 'openvote' ); ?></button>
                 </div>
                 <div>
-                    <label for="evoting_user_groups"><?php esc_html_e( 'Grupy:', 'evoting' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele grup. Przewiń listę.', 'evoting' ); ?></p>
-                    <select name="evoting_user_groups[]" id="evoting_user_groups" multiple size="15" style="min-width:200px; display:block;">
+                    <label for="openvote_user_groups"><?php esc_html_e( 'Grupy:', 'openvote' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele grup. Przewiń listę.', 'openvote' ); ?></p>
+                    <select name="openvote_user_groups[]" id="openvote_user_groups" multiple size="15" style="min-width:200px; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                         <?php endforeach; ?>
@@ -377,38 +377,38 @@ wp_localize_script( 'evoting-batch-progress', 'evotingBatch', [
 
     <?php // ─── Dodaj grupę ─────────────────────────────────────────────────── ?>
     <hr>
-    <h2><?php esc_html_e( 'Dodaj grupę', 'evoting' ); ?></h2>
+    <h2><?php esc_html_e( 'Dodaj grupę', 'openvote' ); ?></h2>
     <form method="post" action="" style="max-width:500px;">
-        <?php wp_nonce_field( 'evoting_groups_action', 'evoting_groups_nonce' ); ?>
-        <input type="hidden" name="evoting_groups_action" value="add">
+        <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+        <input type="hidden" name="openvote_groups_action" value="add">
         <table class="form-table">
             <tr>
-                <th scope="row"><label for="group_name"><?php esc_html_e( 'Nazwa', 'evoting' ); ?> *</label></th>
+                <th scope="row"><label for="group_name"><?php esc_html_e( 'Nazwa', 'openvote' ); ?> *</label></th>
                 <td><input type="text" id="group_name" name="group_name" class="regular-text" required maxlength="255"></td>
             </tr>
         </table>
-        <?php submit_button( __( 'Dodaj grupę', 'evoting' ), 'primary', 'submit', false ); ?>
+        <?php submit_button( __( 'Dodaj grupę', 'openvote' ), 'primary', 'submit', false ); ?>
     </form>
 
     <?php // ─── Synchronizacja grup-miast (na dole strony) ───────────────────── ?>
     <hr>
     <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-        <strong><?php esc_html_e( 'Synchronizacja grup-miast', 'evoting' ); ?></strong>
+        <strong><?php esc_html_e( 'Synchronizacja grup-miast', 'openvote' ); ?></strong>
         <p class="description" style="margin:4px 0 8px;">
-            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie (partiami po 100).', 'evoting' ); ?>
+            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie (partiami po 100).', 'openvote' ); ?>
         </p>
-        <button type="button" id="evoting-sync-all-btn" class="button button-primary">
-            <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'evoting' ); ?>
+        <button type="button" id="openvote-sync-all-btn" class="button button-primary">
+            <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'openvote' ); ?>
         </button>
-        <div id="evoting-sync-all-progress" style="margin-top:10px;"></div>
+        <div id="openvote-sync-all-progress" style="margin-top:10px;"></div>
     </div>
 </div>
 
 <style>
-.evoting-progress-wrap { display:flex; align-items:center; gap:12px; margin:4px 0; }
-.evoting-progress-bar-outer { width:160px; height:12px; background:#ddd; border-radius:6px; overflow:hidden; }
-.evoting-progress-bar-inner { height:100%; background:#2271b1; transition:width .3s; }
-.evoting-progress-label { margin:0; font-size:12px; color:#555; }
-.evoting-progress-done  { color:#0a730a; font-weight:600; }
-.evoting-progress-error { color:#d63638; font-weight:600; }
+.openvote-progress-wrap { display:flex; align-items:center; gap:12px; margin:4px 0; }
+.openvote-progress-bar-outer { width:160px; height:12px; background:#ddd; border-radius:6px; overflow:hidden; }
+.openvote-progress-bar-inner { height:100%; background:#2271b1; transition:width .3s; }
+.openvote-progress-label { margin:0; font-size:12px; color:#555; }
+.openvote-progress-done  { color:#0a730a; font-weight:600; }
+.openvote-progress-error { color:#d63638; font-weight:600; }
 </style>

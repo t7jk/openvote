@@ -1,13 +1,13 @@
-/* globals evotingProfileComplete */
+/* globals openvoteProfileComplete */
 ( function () {
     'use strict';
 
-    document.querySelectorAll( '.evoting-profile-complete' ).forEach( function ( container ) {
+    document.querySelectorAll( '.openvote-profile-complete' ).forEach( function ( container ) {
         var restUrl = container.dataset.restUrl;
         var nonce   = container.dataset.nonce;
-        var inputs  = container.querySelectorAll( '.evoting-profile-field__input' );
-        var btn     = container.querySelector( '.evoting-profile-complete__btn' );
-        var msgBox  = container.querySelector( '.evoting-profile-complete__message' );
+        var inputs  = container.querySelectorAll( '.openvote-profile-field__input' );
+        var btn     = container.querySelector( '.openvote-profile-complete__btn' );
+        var msgBox  = container.querySelector( '.openvote-profile-complete__message' );
 
         if ( ! restUrl || ! nonce || ! btn ) return;
 
@@ -77,7 +77,7 @@
 
     function showMessage( box, text, type ) {
         if ( ! box ) return;
-        box.className = 'evoting-profile-complete__message evoting-profile-complete__message--' + type;
+        box.className = 'openvote-profile-complete__message openvote-profile-complete__message--' + type;
         box.textContent = text;
         box.style.display = 'block';
     }

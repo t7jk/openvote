@@ -1,11 +1,11 @@
 {
-    "name": "evoting",
+    "name": "openvote",
     "version": "1.0.0",
     "description": "E-Voting WordPress Plugin",
     "private": true,
     "scripts": {
-        "build": "wp-scripts build --webpack-src-dir=blocks/evoting-poll/src --output-path=blocks/evoting-poll/build",
-        "start": "wp-scripts start --webpack-src-dir=blocks/evoting-poll/src --output-path=blocks/evoting-poll/build"
+        "build": "wp-scripts build --webpack-src-dir=blocks/openvote-poll/src --output-path=blocks/openvote-poll/build",
+        "start": "wp-scripts start --webpack-src-dir=blocks/openvote-poll/src --output-path=blocks/openvote-poll/build"
     },
     "devDependencies": {
         "@wordpress/scripts": "^30.0.0"

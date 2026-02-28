@@ -1,8 +1,8 @@
 /**
  * EP-RWL — Pasek postępu operacji masowych (batch jobs).
  *
- * Używa: window.evotingBatch.nonce i window.evotingBatch.apiRoot
- * Opcjonalnie: window.evotingBatch.emailDelay (ms między partiami e-mail)
+ * Używa: window.openvoteBatch.nonce i window.openvoteBatch.apiRoot
+ * Opcjonalnie: window.openvoteBatch.emailDelay (ms między partiami e-mail)
  */
 
 /**
@@ -14,10 +14,10 @@
  * @param {Function} onError     Callback(error).
  * @param {number}   [delayMs]   Opóźnienie między partiami w ms (nadpisuje evotingBatch.emailDelay).
  */
-async function evotingRunBatchJob( jobId, onProgress, onComplete, onError, delayMs ) {
-	const apiRoot    = window.evotingBatch?.apiRoot    || '/wp-json/evoting/v1';
-	const nonce      = window.evotingBatch?.nonce      || '';
-	const emailDelay = delayMs ?? ( window.evotingBatch?.emailDelay ?? 300 );
+async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, delayMs ) {
+	const apiRoot    = window.openvoteBatch?.apiRoot    || '/wp-json/openvote/v1';
+	const nonce      = window.openvoteBatch?.nonce      || '';
+	const emailDelay = delayMs ?? ( window.openvoteBatch?.emailDelay ?? 300 );
 
 	const headers = {
 		'Content-Type':  'application/json',
@@ -72,7 +72,7 @@ async function evotingRunBatchJob( jobId, onProgress, onComplete, onError, delay
  * @param {string} pollId  ID głosowania (klucz lokalny).
  * @param {string} jobId   ID zadania.
  */
-function evotingSaveJobId( pollId, jobId ) {
+function openvoteSaveJobId( pollId, jobId ) {
 	try {
 		localStorage.setItem( 'evoting_job_' + pollId, jobId );
 	} catch ( e ) { /* ignoruj — prywatny tryb przeglądarki */ }
@@ -84,7 +84,7 @@ function evotingSaveJobId( pollId, jobId ) {
  * @param {string} pollId
  * @return {string|null}
  */
-function evotingGetSavedJobId( pollId ) {
+function openvoteGetSavedJobId( pollId ) {
 	try {
 		return localStorage.getItem( 'evoting_job_' + pollId );
 	} catch ( e ) {
@@ -97,7 +97,7 @@ function evotingGetSavedJobId( pollId ) {
  *
  * @param {string} pollId
  */
-function evotingClearJobId( pollId ) {
+function openvoteClearJobId( pollId ) {
 	try {
 		localStorage.removeItem( 'evoting_job_' + pollId );
 	} catch ( e ) { /* ignoruj */ }
@@ -111,7 +111,7 @@ function evotingClearJobId( pollId ) {
  * @param {number}      total      Łączna liczba rekordów.
  * @param {number}      pct        Procent ukończenia.
  */
-function evotingRenderProgress( container, processed, total, pct ) {
+function openvoteRenderProgress( container, processed, total, pct ) {
 	if ( ! container ) return;
 
 	container.innerHTML = `
@@ -133,8 +133,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		btn.addEventListener( 'click', function () {
 			const groupId   = btn.dataset.groupId;
 			const container = document.getElementById( 'evoting-sync-progress-' + groupId );
-			const apiRoot   = window.evotingBatch?.apiRoot || '/wp-json/evoting/v1';
-			const nonce     = window.evotingBatch?.nonce   || '';
+			const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
+			const nonce     = window.openvoteBatch?.nonce   || '';
 
 			btn.disabled = true;
 			if ( container ) {
@@ -154,9 +154,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						throw new Error( data.message || 'Błąd uruchamiania zadania.' );
 					}
 
-					evotingRunBatchJob(
+					openvoteRunBatchJob(
 						data.job_id,
-						( processed, total, pct ) => evotingRenderProgress( container, processed, total, pct ),
+						( processed, total, pct ) => openvoteRenderProgress( container, processed, total, pct ),
 						( job ) => {
 							if ( container ) {
 								container.innerHTML = `<p class="evoting-progress-done">✓ Synchronizacja zakończona. Przetworzone: ${job.processed}</p>`;
@@ -195,8 +195,8 @@ document.addEventListener( 'DOMContentLoaded', function () {
 	if ( syncAllBtn ) {
 		syncAllBtn.addEventListener( 'click', function () {
 			const container = document.getElementById( 'evoting-sync-all-progress' );
-			const apiRoot   = window.evotingBatch?.apiRoot || '/wp-json/evoting/v1';
-			const nonce     = window.evotingBatch?.nonce   || '';
+			const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
+			const nonce     = window.openvoteBatch?.nonce   || '';
 
 			syncAllBtn.disabled = true;
 			if ( container ) {
@@ -216,9 +216,9 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						throw new Error( data.message || 'Błąd uruchamiania zadania.' );
 					}
 
-					evotingRunBatchJob(
+					openvoteRunBatchJob(
 						data.job_id,
-						( processed, total, pct ) => evotingRenderProgress( container, processed, total, pct ),
+						( processed, total, pct ) => openvoteRenderProgress( container, processed, total, pct ),
 						( job ) => {
 							if ( container ) {
 								container.innerHTML = `<p class="evoting-progress-done">✓ Synchronizacja zakończona. Przetworzone grupy: ${job.processed}</p>`;

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "openvote/poll",
+  "version": "1.0.0",
+  "title": "Open Vote",
+  "category": "widgets",
+  "icon": "yes-alt",
+  "description": "Wyświetl głosowanie na stronie (Open Vote).",
+  "keywords": [
+    "głosowanie",
+    "voting",
+    "ankieta",
+    "poll"
+  ],
+  "supports": {
+    "html": false
+  },
+  "textdomain": "openvote",
+  "attributes": {
+    "pollId": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "editorScript": "file:./build/index.js",
+  "editorStyle": "file:./build/index.css",
+  "style": "file:./build/style-index.css",
+  "render": "file:./render.php"
+}

@@ -8,13 +8,13 @@ defined( 'ABSPATH' ) || exit;
 ?>
 <?php get_header(); ?>
 
-<div class="evoting-survey-page-wrap">
-    <div class="evoting-survey-page-content">
+<div class="openvote-survey-page-wrap">
+    <div class="openvote-survey-page-content">
         <?php
         // Renderuj ten sam HTML co blok Gutenberg (przez include).
         $attributes = [];
         $content    = '';
-        include EVOTING_PLUGIN_DIR . 'blocks/evoting-survey-form/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-survey-form/render.php';
         ?>
     </div>
 </div>
