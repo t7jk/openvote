@@ -62,11 +62,7 @@
             return '<option value="' + t.v + '">' + t.l + '</option>';
         } ).join( '' );
 
-        const profileOpts = evotingSurveyAdmin.profileFieldOpts || {};
-        const profileOptsHtml = Object.keys( profileOpts ).map( function ( k ) {
-            return '<option value="' + ( k === '' ? '' : k ) + '">' + profileOpts[ k ] + '</option>';
-        } ).join( '' );
-
+        const profileOpts  = evotingSurveyAdmin.profileFieldOpts || {};
         const profileLabel = evotingSurveyAdmin.i18n.profileLabel || 'Pole profilu';
 
         wrap.innerHTML = `
@@ -86,7 +82,6 @@
                     <label style="font-size:11px;color:#666;">${ profileLabel }</label>
                     <select name="survey_questions[${ index }][profile_field]"
                             class="evoting-survey-field-profile">
-                        ${ profileOptsHtml }
                     </select>
                 </div>
                 <button type="button"
@@ -94,6 +89,16 @@
                         style="margin-top:4px;"
                         title="${ evotingSurveyAdmin.i18n.remove }">✕</button>
             </div>`;
+
+        // Wypełnij opcje profilu przez DOM (nie innerHTML) — zapobiega XSS jeśli etykiety zawierają znaki HTML.
+        const profileSelect = wrap.querySelector( '.evoting-survey-field-profile' );
+        Object.keys( profileOpts ).forEach( function ( k ) {
+            const opt = document.createElement( 'option' );
+            opt.value = k;
+            opt.textContent = profileOpts[ k ];
+            profileSelect.appendChild( opt );
+        } );
+
         return wrap;
     }
 

@@ -224,9 +224,10 @@ class Evoting_Batch_Processor {
 
         // Pobierz partię użytkowników z pasującym miastem.
         if ( Evoting_Field_Map::is_core_field( $city_key ) ) {
-            $users = $wpdb->get_results(
+            $safe_col = '`' . esc_sql( $city_key ) . '`';
+            $users    = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT ID FROM {$wpdb->users} WHERE {$city_key} = %s ORDER BY ID ASC LIMIT %d OFFSET %d",
+                    "SELECT ID FROM {$wpdb->users} WHERE {$safe_col} = %s ORDER BY ID ASC LIMIT %d OFFSET %d",
                     $city_value,
                     self::BATCH_SIZE,
                     $offset

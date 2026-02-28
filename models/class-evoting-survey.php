@@ -450,7 +450,7 @@ class Evoting_Survey {
 
         // Wstaw odpowiedzi na pytania.
         foreach ( $answers as $question_id => $answer_text ) {
-            $wpdb->insert(
+            $result = $wpdb->insert(
                 $at,
                 [
                     'response_id' => $response_id,
@@ -459,6 +459,10 @@ class Evoting_Survey {
                 ],
                 [ '%d', '%d', '%s' ]
             );
+            if ( false === $result ) {
+                error_log( 'evoting: save_response INSERT error (response_id=' . $response_id . '): ' . $wpdb->last_error );
+                return false;
+            }
         }
 
         return true;

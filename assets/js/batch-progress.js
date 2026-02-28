@@ -167,7 +167,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						},
 						( err ) => {
 							if ( container ) {
-								container.innerHTML = `<p class="evoting-progress-error">Błąd: ${err.message}</p>`;
+								const p = document.createElement( 'p' );
+								p.className = 'evoting-progress-error';
+								p.textContent = 'Błąd: ' + err.message;
+								container.innerHTML = '';
+								container.appendChild( p );
 							}
 							btn.disabled = false;
 						}
@@ -175,7 +179,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				} )
 				.catch( err => {
 					if ( container ) {
-						container.innerHTML = `<p class="evoting-progress-error">Błąd: ${err.message}</p>`;
+						const p = document.createElement( 'p' );
+						p.className = 'evoting-progress-error';
+						p.textContent = 'Błąd: ' + err.message;
+						container.innerHTML = '';
+						container.appendChild( p );
 					}
 					btn.disabled = false;
 				} );
@@ -220,7 +228,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 						},
 						( err ) => {
 							if ( container ) {
-								container.innerHTML = `<p class="evoting-progress-error">Błąd: ${err.message}</p>`;
+								const p = document.createElement( 'p' );
+								p.className = 'evoting-progress-error';
+								p.textContent = 'Błąd: ' + err.message;
+								container.innerHTML = '';
+								container.appendChild( p );
 							}
 							syncAllBtn.disabled = false;
 						}
@@ -228,7 +240,11 @@ document.addEventListener( 'DOMContentLoaded', function () {
 				} )
 				.catch( err => {
 					if ( container ) {
-						container.innerHTML = `<p class="evoting-progress-error">Błąd: ${err.message}</p>`;
+						const p = document.createElement( 'p' );
+						p.className = 'evoting-progress-error';
+						p.textContent = 'Błąd: ' + err.message;
+						container.innerHTML = '';
+						container.appendChild( p );
 					}
 					syncAllBtn.disabled = false;
 				} );
