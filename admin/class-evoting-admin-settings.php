@@ -7,6 +7,12 @@ class Evoting_Admin_Settings {
     private const NONCE = 'evoting_save_settings';
 
     public function handle_form_submission(): void {
+        // Route do czyszczenia bazy — osobny nonce, osobna akcja.
+        if ( isset( $_POST['evoting_clean_nonce'] ) ) {
+            $this->handle_clean_database();
+            return;
+        }
+
         if ( ! isset( $_POST['evoting_settings_nonce'] ) ) {
             return;
         }
@@ -297,6 +303,58 @@ class Evoting_Admin_Settings {
             'post_content' => '<!-- wp:evoting/survey-responses /-->',
         ] );
         return $result && ! is_wp_error( $result );
+    }
+
+    /**
+     * Wyczyść bazę danych wtyczki i przywróć ustawienia fabryczne.
+     * TRUNCATE wszystkich tabel danych, usuwa role koordynatorów z usermeta,
+     * kasuje opcje wtyczki (poza wersją DB).
+     */
+    private function handle_clean_database(): void {
+        if ( ! check_admin_referer( 'evoting_clean_database', 'evoting_clean_nonce' ) ) {
+            wp_die( esc_html__( 'Nieprawidłowy token zabezpieczający.', 'evoting' ) );
+        }
+        if ( ! current_user_can( self::CAP ) ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'evoting' ) );
+        }
+        if ( empty( $_POST['evoting_confirm_clean'] ) ) {
+            set_transient( 'evoting_clean_error',
+                __( 'Zaznacz pole potwierdzenia przed wyczyszczeniem.', 'evoting' ), 30 );
+            wp_safe_redirect( admin_url( 'admin.php?page=evoting-settings' ) );
+            exit;
+        }
+
+        global $wpdb;
+
+        // 1. TRUNCATE — usuwa dane, zachowuje strukturę tabel.
+        $tables = [
+            'evoting_votes', 'evoting_answers', 'evoting_questions', 'evoting_polls',
+            'evoting_group_members', 'evoting_groups', 'evoting_email_queue',
+            'evoting_survey_answers', 'evoting_survey_responses',
+            'evoting_survey_questions', 'evoting_surveys',
+        ];
+        foreach ( $tables as $t ) {
+            $wpdb->query( "TRUNCATE TABLE `{$wpdb->prefix}{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nazwa tabeli z prefiksu WP i stałej
+        }
+
+        // 2. Usuń role koordynatorów ze wszystkich użytkowników.
+        $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => 'evoting_role' ],   [ '%s' ] );
+        $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => 'evoting_groups' ], [ '%s' ] );
+
+        // 3. Resetuj opcje wtyczki do wartości fabrycznych.
+        //    Zachowujemy evoting_version i evoting_db_version — bez nich migracje DB uruchomią się od nowa.
+        $options_to_reset = array_diff(
+            Evoting_Admin_Uninstall::get_option_keys(),
+            [ 'evoting_version', 'evoting_db_version' ]
+        );
+        foreach ( $options_to_reset as $opt ) {
+            delete_option( $opt );
+        }
+
+        set_transient( 'evoting_clean_success',
+            __( 'Baza danych i ustawienia zostały przywrócone do stanu fabrycznego.', 'evoting' ), 30 );
+        wp_safe_redirect( admin_url( 'admin.php?page=evoting-settings' ) );
+        exit;
     }
 
     /**

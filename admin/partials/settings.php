@@ -789,6 +789,105 @@ function evoting_settings_select( string $logical, string $current, array $core_
     </ul>
 
     <hr style="margin-top:32px;margin-bottom:20px;">
+    <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Wyczyść bazę danych wtyczki i przywróć wartości fabryczne', 'evoting' ); ?></h2>
+
+    <?php
+    $evoting_clean_error   = get_transient( 'evoting_clean_error' );
+    $evoting_clean_success = get_transient( 'evoting_clean_success' );
+    if ( $evoting_clean_error )   delete_transient( 'evoting_clean_error' );
+    if ( $evoting_clean_success ) delete_transient( 'evoting_clean_success' );
+
+    global $wpdb;
+    $evoting_clean_tables = [
+        $wpdb->prefix . 'evoting_polls'            => __( 'Głosowania', 'evoting' ),
+        $wpdb->prefix . 'evoting_votes'            => __( 'Oddane głosy', 'evoting' ),
+        $wpdb->prefix . 'evoting_groups'           => __( 'Grupy', 'evoting' ),
+        $wpdb->prefix . 'evoting_group_members'    => __( 'Członkowie grup', 'evoting' ),
+        $wpdb->prefix . 'evoting_surveys'          => __( 'Ankiety', 'evoting' ),
+        $wpdb->prefix . 'evoting_survey_responses' => __( 'Odpowiedzi ankiet', 'evoting' ),
+        $wpdb->prefix . 'evoting_email_queue'      => __( 'Kolejka e-mail', 'evoting' ),
+    ];
+    $evoting_coord_count = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key = %s", 'evoting_role'
+    ) );
+    ?>
+
+    <?php if ( $evoting_clean_error ) : ?>
+        <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $evoting_clean_error ); ?></p></div>
+    <?php endif; ?>
+    <?php if ( $evoting_clean_success ) : ?>
+        <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $evoting_clean_success ); ?></p></div>
+    <?php endif; ?>
+
+    <div class="evoting-danger-zone">
+        <div class="evoting-danger-zone__header">
+            <span class="dashicons dashicons-warning"></span>
+            <?php esc_html_e( 'Strefa zagrożenia — operacja nieodwracalna', 'evoting' ); ?>
+        </div>
+        <div class="evoting-danger-zone__body">
+            <p><?php esc_html_e( 'Poniższa operacja usuwa wszystkie dane głosowań, ankiet, grup i koordynatorów oraz przywraca ustawienia konfiguracyjne do wartości fabrycznych. Struktura tabel zostaje zachowana. Wtyczka pozostaje aktywna.', 'evoting' ); ?></p>
+
+            <h3><?php esc_html_e( 'Co zostanie wyczyszczone:', 'evoting' ); ?></h3>
+            <table class="widefat fixed" style="max-width:560px;margin-bottom:20px;">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Dane', 'evoting' ); ?></th>
+                        <th style="width:140px;"><?php esc_html_e( 'Zawartość', 'evoting' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $evoting_clean_tables as $table => $label ) :
+                        $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" );
+                    ?>
+                        <tr>
+                            <td><?php echo esc_html( $label ); ?> <code style="font-size:11px;"><?php echo esc_html( $table ); ?></code></td>
+                            <td><?php printf( esc_html( _n( '%d rekord', '%d rekordów', $count, 'evoting' ) ), $count ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <tr>
+                        <td><?php esc_html_e( 'Koordynatorzy (usermeta)', 'evoting' ); ?></td>
+                        <td><?php printf( esc_html( _n( '%d użytkownik', '%d użytkowników', $evoting_coord_count, 'evoting' ) ), $evoting_coord_count ); ?></td>
+                    </tr>
+                    <tr>
+                        <td><?php esc_html_e( 'Opcje konfiguracyjne wtyczki', 'evoting' ); ?></td>
+                        <td><?php esc_html_e( 'Reset do domyślnych', 'evoting' ); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <form method="post" action="" id="evoting-clean-form">
+                <?php wp_nonce_field( 'evoting_clean_database', 'evoting_clean_nonce' ); ?>
+
+                <label class="evoting-confirm-label">
+                    <input type="checkbox" name="evoting_confirm_clean" id="evoting_confirm_clean" value="1">
+                    <?php esc_html_e( 'Rozumiem, że operacja jest nieodwracalna i wszystkie dane oraz ustawienia wtyczki zostaną trwale usunięte.', 'evoting' ); ?>
+                </label>
+
+                <p style="margin-top:20px;">
+                    <button type="submit"
+                            id="evoting-clean-btn"
+                            class="button evoting-btn-danger"
+                            disabled>
+                        <span class="dashicons dashicons-trash" style="margin-top:3px;"></span>
+                        <?php esc_html_e( 'Wyczyść bazę danych wtyczki i przywróć wartości fabryczne', 'evoting' ); ?>
+                    </button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var cb  = document.getElementById( 'evoting_confirm_clean' );
+        var btn = document.getElementById( 'evoting-clean-btn' );
+        if ( ! cb || ! btn ) return;
+        cb.addEventListener( 'change', function () {
+            btn.disabled = ! cb.checked;
+        } );
+    })();
+    </script>
+
+    <hr style="margin-top:32px;margin-bottom:20px;">
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'evoting' ); ?></h2>
     <?php include EVOTING_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
 
