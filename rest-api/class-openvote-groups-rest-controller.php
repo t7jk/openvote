@@ -16,8 +16,8 @@ class Openvote_Groups_Rest_Controller {
 
     private const NAMESPACE = 'openvote/v1';
 
-    /** Uprawnienie do zarządzania grupami (lista, członkowie). */
-    private function can_manage(): bool {
+    /** Uprawnienie do zarządzania grupami (lista, członkowie). Wywoływane przez REST API — musi być public. */
+    public function can_manage(): bool {
         if ( current_user_can( 'manage_options' ) ) {
             return true;
         }
@@ -84,9 +84,85 @@ class Openvote_Groups_Rest_Controller {
                 'job_id' => [ 'sanitize_callback' => 'sanitize_text_field' ],
             ],
         ] );
+
+        // GET /users/search-by-email — wyszukiwanie użytkowników po e-mailu (dla formularza koordynatorów, bazy 10k+).
+        register_rest_route( self::NAMESPACE, '/users/search-by-email', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [ $this, 'search_users_by_email' ],
+            'permission_callback' => [ $this, 'can_manage' ],
+            'args'                => [
+                'email' => [
+                    'required'          => true,
+                    'sanitize_callback'  => 'sanitize_text_field',
+                    'validate_callback'  => function ( $v ) {
+                        return is_string( $v ) && strlen( $v ) >= 2;
+                    },
+                ],
+            ],
+        ] );
     }
 
     // ─── Handlery ────────────────────────────────────────────────────────────
+
+    /**
+     * Wyszukaj użytkowników po adresie e-mail (LIKE). Max 20 wyników, wydajne przy 10k+ użytkownikach.
+     */
+    public function search_users_by_email( WP_REST_Request $request ) {
+        $email_term = $request->get_param( 'email' );
+        if ( ! is_string( $email_term ) || strlen( $email_term ) < 2 ) {
+            return new WP_REST_Response( [ 'code' => 'invalid_param', 'message' => __( 'Podaj co najmniej 2 znaki.', 'openvote' ) ], 400 );
+        }
+        global $wpdb;
+        try {
+            $like = '%' . $wpdb->esc_like( $email_term ) . '%';
+            $ids  = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT ID FROM {$wpdb->users} WHERE user_email LIKE %s ORDER BY user_email ASC LIMIT 20",
+                    $like
+                )
+            );
+            $results = [];
+            foreach ( (array) $ids as $id ) {
+                $user = get_userdata( (int) $id );
+                if ( ! $user || ! $user->exists() ) {
+                    continue;
+                }
+                $results[] = [
+                    'id'     => (int) $user->ID,
+                    'label'  => $this->format_user_label_for_roles( $user ),
+                    'email'  => $user->user_email,
+                ];
+            }
+            return new WP_REST_Response( $results, 200 );
+        } catch ( \Throwable $e ) {
+            return new WP_REST_Response(
+                [ 'code' => 'search_error', 'message' => __( 'Błąd wyszukiwania.', 'openvote' ) ],
+                500
+            );
+        }
+    }
+
+    /**
+     * Etykieta użytkownika w stylu "Imię Nazwisko - login (Miasto)".
+     */
+    private function format_user_label_for_roles( \WP_User $user ): string {
+        $first = trim( (string) Openvote_Field_Map::get_user_value( $user, 'first_name' ) );
+        $last  = trim( (string) Openvote_Field_Map::get_user_value( $user, 'last_name' ) );
+        $nick  = trim( (string) Openvote_Field_Map::get_user_value( $user, 'nickname' ) );
+        if ( $nick === '' ) {
+            $nick = $user->user_login;
+        }
+        $full_name = trim( $first . ' ' . $last );
+        $parts     = $full_name !== '' ? [ $full_name, $nick ] : [ $nick ];
+        $display   = implode( ' - ', $parts );
+        if ( ! Openvote_Field_Map::is_city_disabled() ) {
+            $city = trim( (string) Openvote_Field_Map::get_user_value( $user, 'city' ) );
+            if ( $city !== '' ) {
+                $display .= ' (' . $city . ')';
+            }
+        }
+        return $display;
+    }
 
     public function get_groups( WP_REST_Request $request ): WP_REST_Response {
         global $wpdb;

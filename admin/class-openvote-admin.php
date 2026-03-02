@@ -198,6 +198,150 @@ class Openvote_Admin {
     }
 
     /**
+     * Obsługa formularza sejmików (dodaj, usuń, członkowie) — przed jakimkolwiek outputem,
+     * żeby przekierowanie nie powodowało "headers already sent" (np. z motywem Blocksy).
+     */
+    public function handle_groups_form_early(): void {
+        if ( ! isset( $_POST['openvote_groups_nonce'] ) ) {
+            return;
+        }
+        if ( ! check_admin_referer( 'openvote_groups_action', 'openvote_groups_nonce' ) ) {
+            return;
+        }
+        if ( ! current_user_can( self::CAP_MGR ) ) {
+            return;
+        }
+
+        global $wpdb;
+        $groups_table = $wpdb->prefix . 'openvote_groups';
+        $gm_table     = $wpdb->prefix . 'openvote_group_members';
+
+        $action = sanitize_text_field( $_POST['openvote_groups_action'] ?? '' );
+        $message = '';
+        $error   = '';
+
+        if ( 'add' === $action ) {
+            $name = sanitize_text_field( $_POST['group_name'] ?? '' );
+            if ( '' === $name ) {
+                $error = __( 'Nazwa sejmiku jest wymagana.', 'openvote' );
+            } else {
+                $inserted = $wpdb->insert(
+                    $groups_table,
+                    [ 'name' => $name, 'type' => 'custom', 'description' => null ],
+                    [ '%s', '%s', '%s' ]
+                );
+                if ( $inserted ) {
+                    $message = __( 'Sejmik został dodany.', 'openvote' );
+                } else {
+                    $error = __( 'Błąd zapisu — nazwa sejmiku może być już zajęta.', 'openvote' );
+                }
+            }
+        } elseif ( 'delete' === $action ) {
+            $group_id = absint( $_POST['group_id'] ?? 0 );
+            if ( ! $group_id ) {
+                $error = __( 'Nie wybrano sejmiku do usunięcia.', 'openvote' );
+            } else {
+                $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE id = %d", $group_id ) );
+                if ( ! $exists ) {
+                    $error = __( 'Wybrany sejmik nie istnieje.', 'openvote' );
+                } else {
+                    $wpdb->delete( $gm_table, [ 'group_id' => $group_id ], [ '%d' ] );
+                    $wpdb->delete( $groups_table, [ 'id' => $group_id ], [ '%d' ] );
+                    Openvote_Poll::remove_group_from_all_polls( $group_id );
+                    $message = __( 'Sejmik został usunięty.', 'openvote' );
+                }
+            }
+        } elseif ( 'add_member' === $action ) {
+            $group_id = absint( $_POST['group_id'] ?? 0 );
+            $user_id  = absint( $_POST['member_user_id'] ?? 0 );
+            if ( ! $group_id || ! $user_id ) {
+                $error = __( 'Wybierz sejmik i użytkownika.', 'openvote' );
+            } else {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
+                        $group_id,
+                        $user_id,
+                        current_time( 'mysql' )
+                    )
+                );
+                $message = __( 'Członek dodany.', 'openvote' );
+            }
+        } elseif ( 'remove_member' === $action ) {
+            $group_id = absint( $_POST['group_id'] ?? 0 );
+            $user_id  = absint( $_POST['member_user_id'] ?? 0 );
+            if ( ! $group_id || ! $user_id ) {
+                $error = __( 'Wybierz sejmik i użytkownika.', 'openvote' );
+            } else {
+                $wpdb->delete( $gm_table, [ 'group_id' => $group_id, 'user_id' => $user_id ], [ '%d', '%d' ] );
+                $message = __( 'Członek usunięty.', 'openvote' );
+            }
+        } elseif ( 'add_user_to_groups' === $action ) {
+            $user_id   = absint( $_POST['openvote_add_user_id'] ?? 0 );
+            $group_ids = array_map( 'absint', (array) ( $_POST['openvote_user_groups'] ?? [] ) );
+            $group_ids = array_filter( $group_ids );
+            if ( ! $user_id ) {
+                $error = __( 'Wybierz użytkownika z listy.', 'openvote' );
+            } elseif ( empty( $group_ids ) ) {
+                $error = __( 'Wybierz co najmniej jeden sejmik.', 'openvote' );
+            }
+            if ( $user_id && ! empty( $group_ids ) ) {
+                $added = 0;
+                foreach ( $group_ids as $gid ) {
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
+                            $gid,
+                            $user_id,
+                            current_time( 'mysql' )
+                        )
+                    );
+                    if ( $wpdb->rows_affected ) {
+                        ++$added;
+                    }
+                }
+                if ( $added > 0 ) {
+                    $message = sprintf(
+                        /* translators: %d: number of groups */
+                        _n( 'Użytkownik dodany do %d grupy.', 'Użytkownik dodany do %d grup.', $added, 'openvote' ),
+                        $added
+                    );
+                }
+                if ( count( $group_ids ) === 1 ) {
+                    $user = get_userdata( $user_id );
+                    if ( $user instanceof WP_User ) {
+                        $current_city = Openvote_Field_Map::get_user_value( $user, 'city' );
+                        $current_city = trim( (string) $current_city );
+                        if ( '' === $current_city ) {
+                            $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_ids[0] ) );
+                            if ( $group_row && $group_row->name !== '' ) {
+                                $city_key = Openvote_Field_Map::get_field( 'city' );
+                                if ( ! Openvote_Field_Map::is_core_field( $city_key ) ) {
+                                    update_user_meta( $user_id, $city_key, $group_row->name );
+                                } else {
+                                    wp_update_user( [ 'ID' => $user_id, $city_key => $group_row->name ] );
+                                }
+                                $message = ( $message ? $message . ' ' : '' ) . __( 'Profil użytkownika zaktualizowany: wpisano miejsce zamieszkania.', 'openvote' );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ( $message || $error ) {
+            if ( $message ) {
+                set_transient( 'openvote_groups_message', $message, 30 );
+            }
+            if ( $error ) {
+                set_transient( 'openvote_groups_error', $error, 30 );
+            }
+            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-groups', 'updated' => '1' ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+    }
+
+    /**
      * Pobieranie wyników głosowania jako PDF (admin_init, priorytet 1).
      */
     public function handle_results_pdf_download(): void {
