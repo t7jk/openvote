@@ -13,6 +13,7 @@ class Openvote_Mailer {
         add_action( 'phpmailer_init', [ self::class, 'configure_smtp' ] );
         add_action( 'wp_ajax_openvote_test_smtp',      [ self::class, 'ajax_test_smtp' ] );
         add_action( 'wp_ajax_openvote_test_sendgrid',  [ self::class, 'ajax_test_sendgrid' ] );
+        add_action( 'wp_ajax_openvote_test_email',     [ self::class, 'ajax_test_email' ] );
     }
 
     /**
@@ -65,15 +66,17 @@ class Openvote_Mailer {
      *
      * @param array<array{email: string, name: string}> $recipients Tablica odbiorców.
      * @param string $subject Temat wiadomości.
-     * @param string $body_text Treść w formacie plain-text.
+     * @param string $body_text Treść wiadomości (plain lub HTML).
      * @param string $api_key  Klucz API (pusta = z opcji).
+     * @param string $content_type 'text/plain' lub 'text/html'.
      * @return array{ sent: int, failed: int, error: string }
      */
     public static function send_via_sendgrid(
         array $recipients,
         string $subject,
         string $body_text,
-        string $api_key = ''
+        string $api_key = '',
+        string $content_type = 'text/plain'
     ): array {
         if ( $api_key === '' ) {
             $api_key = openvote_get_sendgrid_api_key();
@@ -102,12 +105,15 @@ class Openvote_Mailer {
             return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => __( 'Brak prawidłowych adresów e-mail.', 'openvote' ) ];
         }
 
+        if ( $content_type !== 'text/html' ) {
+            $content_type = 'text/plain';
+        }
         $payload = [
             'personalizations' => $personalizations,
             'from'             => [ 'email' => $from_email, 'name' => $from_name ],
             'subject'          => $subject,
             'content'          => [
-                [ 'type' => 'text/plain', 'value' => $body_text ],
+                [ 'type' => $content_type, 'value' => $body_text ],
             ],
         ];
 
@@ -253,6 +259,71 @@ class Openvote_Mailer {
             global $phpmailer;
             $error = '';
             if ( isset( $phpmailer ) && property_exists( $phpmailer, 'ErrorInfo' ) ) {
+                $error = $phpmailer->ErrorInfo;
+            }
+            wp_send_json_error( __( 'Wysyłka nie powiodła się.', 'openvote' ) . ( $error ? ' ' . $error : '' ) );
+        }
+    }
+
+    /**
+     * AJAX: wyślij e-mail testowy na podany adres (używa zapisanej konfiguracji).
+     * Stała treść: test z systemu Open Vote.
+     */
+    public static function ajax_test_email(): void {
+        check_ajax_referer( 'openvote_test_email', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'Brak uprawnień.', 'openvote' ) );
+        }
+
+        $to = sanitize_email( wp_unslash( $_POST['to'] ?? '' ) );
+        if ( $to === '' || ! is_email( $to ) ) {
+            wp_send_json_error( __( 'Podaj prawidłowy adres e-mail odbiorcy.', 'openvote' ) );
+        }
+
+        $subject = __( 'Test wysyłki — Open Vote', 'openvote' );
+        $message = __( 'To jest testowanie z systemu Open Vote. Jeśli otrzymujesz tę wiadomość, konfiguracja e-mail działa poprawnie.', 'openvote' );
+
+        $method = openvote_get_mail_method();
+
+        if ( $method === 'sendgrid' ) {
+            $result = self::send_via_sendgrid(
+                [ [ 'email' => $to, 'name' => '' ] ],
+                $subject,
+                $message
+            );
+            if ( $result['sent'] > 0 ) {
+                wp_send_json_success( sprintf(
+                    /* translators: %s: email address */
+                    __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ),
+                    $to
+                ) );
+            } else {
+                wp_send_json_error( __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . ( $result['error'] ?? '' ) );
+            }
+            return;
+        }
+
+        // WordPress (php mail) lub SMTP — zapisana konfiguracja jest stosowana przez phpmailer_init
+        $from_email = openvote_get_from_email();
+        $from_name  = openvote_get_brand_short_name();
+        $headers    = [
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . $from_name . ' <' . $from_email . '>',
+        ];
+
+        $sent = wp_mail( $to, $subject, $message, $headers );
+
+        if ( $sent ) {
+            wp_send_json_success( sprintf(
+                /* translators: %s: email address */
+                __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ),
+                $to
+            ) );
+        } else {
+            global $phpmailer;
+            $error = '';
+            if ( isset( $phpmailer ) && is_object( $phpmailer ) && property_exists( $phpmailer, 'ErrorInfo' ) ) {
                 $error = $phpmailer->ErrorInfo;
             }
             wp_send_json_error( __( 'Wysyłka nie powiodła się.', 'openvote' ) . ( $error ? ' ' . $error : '' ) );

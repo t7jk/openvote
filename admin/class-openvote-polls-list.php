@@ -111,6 +111,10 @@ class Openvote_Polls_List extends WP_List_Table {
             $args['search'] = $search;
         }
 
+        if ( openvote_is_coordinator_restricted_to_own_groups() ) {
+            $args['coordinator_group_ids'] = Openvote_Role_Manager::get_user_groups( get_current_user_id() );
+        }
+
         $this->items = self::get_polls_with_search( $args );
         $total_items = self::count_polls_with_search( $args );
 
@@ -390,6 +394,19 @@ class Openvote_Polls_List extends WP_List_Table {
             $params[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
         }
 
+        $coordinator_group_ids = $args['coordinator_group_ids'] ?? null;
+        if ( is_array( $coordinator_group_ids ) ) {
+            $coordinator_group_ids = array_map( 'absint', $coordinator_group_ids );
+            $coordinator_group_ids = array_filter( $coordinator_group_ids );
+            if ( empty( $coordinator_group_ids ) ) {
+                $where .= ' AND 1=0';
+            } else {
+                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(p.target_groups, CAST(%d AS JSON), \'$\')' ) );
+                $where .= ' AND (' . $placeholders . ')';
+                $params = array_merge( $params, $coordinator_group_ids );
+            }
+        }
+
         $allowed_orderby = [ 'title', 'status', 'date_start', 'date_end', 'created_at' ];
         $orderby = in_array( $args['orderby'] ?? '', $allowed_orderby, true ) ? $args['orderby'] : 'date_start';
         $order   = 'ASC' === ( $args['order'] ?? 'DESC' ) ? 'ASC' : 'DESC';
@@ -424,6 +441,19 @@ class Openvote_Polls_List extends WP_List_Table {
         if ( ! empty( $args['search'] ) ) {
             $where   .= ' AND title LIKE %s';
             $params[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+        }
+
+        $coordinator_group_ids = $args['coordinator_group_ids'] ?? null;
+        if ( is_array( $coordinator_group_ids ) ) {
+            $coordinator_group_ids = array_map( 'absint', $coordinator_group_ids );
+            $coordinator_group_ids = array_filter( $coordinator_group_ids );
+            if ( empty( $coordinator_group_ids ) ) {
+                $where .= ' AND 1=0';
+            } else {
+                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(target_groups, CAST(%d AS JSON), \'$\')' ) );
+                $where .= ' AND (' . $placeholders . ')';
+                $params = array_merge( $params, $coordinator_group_ids );
+            }
         }
 
         $sql = "SELECT COUNT(*) FROM {$table} WHERE {$where}";

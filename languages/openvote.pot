@@ -2537,7 +2537,7 @@ msgid ""
 msgstr ""
 
 #: admin/partials/settings.php:255
-msgid "Parametry wysyłki wsadowej"
+msgid "Parametry wysyłki masowej"
 msgstr ""
 
 #: admin/partials/settings.php:257

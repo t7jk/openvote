@@ -443,9 +443,11 @@ class Openvote_Batch_Processor {
         $from_email = openvote_get_from_email();
         $from_name  = openvote_render_email_template( openvote_get_email_from_template(), $poll );
         $subject    = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
-        $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll );
+        $email_type = openvote_get_email_template_type();
+        $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
+        $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
         $headers = [
-            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Type: ' . $content_type,
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
         $sent    = [];
@@ -608,8 +610,9 @@ class Openvote_Batch_Processor {
             return [];
         }
 
-        $subject = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
-        $message = openvote_render_email_template( openvote_get_email_body_template(), $poll );
+        $subject    = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
+        $email_type = openvote_get_email_template_type();
+        $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
 
         $sent   = [];
         $failed = [];
@@ -619,7 +622,8 @@ class Openvote_Batch_Processor {
             foreach ( $rows as $row ) {
                 $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
             }
-            $result = Openvote_Mailer::send_via_sendgrid( $recipients, $subject, $message );
+            $content_type_sendgrid = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $result = Openvote_Mailer::send_via_sendgrid( $recipients, $subject, $message, '', $content_type_sendgrid );
             foreach ( $rows as $row ) {
                 if ( $result['sent'] > 0 ) {
                     $sent[] = $row->email;
@@ -628,10 +632,11 @@ class Openvote_Batch_Processor {
                 }
             }
         } else {
-            $from_email = openvote_get_from_email();
-            $from_name  = openvote_render_email_template( openvote_get_email_from_template(), $poll );
-            $headers    = [
-                'Content-Type: text/plain; charset=UTF-8',
+            $from_email   = openvote_get_from_email();
+            $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );
+            $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
+            $headers      = [
+                'Content-Type: ' . $content_type,
                 'From: ' . $from_name . ' <' . $from_email . '>',
             ];
             foreach ( $rows as $row ) {

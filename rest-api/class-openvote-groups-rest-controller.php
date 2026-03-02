@@ -94,6 +94,13 @@ class Openvote_Groups_Rest_Controller {
         $groups_table = $wpdb->prefix . 'openvote_groups';
         $groups       = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
 
+        if ( openvote_is_coordinator_restricted_to_own_groups() ) {
+            $my_ids  = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+            $groups  = array_filter( $groups, function ( $g ) use ( $my_ids ) {
+                return isset( $my_ids[ (int) $g->id ] );
+            } );
+        }
+
         $data = array_map( fn( $g ) => [
             'id'           => (int) $g->id,
             'name'         => $g->name,

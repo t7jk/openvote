@@ -21,6 +21,8 @@ define( 'OPENVOTE_VERSION', '1.0.0' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'OPENVOTE_GITHUB_URL', 'https://github.com/t7jk/openvote' );
+define( 'OPENVOTE_PLUGIN_AUTHOR', 'Tomasz Kalinowski' );
 
 if ( file_exists( OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php';
@@ -28,6 +30,7 @@ if ( file_exists( OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-field-map.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-manager.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-map.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
@@ -171,6 +174,44 @@ function openvote_get_from_email(): string {
 	return 'noreply@' . ( $domain ?: 'example.com' );
 }
 
+/**
+ * Zwraca mapę rola → ekrany (z domyślnymi), do UI Konfiguracji i sprawdzania dostępu.
+ *
+ * @return array<string, array<string, int>>
+ */
+function openvote_get_role_screen_map(): array {
+	return Openvote_Role_Map::get_map();
+}
+
+/**
+ * Czy użytkownik ma dostęp do danego ekranu według mapy ról.
+ */
+function openvote_user_can_access_screen( int $user_id, string $screen_slug ): bool {
+	return Openvote_Role_Map::user_can_access_screen( $user_id, $screen_slug );
+}
+
+/**
+ * Zakres dostępu koordynatora: 'all' = wszystkie sejmiki, 'own' = tylko przypisane.
+ */
+function openvote_coordinator_poll_access_scope(): string {
+	$v = get_option( 'openvote_coordinator_poll_access', 'all' );
+	return ( $v === 'own' ) ? 'own' : 'all';
+}
+
+/**
+ * Czy bieżący użytkownik jest koordynatorem z ograniczeniem do własnych sejmików?
+ * (Nie administrator/edytor/autor WP — tylko rola koordynatora i opcja „own”.)
+ */
+function openvote_is_coordinator_restricted_to_own_groups(): bool {
+	if ( openvote_coordinator_poll_access_scope() !== 'own' ) {
+		return false;
+	}
+	if ( current_user_can( 'manage_options' ) || current_user_can( 'edit_others_posts' ) ) {
+		return false;
+	}
+	return Openvote_Role_Map::user_is_coordinator( get_current_user_id() );
+}
+
 // ── Szablon e-maila zapraszającego ───────────────────────────────────────
 
 /**
@@ -198,54 +239,163 @@ function openvote_get_email_from_template(): string {
 }
 
 /**
- * Domyślna treść e-maila zaproszenia.
- * Używa placeholderów: {poll_title}, {vote_url}, {date_end}, {questions}, {brand_short}.
+ * Typ szablonu e-maila: 'plain' (czysty tekst) lub 'html'.
  */
-function openvote_get_email_body_template(): string {
-	$saved = get_option( 'openvote_email_body', '' );
+function openvote_get_email_template_type(): string {
+	$v = get_option( 'openvote_email_template_type', 'plain' );
+	return ( $v === 'html' ) ? 'html' : 'plain';
+}
+
+/**
+ * Domyślna treść e-maila (wersja czysty tekst).
+ * Zawiera stopkę z {site_url}, {plugin_author}, {github_url}.
+ */
+function openvote_get_email_body_plain_default(): string {
+	$footer = "\n\n──────────────────────────────────────────────────\n" .
+		"Głosowanie przeprowadzono na stronie: {site_url}\n" .
+		"System: Otwarte Głosowanie (Open Vote)\n" .
+		"Autor systemu: {plugin_author}\n" .
+		"Kod źródłowy: {github_url}\n" .
+		"──────────────────────────────────────────────────";
+	return "Szanowni Państwo,\n\nmamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:\n\n  „{poll_title}\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nZAGADNIENIA PODDANE POD GŁOSOWANIE:\n\n{questions}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  Głosowanie dostępne pod adresem:\n  {vote_url}\n\n  Termin głosowania: do {date_end}\n\nKażdy głos ma znaczenie – zachęcamy do wzięcia udziału.\n\nZ poważaniem,\nZespół {brand_short}" . $footer;
+}
+
+/**
+ * Domyślna treść e-maila (wersja HTML).
+ */
+function openvote_get_email_body_html_default(): string {
+	return '<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; color: #2c2c2c; background: #f5f5f5; margin: 0; padding: 20px; }
+  .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .header { background: #1a3c6e; color: #ffffff; padding: 32px 40px; text-align: center; }
+  .header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+  .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.8; }
+  .body { padding: 36px 40px; }
+  .body p { line-height: 1.7; font-size: 15px; }
+  .poll-title { font-size: 18px; font-weight: 700; color: #1a3c6e; margin: 16px 0; }
+  .questions { background: #f0f4fa; border-left: 4px solid #1a3c6e; border-radius: 4px; padding: 16px 20px; margin: 20px 0; }
+  .questions h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
+  .questions ul { margin: 0; padding-left: 18px; }
+  .questions ul li { margin-bottom: 6px; font-size: 15px; }
+  .deadline { font-size: 14px; color: #666; margin: 16px 0; }
+  .deadline strong { color: #c0392b; }
+  .cta { text-align: center; margin: 28px 0; }
+  .cta a { background: #1a3c6e; color: #ffffff; padding: 14px 36px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; letter-spacing: 0.3px; }
+  .footer { text-align: center; padding: 20px 40px; background: #f5f5f5; font-size: 13px; color: #999; border-top: 1px solid #e0e0e0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>Zaproszenie do głosowania</h1>
+    <p>{brand_short}</p>
+  </div>
+  <div class="body">
+    <p>Szanowni Państwo,</p>
+    <p>mamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:</p>
+    <div class="poll-title">„{poll_title}"</div>
+    <div class="questions">
+      <h3>Zagadnienia poddane pod głosowanie</h3>
+      {questions}
+    </div>
+    <div class="deadline">Termin głosowania: <strong>do {date_end}</strong></div>
+    <div class="cta">
+      <a href="{vote_url}">Przejdź do głosowania →</a>
+    </div>
+    <p>Każdy głos ma znaczenie. Dziękujemy za zaangażowanie.</p>
+  </div>
+  <div class="footer">
+    © {brand_short} &nbsp;|&nbsp; Wiadomość wygenerowana automatycznie<br><br>
+    <span style="font-size:12px; color:#bbb;">
+      Głosowanie przeprowadzono na stronie <a href="{site_url}" style="color:#bbb;">{site_url}</a><br>
+      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: {plugin_author} &mdash; <a href="{github_url}" style="color:#bbb;">kod źródłowy na GitHub</a>
+    </span>
+  </div>
+</div>
+</body>
+</html>';
+}
+
+/**
+ * Treść e-maila zaproszenia (wersja czysty tekst). Zapis lub domyślna.
+ */
+function openvote_get_email_body_plain_template(): string {
+	$saved = get_option( 'openvote_email_body_plain', '' );
 	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
 		return trim( $saved );
 	}
-	return 'Zapraszamy do wzięcia udziału w głosowaniu pod tytułem: {poll_title}.
+	// Kompatybilność: stara opcja openvote_email_body jako plain.
+	$legacy = get_option( 'openvote_email_body', '' );
+	if ( is_string( $legacy ) && trim( $legacy ) !== '' ) {
+		return trim( $legacy );
+	}
+	return openvote_get_email_body_plain_default();
+}
 
-Głosowanie jest przeprowadzane na stronie: {vote_url}
-i potrwa do: {date_end}.
+/**
+ * Treść e-maila zaproszenia (wersja HTML). Zapis lub domyślna.
+ */
+function openvote_get_email_body_html_template(): string {
+	$saved = get_option( 'openvote_email_body_html', '' );
+	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
+		return trim( $saved );
+	}
+	return openvote_get_email_body_html_default();
+}
 
-Oto lista pytań w głosowaniu:
-{questions}
-
-Zapraszamy do głosowania!
-Zespół {brand_short}';
+/**
+ * Treść e-maila zaproszenia dla aktualnie wybranego typu (plain/html).
+ */
+function openvote_get_email_body_template(): string {
+	return openvote_get_email_template_type() === 'html'
+		? openvote_get_email_body_html_template()
+		: openvote_get_email_body_plain_template();
 }
 
 /**
  * Podmień placeholdery w szablonie e-maila na rzeczywiste wartości.
  *
- * Dostępne zmienne:
- *   {poll_title}  — tytuł głosowania
- *   {brand_short} — skrót nazwy systemu
- *   {from_email}  — adres e-mail nadawcy
- *   {vote_url}    — URL strony głosowania
- *   {date_end}    — data i godzina zakończenia głosowania
- *   {questions}   — lista pytań z odpowiedziami
+ * Dostępne zmienne: {poll_title}, {brand_short}, {from_email}, {vote_url}, {date_end},
+ * {questions}, {site_url}, {plugin_author}, {github_url}.
  *
- * @param string   $template Szablon z placeholderami.
- * @param object   $poll     Obiekt głosowania (z ->title, ->date_end, ->questions).
- * @return string  Gotowy tekst po podstawieniu.
+ * @param string $template Szablon z placeholderami.
+ * @param object $poll     Obiekt głosowania (z ->title, ->date_end, ->questions).
+ * @param string $format   'plain' lub 'html' — format listy {questions}.
+ * @return string Gotowy tekst po podstawieniu.
  */
-function openvote_render_email_template( string $template, object $poll ): string {
+function openvote_render_email_template( string $template, object $poll, string $format = 'plain' ): string {
 	$questions_text = '';
 	if ( ! empty( $poll->questions ) ) {
-		foreach ( $poll->questions as $i => $q ) {
-			$questions_text .= ( $i + 1 ) . '. ' . $q->body . "\n";
-			if ( ! empty( $q->answers ) ) {
-				foreach ( $q->answers as $a ) {
-					$questions_text .= '   - ' . $a->body . "\n";
+		if ( $format === 'html' ) {
+			$questions_text .= '<ul>';
+			foreach ( $poll->questions as $q ) {
+				$questions_text .= '<li>' . esc_html( $q->body );
+				if ( ! empty( $q->answers ) ) {
+					$questions_text .= '<ul>';
+					foreach ( $q->answers as $a ) {
+						$questions_text .= '<li>' . esc_html( $a->body ) . '</li>';
+					}
+					$questions_text .= '</ul>';
 				}
+				$questions_text .= '</li>';
 			}
-			$questions_text .= "\n";
+			$questions_text .= '</ul>';
+		} else {
+			foreach ( $poll->questions as $i => $q ) {
+				$questions_text .= ( $i + 1 ) . '. ' . $q->body . "\n";
+				if ( ! empty( $q->answers ) ) {
+					foreach ( $q->answers as $a ) {
+						$questions_text .= '   - ' . $a->body . "\n";
+					}
+				}
+				$questions_text .= "\n";
+			}
+			$questions_text = rtrim( $questions_text );
 		}
-		$questions_text = rtrim( $questions_text );
 	}
 
 	$end_raw = $poll->date_end ?? '';
@@ -260,12 +410,15 @@ function openvote_render_email_template( string $template, object $poll ): strin
 	}
 
 	$replacements = [
-		'{poll_title}'  => $poll->title ?? '',
-		'{brand_short}' => openvote_get_brand_short_name(),
-		'{from_email}'  => openvote_get_from_email(),
-		'{vote_url}'    => openvote_get_vote_page_url(),
-		'{date_end}'    => $date_end,
-		'{questions}'   => $questions_text,
+		'{poll_title}'   => $poll->title ?? '',
+		'{brand_short}'  => openvote_get_brand_short_name(),
+		'{from_email}'   => openvote_get_from_email(),
+		'{vote_url}'     => openvote_get_vote_page_url(),
+		'{date_end}'     => $date_end,
+		'{questions}'    => $questions_text,
+		'{site_url}'      => home_url( '/' ),
+		'{plugin_author}' => OPENVOTE_PLUGIN_AUTHOR,
+		'{github_url}'    => OPENVOTE_GITHUB_URL,
 	];
 
 	return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );

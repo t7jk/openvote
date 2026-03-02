@@ -1,0 +1,129 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Mapowanie roli → ekrany: które role mogą wyświetlać dane menu i mieć dostęp do ekranów.
+ * Opcja: openvote_role_screen_map.
+ */
+class Openvote_Role_Map {
+
+    const OPTION_KEY = 'openvote_role_screen_map';
+
+    /** Dozwolone slugi ról (wiersze tabeli). */
+    const ROLES = [ 'subscriber', 'author', 'editor', 'administrator', 'openvote_coordinator' ];
+
+    /** Dozwolone slugi ekranów (kolumny tabeli). */
+    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings' ];
+
+    /** Domyślna mapa: rola => [ ekran => 1|0 ]. */
+    const DEFAULT_MAP = [
+        'administrator'       => [
+            'openvote'          => 1,
+            'openvote-surveys'  => 1,
+            'openvote-groups'   => 1,
+            'openvote-roles'    => 1,
+            'openvote-settings' => 1,
+        ],
+        'editor'              => [
+            'openvote'          => 1,
+            'openvote-surveys'  => 1,
+            'openvote-groups'   => 1,
+            'openvote-roles'    => 1,
+            'openvote-settings' => 0,
+        ],
+        'author'              => [
+            'openvote'          => 1,
+            'openvote-surveys'  => 1,
+            'openvote-groups'   => 1,
+            'openvote-roles'    => 1,
+            'openvote-settings' => 0,
+        ],
+        'subscriber'          => [
+            'openvote'          => 0,
+            'openvote-surveys'  => 0,
+            'openvote-groups'   => 0,
+            'openvote-roles'    => 0,
+            'openvote-settings' => 0,
+        ],
+        'openvote_coordinator' => [
+            'openvote'          => 1,
+            'openvote-surveys'  => 1,
+            'openvote-groups'   => 1,
+            'openvote-roles'    => 1,
+            'openvote-settings' => 0,
+        ],
+    ];
+
+    /**
+     * Zwraca mapę rola → ekrany z opcji, zmerge'owaną z domyślnymi.
+     *
+     * @return array<string, array<string, int>>
+     */
+    public static function get_map(): array {
+        $saved = get_option( self::OPTION_KEY, [] );
+        if ( ! is_array( $saved ) ) {
+            $saved = [];
+        }
+        $map = [];
+        foreach ( self::ROLES as $role ) {
+            $map[ $role ] = self::DEFAULT_MAP[ $role ] ?? array_fill_keys( self::SCREENS, 0 );
+            if ( isset( $saved[ $role ] ) && is_array( $saved[ $role ] ) ) {
+                foreach ( self::SCREENS as $screen ) {
+                    if ( array_key_exists( $screen, $saved[ $role ] ) ) {
+                        $map[ $role ][ $screen ] = (int) $saved[ $role ][ $screen ];
+                    }
+                }
+            }
+        }
+        return $map;
+    }
+
+    /**
+     * Czy użytkownik ma rolę Koordynatora (openvote_role + grupy)?
+     */
+    public static function user_is_coordinator( int $user_id ): bool {
+        $role = Openvote_Role_Manager::get_user_role( $user_id );
+        if ( Openvote_Role_Manager::ROLE_POLL_ADMIN === $role ) {
+            return true;
+        }
+        if ( Openvote_Role_Manager::ROLE_POLL_EDITOR === $role && ! empty( Openvote_Role_Manager::get_user_groups( $user_id ) ) ) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Lista „aktywnych” ról użytkownika: role WordPress + openvote_coordinator jeśli jest koordynatorem.
+     *
+     * @return string[]
+     */
+    public static function get_user_effective_roles( int $user_id ): array {
+        $user = get_userdata( $user_id );
+        if ( ! $user || ! $user->exists() ) {
+            return [];
+        }
+        $roles = array_intersect( (array) $user->roles, self::ROLES );
+        $roles = array_values( $roles );
+        if ( self::user_is_coordinator( $user_id ) ) {
+            $roles[] = 'openvote_coordinator';
+        }
+        return array_unique( $roles );
+    }
+
+    /**
+     * Czy użytkownik ma dostęp do danego ekranu (zgodnie z mapą roli).
+     */
+    public static function user_can_access_screen( int $user_id, string $screen_slug ): bool {
+        if ( ! in_array( $screen_slug, self::SCREENS, true ) ) {
+            return false;
+        }
+        $map   = self::get_map();
+        $roles = self::get_user_effective_roles( $user_id );
+        foreach ( $roles as $role ) {
+            if ( isset( $map[ $role ][ $screen_slug ] ) && (int) $map[ $role ][ $screen_slug ] === 1 ) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

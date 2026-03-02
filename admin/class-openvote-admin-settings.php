@@ -40,7 +40,9 @@ class Openvote_Admin_Settings {
             return;
         }
 
-        if ( ! current_user_can( self::CAP ) ) {
+        $can_manage = current_user_can( self::CAP );
+        $can_settings_screen = openvote_user_can_access_screen( get_current_user_id(), 'openvote-settings' );
+        if ( ! $can_manage && ! $can_settings_screen ) {
             wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
         }
 
@@ -52,6 +54,30 @@ class Openvote_Admin_Settings {
 
         $raw_survey_required = array_map( 'sanitize_key', (array) ( $_POST['openvote_survey_required_fields'] ?? [] ) );
         Openvote_Field_Map::save_survey_required_fields( $raw_survey_required );
+
+        // Mapowanie roli → ekrany.
+        $allowed_roles  = Openvote_Role_Map::ROLES;
+        $allowed_screens = Openvote_Role_Map::SCREENS;
+        $raw_role_screen = (array) ( $_POST['openvote_role_screen'] ?? [] );
+        $role_screen_map = [];
+        foreach ( $allowed_roles as $role_slug ) {
+            $role_screen_map[ $role_slug ] = [];
+            foreach ( $allowed_screens as $screen_slug ) {
+                $role_screen_map[ $role_slug ][ $screen_slug ] = 0;
+            }
+            if ( isset( $raw_role_screen[ $role_slug ] ) && is_array( $raw_role_screen[ $role_slug ] ) ) {
+                foreach ( $allowed_screens as $screen_slug ) {
+                    if ( isset( $raw_role_screen[ $role_slug ][ $screen_slug ] ) && ( $raw_role_screen[ $role_slug ][ $screen_slug ] === '1' || $raw_role_screen[ $role_slug ][ $screen_slug ] === 1 ) ) {
+                        $role_screen_map[ $role_slug ][ $screen_slug ] = 1;
+                    }
+                }
+            }
+        }
+        update_option( Openvote_Role_Map::OPTION_KEY, $role_screen_map, false );
+
+        $coordinator_access = sanitize_key( (string) ( $_POST['openvote_coordinator_poll_access'] ?? 'all' ) );
+        $coordinator_access = ( $coordinator_access === 'own' ) ? 'own' : 'all';
+        update_option( 'openvote_coordinator_poll_access', $coordinator_access, false );
 
         if ( Openvote_Field_Map::is_city_disabled() ) {
             self::ensure_wszyscy_group_exists();
@@ -106,7 +132,7 @@ class Openvote_Admin_Settings {
             update_option( 'openvote_sendgrid_api_key', sanitize_text_field( wp_unslash( $_POST['openvote_sendgrid_api_key'] ) ), false );
         }
 
-        // Parametry wysyłki wsadowej.
+        // Parametry wysyłki masowej.
         $batch_size = isset( $_POST['openvote_email_batch_size'] ) ? absint( $_POST['openvote_email_batch_size'] ) : 0;
         $batch_size = min( 1000, $batch_size ); // max 1000
         update_option( 'openvote_email_batch_size', $batch_size, false );
@@ -135,10 +161,14 @@ class Openvote_Admin_Settings {
             sanitize_text_field( wp_unslash( $_POST['openvote_email_from_template'] ?? '' ) ),
             false
         );
-        // Treść może zawierać znaki nowej linii — używamy wp_kses_post aby nie kasował \n.
-        $email_body = wp_unslash( $_POST['openvote_email_body'] ?? '' );
-        $email_body = wp_strip_all_tags( $email_body );
-        update_option( 'openvote_email_body', $email_body, false );
+        $email_type_raw = sanitize_key( (string) ( $_POST['openvote_email_template_type'] ?? 'plain' ) );
+        $email_type     = ( $email_type_raw === 'html' ) ? 'html' : 'plain';
+        update_option( 'openvote_email_template_type', $email_type, false );
+        $email_body_plain = wp_unslash( $_POST['openvote_email_body_plain'] ?? '' );
+        $email_body_plain = wp_strip_all_tags( $email_body_plain );
+        update_option( 'openvote_email_body_plain', $email_body_plain, false );
+        $email_body_html = wp_unslash( $_POST['openvote_email_body_html'] ?? '' );
+        update_option( 'openvote_email_body_html', $email_body_html, false );
 
         flush_rewrite_rules();
 

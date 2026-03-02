@@ -69,6 +69,14 @@ class Openvote_Rest_Controller {
     public function get_polls( WP_REST_Request $request ): WP_REST_Response {
         $polls = Openvote_Poll::get_all( [ 'limit' => 100 ] );
 
+        if ( openvote_is_coordinator_restricted_to_own_groups() ) {
+            $my_ids = Openvote_Role_Manager::get_user_groups( get_current_user_id() );
+            $polls  = array_filter( $polls, function ( $p ) use ( $my_ids ) {
+                $target = Openvote_Poll::get_target_group_ids( $p );
+                return ! empty( array_intersect( $target, $my_ids ) );
+            } );
+        }
+
         $data = array_map( fn( $p ) => [
             'id'         => (int) $p->id,
             'title'      => $p->title,

@@ -54,10 +54,16 @@ if ( $is_edit && ! empty( $poll->target_groups ) ) {
     }
 }
 
-// Get all groups for multiselect.
+// Get all groups for multiselect (dla koordynatora z ograniczeniem „własne” tylko jego sejmiki).
 global $wpdb;
 $groups_table = $wpdb->prefix . 'openvote_groups';
 $all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups_table} ORDER BY name ASC" );
+if ( openvote_is_coordinator_restricted_to_own_groups() ) {
+    $my_group_ids = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+    $all_groups   = array_filter( $all_groups, function ( $g ) use ( $my_group_ids ) {
+        return isset( $my_group_ids[ (int) $g->id ] );
+    } );
+}
 ?>
 <div class="wrap">
     <h1><?php

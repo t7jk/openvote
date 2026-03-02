@@ -165,24 +165,26 @@ class Openvote_Admin {
         }
     }
 
+    /** Slugi pięciu ekranów objętych mapowaniem roli (menu + dostęp). */
+    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings' ];
+
     /**
-     * Slugi podstron, które mają być wyłączone (kursywa, brak kliku) dla użytkownika będącego tylko Koordynatorem.
+     * Slugi podstron, które mają być wyłączone (kursywa, brak kliku) według mapy roli.
      *
      * @return string[] Slugi do wyłączenia lub pustą tablicę.
      */
     public static function get_disabled_submenu_slugs_for_coordinator_only(): array {
-        $user = wp_get_current_user();
-        if ( ! $user->exists() ) {
+        $user_id = get_current_user_id();
+        if ( ! $user_id ) {
             return [];
         }
-        $has_wp_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], (array) $user->roles );
-        if ( $has_wp_role ) {
-            return [];
+        $disabled = [];
+        foreach ( self::SCREEN_SLUGS as $slug ) {
+            if ( ! openvote_user_can_access_screen( $user_id, $slug ) ) {
+                $disabled[] = $slug;
+            }
         }
-        if ( self::user_can_access_coordinators() ) {
-            return [ 'openvote-settings' ];
-        }
-        return [];
+        return $disabled;
     }
 
     /**
@@ -388,8 +390,8 @@ class Openvote_Admin {
     }
 
     public function render_surveys_page(): void {
-        if ( ! self::user_can_access_coordinators() ) {
-            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-surveys' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
         $action    = sanitize_text_field( $_GET['action'] ?? '' );
@@ -456,8 +458,8 @@ class Openvote_Admin {
     }
 
     public function render_polls_page(): void {
-        if ( ! current_user_can( self::CAP ) && ! self::user_can_access_coordinators() ) {
-            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
         $action  = sanitize_text_field( $_GET['action'] ?? '' );
@@ -614,24 +616,24 @@ class Openvote_Admin {
     }
 
     public function render_groups_page(): void {
-        if ( ! current_user_can( self::CAP ) && ! self::user_can_access_coordinators() ) {
-            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-groups' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/groups.php';
     }
 
     public function render_roles_page(): void {
-        if ( ! current_user_can( self::CAP_MGR ) && ! self::user_can_access_coordinators() ) {
-            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-roles' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/roles.php';
     }
 
     public function render_settings_page(): void {
-        if ( ! current_user_can( self::CAP_MGR ) ) {
-            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-settings' ) && ! current_user_can( self::CAP_MGR ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/settings.php';

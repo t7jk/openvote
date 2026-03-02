@@ -162,7 +162,7 @@ $all_users_for_groups = get_users( [
     'number'  => $openvote_users_list_limit,
 ] );
 
-// Aktualizuj liczniki i pobierz grupy.
+// Aktualizuj liczniki i pobierz grupy (dla koordynatora z ograniczeniem „własne” tylko jego sejmiki).
 $groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
 foreach ( $groups as $group ) {
     $count = (int) $wpdb->get_var(
@@ -172,6 +172,12 @@ foreach ( $groups as $group ) {
         $wpdb->update( $groups_table, [ 'member_count' => $count ], [ 'id' => $group->id ], [ '%d' ], [ '%d' ] );
         $group->member_count = $count;
     }
+}
+if ( openvote_is_coordinator_restricted_to_own_groups() ) {
+    $my_group_ids = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+    $groups       = array_filter( $groups, function ( $g ) use ( $my_group_ids ) {
+        return isset( $my_group_ids[ (int) $g->id ] );
+    } );
 }
 
 // Parametry AJAX przekazane do JS.

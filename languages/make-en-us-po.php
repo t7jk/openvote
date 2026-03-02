@@ -395,7 +395,7 @@ $translations = [
     'Gmail, Outlook itp. — zalecane do ~500 odbiorców.' => 'Gmail, Outlook, etc. — recommended for up to ~500 recipients.',
     'SendGrid API' => 'SendGrid API',
     'HTTP API, port 443 — zalecane dla 500–10 000+ odbiorców.' => 'HTTP API, port 443 — recommended for 500–10,000+ recipients.',
-    'Parametry wysyłki wsadowej' => 'Batch sending parameters',
+    'Parametry wysyłki masowej' => 'Batch sending parameters',
     'Kontrola tempa wysyłki e-maili przy dużych grupach odbiorców. Puste pola = wartości domyślne (20 e-maili / 3 s dla WP/SMTP; 100 e-maili / 2 s dla SendGrid).' => 'Control email sending rate for large recipient groups. Empty fields = defaults (20 emails / 3 s for WP/SMTP; 100 emails / 2 s for SendGrid).',
     'Liczba e-maili na partię' => 'Number of emails per batch',
     'Dla SMTP/WP zalecane 10–50. Dla SendGrid do 1000.' => 'For SMTP/WP recommended 10–50. For SendGrid up to 1000.',

@@ -24,9 +24,15 @@ defined( 'ABSPATH' ) || exit;
                     <td style="padding:12px 0;font-size:14px;">Tomasz Kalinowski</td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">
-                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'E-mail', 'openvote' ); ?></td>
+                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'X (Twitter)', 'openvote' ); ?></td>
                     <td style="padding:12px 0;font-size:14px;">
-                        <a href="mailto:tjkalinowski@gmail.com">tjkalinowski@gmail.com</a>
+                        <a href="https://x.com/tomas3man" target="_blank" rel="noopener noreferrer">@tomas3man</a>
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0f0f1;">
+                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'GitHub', 'openvote' ); ?></td>
+                    <td style="padding:12px 0;font-size:14px;">
+                        <a href="https://github.com/t7jk/openvote" target="_blank" rel="noopener noreferrer">https://github.com/t7jk/openvote</a>
                     </td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">
