@@ -247,6 +247,16 @@ function openvote_settings_select( string $logical, string $current, array $core
         <?php /* ── SendGrid ── */ ?>
         <div id="openvote-sendgrid-fields" class="openvote-settings-email-section__sendgrid" style="<?php echo $mail_method === 'sendgrid' ? '' : 'display:none;'; ?>margin-top:0;">
             <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja SendGrid API', 'openvote' ); ?></h3>
+            <p class="description" style="margin-bottom:12px;max-width:780px;">
+                <?php
+                printf(
+                    /* translators: 1: opening <a> tag with SendGrid login URL, 2: closing </a> */
+                    esc_html__( 'Zaloguj się do SendGrid: %1$sapp.sendgrid.com%2$s. Aby wygenerować klucz API: w panelu wybierz Settings → API Keys → Create API Key; nadaj nazwę, wybierz uprawnienia „Full Access” lub „Restricted Access” z włączonym „Mail Send”. Klucz (zaczyna się od SG.) jest wyświetlany tylko raz — skopiuj go i wklej poniżej.', 'openvote' ),
+                    '<a href="' . esc_url( 'https://app.sendgrid.com' ) . '" target="_blank" rel="noopener noreferrer">',
+                    '</a>'
+                );
+                ?>
+            </p>
             <table class="form-table" role="presentation" style="max-width:780px;">
                 <tr>
                     <th scope="row"><label for="openvote_sendgrid_api_key"><?php esc_html_e( 'Klucz API SendGrid', 'openvote' ); ?></label></th>
