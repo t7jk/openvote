@@ -3262,8 +3262,8 @@ msgstr ""
 msgid "Max %d znaków"
 msgstr ""
 
-#: blocks/evoting-survey-form/render.php:217
-msgid "Wyślij odpowiedź (Gotowa)"
+#: blocks/openvote-survey-form/render.php:220
+msgid "Zapisz zmiany i aplikuj"
 msgstr ""
 
 #: blocks/evoting-survey-responses/render.php:26
@@ -3271,7 +3271,7 @@ msgid "Zgłoszenia ankiet"
 msgstr ""
 
 #: blocks/evoting-survey-responses/render.php:28
-msgid "Brak zgłoszeń oznaczonych jako „Nie spam”."
+msgid "Brak zgłoszeń zatwierdzonych."
 msgstr ""
 
 #: blocks/evoting-voting-tabs/render.php:43

@@ -573,6 +573,47 @@ class Openvote_Survey {
     }
 
     /**
+     * Pobierz zgłoszenia oczekujące na zatwierdzenie (ready + spam_status = 'pending').
+     * Do wyświetlenia w sekcji „Zgłoszenia nie zatwierdzone” — tylko minimalne dane.
+     *
+     * @param int $survey_id 0 = wszystkie ankiety
+     * @param int $page
+     * @param int $per_page
+     * @return object[] Każdy: id, survey_id, survey_title, survey_description, submitted_at, user_nickname
+     */
+    public static function get_responses_pending( int $survey_id = 0, int $page = 1, int $per_page = 20 ): array {
+        global $wpdb;
+
+        $rt     = self::responses_table();
+        $st     = self::surveys_table();
+        $offset = max( 0, ( $page - 1 ) * $per_page );
+
+        $where  = "r.response_status = 'ready' AND r.spam_status = 'pending'";
+        $params = [];
+        if ( $survey_id > 0 ) {
+            $where   .= ' AND r.survey_id = %d';
+            $params[] = $survey_id;
+        }
+        $params[] = $per_page;
+        $params[] = $offset;
+
+        $list = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.id, r.survey_id, r.user_nickname, r.submitted_at,
+                 s.title AS survey_title, s.description AS survey_description
+                 FROM {$rt} r
+                 INNER JOIN {$st} s ON s.id = r.survey_id
+                 WHERE {$where}
+                 ORDER BY r.submitted_at DESC
+                 LIMIT %d OFFSET %d",
+                ...$params
+            )
+        );
+
+        return $list ?: [];
+    }
+
+    /**
      * Policz odpowiedzi (tylko 'ready') dla ankiety.
      */
     public static function count_responses( int $survey_id ): int {

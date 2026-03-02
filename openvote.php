@@ -248,16 +248,15 @@ function openvote_get_email_template_type(): string {
 
 /**
  * Domyślna treść e-maila (wersja czysty tekst).
- * Zawiera stopkę z {site_url}, {plugin_author}, {github_url}.
+ * Zawiera stopkę z {plugin_author}, {github_url}.
  */
 function openvote_get_email_body_plain_default(): string {
-	$footer = "\n\n──────────────────────────────────────────────────\n" .
-		"Głosowanie przeprowadzono na stronie: {site_url}\n" .
-		"System: Otwarte Głosowanie (Open Vote)\n" .
-		"Autor systemu: {plugin_author}\n" .
-		"Kod źródłowy: {github_url}\n" .
+	$footer = "\n\n\n──────────────────────────────────────────────────\n" .
+		"Otwarte Głosowanie (Open Vote)\n" .
+		'Autor systemu: ' . OPENVOTE_PLUGIN_AUTHOR . "\n" .
+		'Kod źródłowy (Open Source): ' . OPENVOTE_GITHUB_URL . "\n" .
 		"──────────────────────────────────────────────────";
-	return "Szanowni Państwo,\n\nmamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:\n\n  „{poll_title}\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nZAGADNIENIA PODDANE POD GŁOSOWANIE:\n\n{questions}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  Głosowanie dostępne pod adresem:\n  {vote_url}\n\n  Termin głosowania: do {date_end}\n\nKażdy głos ma znaczenie – zachęcamy do wzięcia udziału.\n\nZ poważaniem,\nZespół {brand_short}" . $footer;
+	return "Szanowni Państwo,\n\nmamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:\n\n  „{poll_title}\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nZAGADNIENIA PODDANE POD GŁOSOWANIE:\n\n{questions}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  Głosowanie dostępne pod adresem:\n  {vote_url}\n\n  Termin głosowania: do {date_end}\n\nKażdy głos ma znaczenie – zachęcamy do wzięcia udziału.\n\nZapraszamy do głosowania!\n\nZespół {brand_short} - {site_name}\n{site_tagline}" . $footer;
 }
 
 /**
@@ -274,6 +273,8 @@ function openvote_get_email_body_html_default(): string {
   .header { background: #1a3c6e; color: #ffffff; padding: 32px 40px; text-align: center; }
   .header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
   .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.8; }
+  .header p.header__tagline { margin-top: 4px; font-size: 13px; opacity: 0.9; }
+  .header p:empty { display: none; }
   .body { padding: 36px 40px; }
   .body p { line-height: 1.7; font-size: 15px; }
   .poll-title { font-size: 18px; font-weight: 700; color: #1a3c6e; margin: 16px 0; }
@@ -292,7 +293,8 @@ function openvote_get_email_body_html_default(): string {
 <div class="wrapper">
   <div class="header">
     <h1>Zaproszenie do głosowania</h1>
-    <p>{brand_short}</p>
+    <p>{brand_short} — {site_name}</p>
+    <p class="header__tagline">{site_tagline}</p>
   </div>
   <div class="body">
     <p>Szanowni Państwo,</p>
@@ -312,7 +314,7 @@ function openvote_get_email_body_html_default(): string {
     © {brand_short} &nbsp;|&nbsp; Wiadomość wygenerowana automatycznie<br><br>
     <span style="font-size:12px; color:#bbb;">
       Głosowanie przeprowadzono na stronie <a href="{site_url}" style="color:#bbb;">{site_url}</a><br>
-      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: {plugin_author} &mdash; <a href="{github_url}" style="color:#bbb;">kod źródłowy na GitHub</a>
+      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: ' . OPENVOTE_PLUGIN_AUTHOR . ' &mdash; <a href="' . OPENVOTE_GITHUB_URL . '" style="color:#bbb;">kod źródłowy na GitHub</a>
     </span>
   </div>
 </div>
@@ -338,11 +340,19 @@ function openvote_get_email_body_plain_template(): string {
 
 /**
  * Treść e-maila zaproszenia (wersja HTML). Zapis lub domyślna.
+ * Aktualizuje zapisany szablon ze starym nagłówkiem (tylko {brand_short}) do wersji z {site_name} i {site_tagline}.
  */
 function openvote_get_email_body_html_template(): string {
 	$saved = get_option( 'openvote_email_body_html', '' );
 	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
-		return trim( $saved );
+		$saved = trim( $saved );
+		// Uaktualnij stary nagłówek (tylko {brand_short}) do wersji z nazwą witryny i sloganem.
+		$old_header = '<p>{brand_short}</p>';
+		$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';
+		if ( str_contains( $saved, $old_header ) && ! str_contains( $saved, '{site_name}' ) ) {
+			$saved = str_replace( $old_header, $new_header, $saved );
+		}
+		return $saved;
 	}
 	return openvote_get_email_body_html_default();
 }
@@ -359,11 +369,11 @@ function openvote_get_email_body_template(): string {
 /**
  * Podmień placeholdery w szablonie e-maila na rzeczywiste wartości.
  *
- * Dostępne zmienne: {poll_title}, {brand_short}, {from_email}, {vote_url}, {date_end},
- * {questions}, {site_url}, {plugin_author}, {github_url}.
+ * Dostępne zmienne: {poll_title}, {brand_short}, {from_email}, {vote_url}, {date_start}, {date_end},
+ * {questions}, {site_url}, {site_name}, {site_tagline}, {plugin_author}, {github_url}.
  *
  * @param string $template Szablon z placeholderami.
- * @param object $poll     Obiekt głosowania (z ->title, ->date_end, ->questions).
+ * @param object $poll     Obiekt głosowania (z ->title, ->date_start, ->date_end, ->questions).
  * @param string $format   'plain' lub 'html' — format listy {questions}.
  * @return string Gotowy tekst po podstawieniu.
  */
@@ -398,6 +408,17 @@ function openvote_render_email_template( string $template, object $poll, string 
 		}
 	}
 
+	$start_raw = $poll->date_start ?? '';
+	if ( strlen( $start_raw ) === 10 ) {
+		$start_raw .= ' 00:00:00';
+	}
+	try {
+		$start_dt   = new DateTimeImmutable( $start_raw, wp_timezone() );
+		$date_start = $start_dt->format( 'd.m.Y H:i' );
+	} catch ( \Exception $e ) {
+		$date_start = $poll->date_start ?? '';
+	}
+
 	$end_raw = $poll->date_end ?? '';
 	if ( strlen( $end_raw ) === 10 ) {
 		$end_raw .= ' 23:59:59';
@@ -409,14 +430,19 @@ function openvote_render_email_template( string $template, object $poll, string 
 		$date_end = $poll->date_end ?? '';
 	}
 
+	$site_name   = get_bloginfo( 'name' );
+	$site_tagline = get_bloginfo( 'description' );
 	$replacements = [
-		'{poll_title}'   => $poll->title ?? '',
-		'{brand_short}'  => openvote_get_brand_short_name(),
-		'{from_email}'   => openvote_get_from_email(),
-		'{vote_url}'     => openvote_get_vote_page_url(),
-		'{date_end}'     => $date_end,
-		'{questions}'    => $questions_text,
+		'{poll_title}'    => $poll->title ?? '',
+		'{brand_short}'   => openvote_get_brand_short_name(),
+		'{from_email}'    => openvote_get_from_email(),
+		'{vote_url}'      => openvote_get_vote_page_url(),
+		'{date_start}'    => $date_start,
+		'{date_end}'      => $date_end,
+		'{questions}'     => $questions_text,
 		'{site_url}'      => home_url( '/' ),
+		'{site_name}'     => is_string( $site_name ) ? $site_name : '',
+		'{site_tagline}'  => is_string( $site_tagline ) ? $site_tagline : '',
 		'{plugin_author}' => OPENVOTE_PLUGIN_AUTHOR,
 		'{github_url}'    => OPENVOTE_GITHUB_URL,
 	];
@@ -498,6 +524,46 @@ add_action( 'init',          [ 'Openvote_Law_Page', 'add_rewrite_rule' ] );
 add_filter( 'template_include', [ 'Openvote_Law_Page', 'filter_template' ] );
 add_filter( 'body_class',    [ 'Openvote_Law_Page', 'add_body_class' ] );
 
+// Tytuł strony zgłoszeń (np. /zgloszenia/) — zawsze w tłumaczeniu (PL: Zgłoszenia, EN: Submissions).
+add_filter( 'the_title', 'openvote_submissions_page_title', 10, 2 );
+add_filter( 'pre_get_document_title', 'openvote_submissions_document_title', 10, 1 );
+
+/**
+ * Filtr the_title: na stronie zgłoszeń zwraca przetłumaczalny tytuł „Zgłoszenia”.
+ *
+ * @param string $title   Obecny tytuł.
+ * @param int    $post_id ID wpisu.
+ * @return string
+ */
+function openvote_submissions_page_title( string $title, int $post_id ): string {
+	$slug = get_option( 'openvote_submissions_page_slug', 'zgloszenia' );
+	if ( $slug === '' ) {
+		return $title;
+	}
+	$page = get_page_by_path( $slug, OBJECT, 'page' );
+	if ( ! $page || (int) $page->ID !== (int) $post_id ) {
+		return $title;
+	}
+	return __( 'Zgłoszenia', 'openvote' );
+}
+
+/**
+ * Filtr pre_get_document_title: na stronie zgłoszeń tytuł w zakładce przeglądarki to „Zgłoszenia”.
+ *
+ * @param string $title Obecny tytuł dokumentu.
+ * @return string
+ */
+function openvote_submissions_document_title( string $title ): string {
+	$slug = get_option( 'openvote_submissions_page_slug', 'zgloszenia' );
+	if ( $slug === '' || ! is_singular( 'page' ) ) {
+		return $title;
+	}
+	$post = get_queried_object();
+	if ( ! $post || ! isset( $post->post_name ) || $post->post_name !== $slug ) {
+		return $title;
+	}
+	return __( 'Zgłoszenia', 'openvote' );
+}
 
 /**
  * Zwraca przesunięcie czasu dla głosowań (w godzinach, od -12 do +12).

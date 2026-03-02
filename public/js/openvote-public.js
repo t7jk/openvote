@@ -6,11 +6,43 @@
 
     var cfg = window.openvotePublic || {};
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function runOnReady() {
         initCountdowns();
         initVotingForms();
         initResults();
-    });
+        initClosedPollExpand();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runOnReady);
+    } else {
+        runOnReady();
+    }
+
+    /* ── Zakończone głosowania: Rozwiń / Zwiń ── */
+
+    function initClosedPollExpand() {
+        document.querySelectorAll('.openvote-closed-poll-block__expand-btn').forEach(function (btn) {
+            if (btn._openvoteExpandBound) return;
+            btn._openvoteExpandBound = true;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var block = btn.closest('.openvote-closed-poll-block');
+                if (!block) return;
+                var details = block.querySelector('.openvote-closed-poll-block__details');
+                if (!details) return;
+                var isCurrentlyHidden = details.hasAttribute('hidden');
+                if (isCurrentlyHidden) {
+                    details.removeAttribute('hidden');
+                    btn.setAttribute('aria-expanded', 'true');
+                    btn.textContent = (cfg.i18n && cfg.i18n.collapse) ? cfg.i18n.collapse : 'Zwiń';
+                } else {
+                    details.setAttribute('hidden', '');
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.textContent = (cfg.i18n && cfg.i18n.expand) ? cfg.i18n.expand : 'Rozwiń';
+                }
+            });
+        });
+    }
 
     /* ── Countdown Timer ── */
 

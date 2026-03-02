@@ -30,6 +30,9 @@ if ( isset( $survey ) && $survey ) {
     <?php if ( isset( $_GET['marked_not_spam'] ) ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Zgłoszenie oznaczono jako „Nie spam”.', 'openvote' ); ?></p></div>
     <?php endif; ?>
+    <?php if ( isset( $_GET['reverted_spam'] ) ) : ?>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Zgłoszenie ukryto. Nie będzie publikowane na stronie zgłoszeń.', 'openvote' ); ?></p></div>
+    <?php endif; ?>
 
     <?php if ( empty( $surveys_to_show ) ) : ?>
         <p><?php esc_html_e( 'Brak zamkniętych ankiet.', 'openvote' ); ?></p>
@@ -89,6 +92,8 @@ if ( isset( $survey ) && $survey ) {
                             $spam_status = $resp->spam_status ?? 'pending';
                             if ( 'not_spam' === $spam_status ) : ?>
                                 <span style="background:#d4edda;color:#155724;padding:2px 8px;border-radius:3px;font-size:.8em;"><?php esc_html_e( 'Nie spam', 'openvote' ); ?></span>
+                                <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'openvote-surveys', 'action' => 'revert_spam_status', 'survey_id' => $s->id, 'response_id' => $resp->id ], admin_url( 'admin.php' ) ), 'openvote_revert_spam_' . $resp->id ) ); ?>"
+                                   class="button button-small"><?php esc_html_e( 'Cofnij — ukryj publikację', 'openvote' ); ?></a>
                             <?php else : ?>
                                 <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'openvote-surveys', 'action' => 'mark_not_spam', 'survey_id' => $s->id, 'response_id' => $resp->id ], admin_url( 'admin.php' ) ), 'openvote_mark_not_spam_' . $resp->id ) ); ?>"
                                    class="button button-small"><?php esc_html_e( 'To nie spam', 'openvote' ); ?></a>

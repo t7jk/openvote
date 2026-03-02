@@ -42,6 +42,7 @@ wp_localize_script( 'openvote-survey-public', 'openvoteSurveyPublic', [
         'savedReady'     => __( 'Odpowiedź zapisana jako Gotowa. Dziękujemy!', 'openvote' ),
         'error'          => __( 'Wystąpił błąd. Spróbuj ponownie.', 'openvote' ),
         'profileMissing' => __( 'Uzupełnij profil, aby wypełnić ankietę.', 'openvote' ),
+        'profileUpdated' => __( 'Profil zaktualizowany.', 'openvote' ),
     ],
 ] );
 
@@ -131,25 +132,89 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                     $survey_required = Openvote_Field_Map::get_survey_required_fields();
                     if ( $user && $user->exists() ) :
                     ?>
-                    <div class="openvote-survey-profile">
-                        <h4 class="openvote-survey-profile__title"><?php esc_html_e( 'Dane z Twojego profilu', 'openvote' ); ?></h4>
-                        <p class="openvote-survey-profile__desc"><?php esc_html_e( 'Poniższe dane są zapisane w systemie i nie można ich tutaj edytować.', 'openvote' ); ?></p>
-                        <dl class="openvote-survey-profile__list">
-                            <?php foreach ( $survey_required as $logical => $label ) :
-                                $value   = Openvote_Field_Map::get_user_value( $user, $logical );
-                                $display = trim( $value ) !== '' ? $value : '—';
-                            ?>
-                            <div class="openvote-survey-profile__row">
-                                <dt class="openvote-survey-profile__label">
-                                    <span class="openvote-survey-profile__required" title="<?php esc_attr_e( 'Wymagane do ankiety', 'openvote' ); ?>">
-                                        <input type="checkbox" checked disabled aria-hidden="true">
-                                        <?php echo esc_html( $label ); ?>
-                                    </span>
-                                </dt>
-                                <dd class="openvote-survey-profile__value"><?php echo esc_html( $display ); ?></dd>
-                            </div>
-                            <?php endforeach; ?>
-                        </dl>
+                    <div class="openvote-survey-profile" data-rest-url="<?php echo esc_url( rest_url( 'openvote/v1' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>">
+                        <div class="openvote-survey-profile__view">
+                            <h4 class="openvote-survey-profile__title"><?php esc_html_e( 'Dane z Twojego profilu', 'openvote' ); ?></h4>
+                            <p class="openvote-survey-profile__desc"><?php esc_html_e( 'Poniższe dane są zapisane w systemie i nie można ich tutaj edytować.', 'openvote' ); ?></p>
+                            <dl class="openvote-survey-profile__list">
+                                <?php foreach ( $survey_required as $logical => $label ) :
+                                    $value   = Openvote_Field_Map::get_user_value( $user, $logical );
+                                    $display = trim( (string) $value ) !== '' ? $value : '—';
+                                    $input_type = 'text';
+                                    if ( 'email' === $logical ) $input_type = 'email';
+                                    if ( 'phone' === $logical ) $input_type = 'tel';
+                                ?>
+                                <div class="openvote-survey-profile__row" data-field="<?php echo esc_attr( $logical ); ?>">
+                                    <dt class="openvote-survey-profile__label">
+                                        <span class="openvote-survey-profile__required" title="<?php esc_attr_e( 'Wymagane do ankiety', 'openvote' ); ?>">
+                                            <input type="checkbox" checked disabled aria-hidden="true">
+                                            <?php echo esc_html( $label ); ?>
+                                        </span>
+                                    </dt>
+                                    <dd class="openvote-survey-profile__value"><?php echo esc_html( $display ); ?></dd>
+                                </div>
+                                <?php endforeach; ?>
+                            </dl>
+                            <p class="openvote-survey-profile__actions">
+                                <button type="button" class="openvote-survey-profile__edit-btn" data-action="openvote-edit-profile">
+                                    <?php esc_html_e( 'Edytuj Profil', 'openvote' ); ?>
+                                </button>
+                            </p>
+                        </div>
+                        <div class="openvote-survey-profile__edit" hidden>
+                            <h4 class="openvote-survey-profile__title"><?php esc_html_e( 'Edycja profilu', 'openvote' ); ?></h4>
+                            <p class="openvote-survey-profile__desc"><?php esc_html_e( 'Zmień dane i zapisz.', 'openvote' ); ?></p>
+                            <form class="openvote-survey-profile-edit-form" novalidate>
+                                <?php
+                                global $wpdb;
+                                $profile_edit_cities = [];
+                                if ( isset( $wpdb ) ) {
+                                    $groups_table = $wpdb->prefix . 'openvote_groups';
+                                    $profile_edit_cities = (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE type = %s ORDER BY name ASC", 'city' ) );
+                                }
+                                foreach ( $survey_required as $logical => $label ) :
+                                    $value     = Openvote_Field_Map::get_user_value( $user, $logical );
+                                    $input_type = 'text';
+                                    if ( 'email' === $logical ) $input_type = 'email';
+                                    if ( 'phone' === $logical ) $input_type = 'tel';
+                                    $is_city = ( 'city' === $logical );
+                                ?>
+                                <div class="openvote-survey-profile-edit__row">
+                                    <label for="openvote-profile-edit-<?php echo esc_attr( $logical ); ?>" class="openvote-survey-profile-edit__label"><?php echo esc_html( $label ); ?></label>
+                                    <?php if ( $is_city && ! empty( $profile_edit_cities ) ) :
+                                        $city_options = $profile_edit_cities;
+                                        $value_trim   = trim( (string) $value );
+                                        if ( $value_trim !== '' && ! in_array( $value_trim, $city_options, true ) ) {
+                                            $city_options = array_merge( [ $value_trim ], $city_options );
+                                        }
+                                    ?>
+                                    <select id="openvote-profile-edit-<?php echo esc_attr( $logical ); ?>"
+                                            name="fields[<?php echo esc_attr( $logical ); ?>]"
+                                            class="openvote-survey-profile-edit__input openvote-survey-profile-edit__select"
+                                            data-field="<?php echo esc_attr( $logical ); ?>">
+                                        <option value=""><?php esc_html_e( '— Wybierz miasto —', 'openvote' ); ?></option>
+                                        <?php foreach ( $city_options as $city_name ) : ?>
+                                        <option value="<?php echo esc_attr( $city_name ); ?>" <?php selected( $value, $city_name ); ?>><?php echo esc_html( $city_name ); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php else : ?>
+                                    <input type="<?php echo esc_attr( $input_type ); ?>"
+                                           id="openvote-profile-edit-<?php echo esc_attr( $logical ); ?>"
+                                           name="fields[<?php echo esc_attr( $logical ); ?>]"
+                                           class="openvote-survey-profile-edit__input"
+                                           data-field="<?php echo esc_attr( $logical ); ?>"
+                                           value="<?php echo esc_attr( $value ); ?>"
+                                           <?php echo in_array( $logical, [ 'first_name', 'last_name', 'nickname', 'email' ], true ) ? ' required' : ''; ?>>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
+                                <div class="openvote-survey-profile-edit__actions">
+                                    <button type="submit" class="openvote-survey-profile-edit__submit"><?php esc_html_e( 'Zapisz', 'openvote' ); ?></button>
+                                    <button type="button" class="openvote-survey-profile-edit__cancel"><?php esc_html_e( 'Anuluj', 'openvote' ); ?></button>
+                                </div>
+                                <div class="openvote-survey-profile-edit__message" aria-live="polite"></div>
+                            </form>
+                        </div>
                     </div>
                     <?php endif; ?>
 
@@ -176,8 +241,11 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                             } elseif ( $q->field_type === 'email' ) {
                                 $input_type = 'email';
                             }
+                            $pf           = trim( (string) ( $q->profile_field ?? '' ) );
+                            $is_sensitive = $pf !== '' && ( $pf === '1' || Openvote_Field_Map::is_sensitive_for_public( $pf ) );
+                            $field_class  = 'openvote-survey-field' . ( $is_sensitive ? ' openvote-survey-field--sensitive' : '' );
                             ?>
-                            <div class="openvote-survey-field">
+                            <div class="<?php echo esc_attr( $field_class ); ?>">
                                 <label for="sq-<?php echo esc_attr( $survey_id ); ?>-<?php echo esc_attr( $qid ); ?>"
                                        class="openvote-survey-field__label">
                                     <?php echo esc_html( $q->body ); ?>
@@ -202,19 +270,19 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                                 <span class="openvote-survey-field__limit">
                                     <?php printf( esc_html__( 'Max %d znaków', 'openvote' ), esc_html( $q->max_chars ) ); ?>
                                 </span>
+                                <?php if ( $is_sensitive ) : ?>
+                                <p class="openvote-survey-field__sensitive-notice" role="note">
+                                    <?php esc_html_e( 'To jest dana wrażliwa, nie będzie ujawniona publicznie na stronie. Tylko do wiadomości organizatora.', 'openvote' ); ?>
+                                </p>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
 
                         <div class="openvote-survey-form__actions">
                             <button type="submit"
-                                    class="openvote-survey-btn openvote-survey-btn--draft"
-                                    data-status="draft">
-                                <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
-                            </button>
-                            <button type="submit"
                                     class="openvote-survey-btn openvote-survey-btn--ready"
                                     data-status="ready">
-                                <?php esc_html_e( 'Wyślij odpowiedź (Gotowa)', 'openvote' ); ?>
+                                <?php esc_html_e( 'Zapisz zmiany i aplikuj', 'openvote' ); ?>
                             </button>
                         </div>
 

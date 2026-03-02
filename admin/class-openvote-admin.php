@@ -531,6 +531,15 @@ class Openvote_Admin {
             wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-surveys', 'action' => 'responses', 'survey_id' => $survey_id, 'marked_not_spam' => 1 ], admin_url( 'admin.php' ) ) );
             exit;
         }
+        if ( 'revert_spam_status' === $action && $survey_id && $response_id ) {
+            if ( ! self::user_can_access_coordinators() ) {
+                return;
+            }
+            check_admin_referer( 'openvote_revert_spam_' . $response_id );
+            Openvote_Survey::set_response_spam_status( $response_id, 'pending' );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-surveys', 'action' => 'responses', 'survey_id' => $survey_id, 'reverted_spam' => 1 ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
     }
 
     public function render_surveys_page(): void {
@@ -800,17 +809,28 @@ class Openvote_Admin {
         if ( ! $screen || ! str_contains( $screen->id, 'openvote' ) ) {
             return;
         }
-        $logo_url = openvote_get_logo_url();
+        $logo_url   = openvote_get_logo_url();
+        $site_name  = get_bloginfo( 'name' );
+        $site_desc  = get_bloginfo( 'description' );
+        $site_name  = is_string( $site_name ) && trim( $site_name ) !== '' ? trim( $site_name ) : '';
+        $site_desc  = is_string( $site_desc ) && trim( $site_desc ) !== '' ? trim( $site_desc ) : '';
         ?>
         <div class="openvote-brand-header">
-            <?php if ( $logo_url !== '' ) : ?>
-                <img src="<?php echo esc_url( $logo_url ); ?>" alt="" class="openvote-brand-header__icon openvote-brand-header__icon--img" width="32" height="32" />
-            <?php else : ?>
-                <span class="openvote-brand-header__icon dashicons dashicons-groups"></span>
+            <div class="openvote-brand-header__row">
+                <?php if ( $logo_url !== '' ) : ?>
+                    <img src="<?php echo esc_url( $logo_url ); ?>" alt="" class="openvote-brand-header__icon openvote-brand-header__icon--img" width="32" height="32" />
+                <?php else : ?>
+                    <span class="openvote-brand-header__icon dashicons dashicons-groups"></span>
+                <?php endif; ?>
+                <span class="openvote-brand-header__title"><?php echo esc_html( openvote_get_brand_short_name() ); ?></span>
+                <?php if ( $site_name !== '' ) : ?>
+                    <span class="openvote-brand-header__sep">·</span>
+                    <span class="openvote-brand-header__subtitle"><?php echo esc_html( $site_name ); ?></span>
+                <?php endif; ?>
+            </div>
+            <?php if ( $site_desc !== '' ) : ?>
+                <p class="openvote-brand-header__tagline"><?php echo esc_html( $site_desc ); ?></p>
             <?php endif; ?>
-            <span class="openvote-brand-header__title"><?php echo esc_html( openvote_get_brand_short_name() ); ?></span>
-            <span class="openvote-brand-header__sep">·</span>
-            <span class="openvote-brand-header__subtitle"><?php echo esc_html( openvote_get_brand_full_name() ); ?></span>
         </div>
         <?php
     }

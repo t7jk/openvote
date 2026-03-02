@@ -43,7 +43,6 @@ if ( $is_logged ) {
 
 $tab_active_url = esc_url( add_query_arg( 'tab', 'active', $vote_page_url ) );
 $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $vote_page_url ) );
-$law_page_url   = class_exists( 'Openvote_Law_Page' ) ? Openvote_Law_Page::get_url() : '';
 
 get_header();
 ?>
@@ -63,13 +62,6 @@ get_header();
            aria-selected="<?php echo 'closed' === $active_tab ? 'true' : 'false'; ?>">
             <?php esc_html_e( 'Zakończone głosowania', 'openvote' ); ?>
         </a>
-        <?php if ( $law_page_url !== '' ) : ?>
-        <a href="<?php echo esc_url( $law_page_url ); ?>"
-           class="openvote-law-link"
-           title="<?php esc_attr_e( 'Przepisy prawne', 'openvote' ); ?>">
-            ⚖️ <?php esc_html_e( 'Przepisy', 'openvote' ); ?>
-        </a>
-        <?php endif; ?>
     </nav>
 
     <div class="openvote-tab-content">
@@ -137,7 +129,27 @@ get_header();
                 $total_voters   = (int) ( $results['total_voters']   ?? 0 );
                 $pct_turnout    = $total_eligible > 0 ? round( $total_voters / $total_eligible * 100 ) : 0;
         ?>
-            <div class="openvote-poll-block openvote-closed-poll-block">
+            <div class="openvote-poll-block openvote-closed-poll-block" data-openvote-closed>
+
+                <div class="openvote-closed-poll-block__summary">
+                    <span class="openvote-closed-poll-block__date-start" title="<?php esc_attr_e( 'Rozpoczęcie', 'openvote' ); ?>">
+                        <?php echo esc_html( substr( (string) ( $poll->date_start ?? '' ), 0, 10 ) ); ?>
+                    </span>
+                    <div class="openvote-closed-poll-block__summary-body">
+                        <h3 class="openvote-closed-poll-block__summary-title"><?php echo esc_html( $poll->title ); ?></h3>
+                        <span class="openvote-closed-poll-block__summary-date">
+                            <?php printf( esc_html__( 'Zakończono: %s', 'openvote' ), esc_html( substr( (string) ( $poll->date_end ?? '' ), 0, 10 ) ) ); ?>
+                        </span>
+                        <p class="openvote-closed-poll-block__summary-desc">
+                            <?php echo esc_html( ! empty( $poll->description ) ? $poll->description : '—' ); ?>
+                        </p>
+                        <button type="button" class="openvote-closed-poll-block__expand-btn" aria-expanded="false">
+                            <?php esc_html_e( 'Rozwiń', 'openvote' ); ?>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="openvote-closed-poll-block__details" hidden>
 
                 <div class="openvote-closed-poll-block__topbar">
                     <span class="openvote-closed-poll__status <?php echo $has_voted ? 'openvote-closed-poll__status--voted' : 'openvote-closed-poll__status--absent'; ?>">
@@ -199,6 +211,8 @@ get_header();
                     </a>
                 </div>
                 <?php endif; ?>
+
+                </div><!-- .openvote-closed-poll-block__details -->
 
             </div>
         <?php endforeach; endif; ?>

@@ -40,8 +40,10 @@ $context_label = ( 'survey' === $context )
             $input_type  = 'text';
             if ( 'email' === $logical )   $input_type = 'email';
             if ( 'phone' === $logical )   $input_type = 'tel';
+            $is_sensitive = Openvote_Field_Map::is_sensitive_for_public( $logical );
+            $field_class  = 'openvote-profile-field' . ( $is_sensitive ? ' openvote-profile-field--sensitive' : '' );
             ?>
-            <div class="openvote-profile-field">
+            <div class="<?php echo esc_attr( $field_class ); ?>">
                 <label class="openvote-profile-field__label"
                        for="openvote-pf-<?php echo esc_attr( $logical ); ?>">
                     <?php echo esc_html( $label ); ?> <span class="openvote-profile-field__required">*</span>
@@ -54,6 +56,11 @@ $context_label = ( 'survey' === $context )
                     placeholder="<?php echo esc_attr( $label ); ?>"
                     autocomplete="<?php echo esc_attr( 'email' === $logical ? 'email' : ( 'phone' === $logical ? 'tel' : 'on' ) ); ?>"
                     required>
+                <?php if ( $is_sensitive ) : ?>
+                <p class="openvote-profile-field__sensitive-notice" role="note">
+                    <?php esc_html_e( 'To jest dana wrażliwa, nie będzie ujawniona publicznie na stronie. Tylko do wiadomości organizatora.', 'openvote' ); ?>
+                </p>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     </div>

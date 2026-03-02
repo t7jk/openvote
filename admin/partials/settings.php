@@ -4,6 +4,7 @@ defined( 'ABSPATH' ) || exit;
 $current_map    = Openvote_Field_Map::get();
 $available_keys = Openvote_Field_Map::available_keys();
 $labels         = Openvote_Field_Map::LABELS;
+asort( $labels, SORT_LOCALE_STRING ); // Tabela mapowania: kolejność wg tytułu pola (alfabetycznie).
 
 /**
  * Render a <select> dropdown for a logical field.
@@ -853,14 +854,35 @@ function openvote_settings_select( string $logical, string $current, array $core
         <p class="description" style="max-width:700px;margin:8px 0 16px;">
             <?php esc_html_e(
                 'Treść e-maila wysyłanego do uczestników przy starcie głosowania. '
-                . 'Pola oznaczone {zmienną} są automatycznie zastępowane danymi głosowania.',
+                . 'W treści i temacie możesz użyć pól wbudowanych z tabeli poniżej – zostaną one zastąpione danymi głosowania i witryny.',
                 'openvote'
             ); ?>
         </p>
 
-        <div style="background:#f0f6fc;border:1px solid #c3d9f0;border-radius:4px;padding:12px 16px;max-width:700px;margin-bottom:18px;font-size:12px;color:#3c434a;line-height:1.8;">
-            <strong><?php esc_html_e( 'Dostępne zmienne:', 'openvote' ); ?></strong><br>
-            <code>{poll_title}</code>, <code>{brand_short}</code>, <code>{from_email}</code>, <code>{vote_url}</code>, <code>{date_end}</code>, <code>{questions}</code>, <code>{site_url}</code>, <code>{plugin_author}</code>, <code>{github_url}</code>
+        <div class="openvote-email-placeholders-legend" style="max-width:760px;margin-bottom:24px;background:#fff;border:1px solid #c3c4c7;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.04);overflow:hidden;">
+            <h3 style="margin:0;padding:12px 16px;background:#f0f0f1;border-bottom:1px solid #c3c4c7;font-size:14px;">
+                <?php esc_html_e( 'Pola wbudowane w treść e-maila', 'openvote' ); ?>
+            </h3>
+            <table class="widefat striped" style="margin:0;border:none;">
+                <thead>
+                    <tr>
+                        <th style="width:180px;"><?php esc_html_e( 'Pole', 'openvote' ); ?></th>
+                        <th><?php esc_html_e( 'Opis', 'openvote' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>{from_email}</code></td><td><?php esc_html_e( 'Adres e-mail nadawcy (pole powyżej).', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{site_url}</code></td><td><?php esc_html_e( 'Adres główny witryny.', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{vote_url}</code></td><td><?php esc_html_e( 'Adres strony głosowania.', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{date_start}</code></td><td><?php esc_html_e( 'Data i godzina rozpoczęcia głosowania.', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{date_end}</code></td><td><?php esc_html_e( 'Data i godzina zakończenia głosowania.', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{questions}</code></td><td><?php esc_html_e( 'Lista pytań i odpowiedzi (w HTML: lista punktowana, w tekście: numerowana).', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{site_name}</code></td><td><?php esc_html_e( 'Nazwa witryny (Ustawienia → Ogólne).', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{brand_short}</code></td><td><?php esc_html_e( 'Skrót nazwy systemu (z Konfiguracji powyżej).', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{site_tagline}</code></td><td><?php esc_html_e( 'Slogan witryny (Ustawienia → Ogólne).', 'openvote' ); ?></td></tr>
+                    <tr><td><code>{poll_title}</code></td><td><?php esc_html_e( 'Tytuł głosowania.', 'openvote' ); ?></td></tr>
+                </tbody>
+            </table>
         </div>
 
         <table class="form-table" style="max-width:760px;">
@@ -919,6 +941,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                               style="font-family:monospace;font-size:13px;line-height:1.6;"><?php echo esc_textarea( openvote_get_email_body_plain_template() ); ?></textarea>
                     <p style="margin-top:6px;">
                         <button type="button" class="button" id="openvote-email-reset-plain-btn"><?php esc_html_e( 'Przywróć domyślną (czysty tekst)', 'openvote' ); ?></button>
+                        <button type="button" class="button" id="openvote-email-preview-plain-btn"><?php esc_html_e( 'Zobacz podgląd', 'openvote' ); ?></button>
                     </p>
                 </td>
             </tr>
@@ -934,7 +957,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                               style="font-family:monospace;font-size:12px;line-height:1.5;"><?php echo esc_textarea( openvote_get_email_body_html_template() ); ?></textarea>
                     <p style="margin-top:6px;">
                         <button type="button" class="button" id="openvote-email-reset-html-btn"><?php esc_html_e( 'Przywróć domyślną (HTML)', 'openvote' ); ?></button>
-                        <button type="button" class="button" id="openvote-email-preview-html-btn"><?php esc_html_e( 'Zobacz podgląd / Preview', 'openvote' ); ?></button>
+                        <button type="button" class="button" id="openvote-email-preview-html-btn"><?php esc_html_e( 'Zobacz podgląd', 'openvote' ); ?></button>
                     </p>
                 </td>
             </tr>
@@ -945,19 +968,44 @@ function openvote_settings_select( string $logical, string $current, array $core
             var plainDefault = <?php echo json_encode( openvote_get_email_body_plain_default() ); ?>;
             var htmlDefault = <?php echo json_encode( openvote_get_email_body_html_default() ); ?>;
             var previewPlaceholders = <?php echo json_encode( [
-                'poll_title'   => __( 'Przykładowe głosowanie', 'openvote' ),
-                'brand_short'  => openvote_get_brand_short_name(),
-                'from_email'   => openvote_get_from_email(),
-                'vote_url'     => openvote_get_vote_page_url(),
-                'date_end'     => wp_date( 'd.m.Y H:i', strtotime( '+7 days' ) ),
-                'questions'    => '<ul><li>' . __( 'Przykładowe pytanie 1', 'openvote' ) . '<ul><li>' . __( 'Opcja A', 'openvote' ) . '</li><li>' . __( 'Opcja B', 'openvote' ) . '</li></ul></li><li>' . __( 'Przykładowe pytanie 2', 'openvote' ) . '</li></ul>',
-                'site_url'     => home_url( '/' ),
-                'plugin_author' => OPENVOTE_PLUGIN_AUTHOR,
-                'github_url'   => OPENVOTE_GITHUB_URL,
+                'poll_title'     => __( 'Przykładowe głosowanie', 'openvote' ),
+                'brand_short'    => openvote_get_brand_short_name(),
+                'from_email'     => openvote_get_from_email(),
+                'vote_url'       => openvote_get_vote_page_url(),
+                'date_start'     => wp_date( 'd.m.Y H:i', strtotime( 'today' ) ),
+                'date_end'       => wp_date( 'd.m.Y H:i', strtotime( '+7 days' ) ),
+                'questions'      => '<ul><li>' . __( 'Przykładowe pytanie 1', 'openvote' ) . '<ul><li>' . __( 'Opcja A', 'openvote' ) . '</li><li>' . __( 'Opcja B', 'openvote' ) . '</li></ul></li><li>' . __( 'Przykładowe pytanie 2', 'openvote' ) . '</li></ul>',
+                'questions_plain' => "1. " . __( 'Przykładowe pytanie 1', 'openvote' ) . "\n   - " . __( 'Opcja A', 'openvote' ) . "\n   - " . __( 'Opcja B', 'openvote' ) . "\n\n2. " . __( 'Przykładowe pytanie 2', 'openvote' ),
+                'site_url'       => home_url( '/' ),
+                'site_name'      => get_bloginfo( 'name' ),
+                'site_tagline'   => get_bloginfo( 'description' ),
+                'plugin_author'  => OPENVOTE_PLUGIN_AUTHOR,
+                'github_url'     => OPENVOTE_GITHUB_URL,
             ] ); ?>;
             document.getElementById('openvote-email-reset-plain-btn').addEventListener('click', function() {
                 if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść (czysty tekst)? Obecna treść zostanie nadpisana.', 'openvote' ) ); ?>')) return;
                 document.getElementById('openvote_email_body_plain').value = plainDefault;
+            });
+            document.getElementById('openvote-email-preview-plain-btn').addEventListener('click', function() {
+                var text = document.getElementById('openvote_email_body_plain').value;
+                var placeholders = {};
+                for (var k in previewPlaceholders) {
+                    if (previewPlaceholders.hasOwnProperty(k)) {
+                        placeholders[k] = previewPlaceholders[k];
+                    }
+                }
+                placeholders.questions = placeholders.questions_plain || placeholders.questions;
+                var key;
+                for (key in placeholders) {
+                    if (placeholders.hasOwnProperty(key) && key !== 'questions_plain') {
+                        text = text.replace(new RegExp('\\{' + key + '\\}', 'g'), placeholders[key]);
+                    }
+                }
+                var w = window.open('', '_blank');
+                if (w) {
+                    w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title><?php echo esc_js( __( 'Podgląd wiadomości (czysty tekst)', 'openvote' ) ); ?></title></head><body style="font-family:monospace;font-size:14px;line-height:1.6;white-space:pre-wrap;max-width:720px;margin:24px auto;padding:0 20px;">' + (function() { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; })() + '</body></html>');
+                    w.document.close();
+                }
             });
             document.getElementById('openvote-email-reset-html-btn').addEventListener('click', function() {
                 if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść (HTML)? Obecna treść zostanie nadpisana.', 'openvote' ) ); ?>')) return;

@@ -11,6 +11,19 @@
     display: none !important;
 }
 
+/* ── Ukrycie przypisów prawnych / stopki motywu na stronie głosowania ────── */
+
+.openvote-vote-page .site-footer,
+.openvote-vote-page #colophon,
+.openvote-vote-page .site-info,
+.openvote-vote-page footer.site-footer,
+.openvote-vote-page .footer-widgets-wrap,
+.openvote-vote-page .ct-footer,
+.openvote-vote-page footer[role="contentinfo"],
+body.openvote-vote-page > footer {
+    display: none !important;
+}
+
 /* ── Wrapper strony głosowania ───────────────────────────────────────────── */
 
 .openvote-vote-page-wrap {
@@ -114,6 +127,93 @@
 }
 
 /* ── Zakończone głosowania — blok wyników (styl spójny z aktywnym blokiem) ─ */
+
+/* Widok zwinięty: kwadracik z datą początku + tytuł, zakończono, opis, przycisk Rozwiń */
+.openvote-closed-poll-block__summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 4px 0;
+}
+
+.openvote-closed-poll-block__date-start {
+    flex-shrink: 0;
+    width: 4.5rem;
+    height: 4.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f4f8;
+    border: 1px solid #c5d9e2;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.2;
+    text-align: center;
+    padding: 4px;
+}
+
+.openvote-closed-poll-block__summary-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.openvote-closed-poll-block__summary-title {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.openvote-closed-poll-block__summary-date {
+    font-size: 0.8rem;
+    color: #646970;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.openvote-closed-poll-block__summary-desc {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    color: #50575e;
+    line-height: 1.45;
+}
+
+.openvote-closed-poll-block__expand-btn {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    background: #0073aa;
+    border: 2px solid #005a87;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .2s, border-color .2s, transform .1s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+.openvote-closed-poll-block__expand-btn:hover {
+    background: #005a87;
+    border-color: #004466;
+    color: #fff;
+}
+
+.openvote-closed-poll-block__expand-btn:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+/* Szczegóły (frekwencja, pytania, PDF) — ukryte dopóki nie kliknięto Rozwiń */
+.openvote-closed-poll-block__details[hidden] {
+    display: none !important;
+}
+
+.openvote-closed-poll-block__details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e4e7;
+}
 
 /* Pasek statusu nad tytułem */
 .openvote-closed-poll-block__topbar {
@@ -663,6 +763,112 @@
     color: #1d2327;
 }
 
+.openvote-survey-profile__actions {
+    margin: .75rem 0 0;
+}
+
+.openvote-survey-profile__edit-btn {
+    padding: .4rem .85rem;
+    font-size: .875rem;
+    color: #0073aa;
+    background: transparent;
+    border: 1px solid #0073aa;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.openvote-survey-profile__edit-btn:hover {
+    color: #fff;
+    background: #0073aa;
+}
+
+/* Formularz edycji profilu */
+.openvote-survey-profile__edit .openvote-survey-profile__title {
+    margin-bottom: .25em;
+}
+
+.openvote-survey-profile-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-top: .5rem;
+}
+
+.openvote-survey-profile-edit__row {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+.openvote-survey-profile-edit__label {
+    font-size: .8125rem;
+    font-weight: 600;
+    color: #50575e;
+}
+
+.openvote-survey-profile-edit__input,
+.openvote-survey-profile-edit__select {
+    padding: .5rem .75rem;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: .9375rem;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 320px;
+}
+
+.openvote-survey-profile-edit__select {
+    cursor: pointer;
+    background: #fff;
+    appearance: auto;
+}
+
+.openvote-survey-profile-edit__input:focus {
+    border-color: #0073aa;
+    outline: none;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+.openvote-survey-profile-edit__actions {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-top: .25rem;
+}
+
+.openvote-survey-profile-edit__submit,
+.openvote-survey-profile-edit__cancel {
+    padding: .5rem 1rem;
+    font-size: .875rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.openvote-survey-profile-edit__submit {
+    background: #0073aa;
+    color: #fff;
+    border: none;
+}
+
+.openvote-survey-profile-edit__submit:hover {
+    background: #005a87;
+}
+
+.openvote-survey-profile-edit__cancel {
+    background: transparent;
+    color: #50575e;
+    border: 1px solid #8c8f94;
+}
+
+.openvote-survey-profile-edit__cancel:hover {
+    background: #f0f0f1;
+}
+
+.openvote-survey-profile-edit__message {
+    font-size: .8125rem;
+    font-weight: 600;
+}
+
 @media ( max-width: 480px ) {
     .openvote-survey-profile__row {
         grid-template-columns: 1fr;
@@ -746,6 +952,33 @@
     margin-top: .25rem;
     font-size: .75em;
     color: #999;
+}
+
+/* Pole ankiety wrażliwe — wyraźna wizualna informacja */
+.openvote-survey-field--sensitive .openvote-survey-field__label {
+    color: #b45309;
+    font-weight: 700;
+}
+.openvote-survey-field--sensitive .openvote-survey-field__input {
+    border: 2px solid #d97706;
+    background: #fffbeb;
+    color: #92400e;
+}
+.openvote-survey-field--sensitive .openvote-survey-field__input::placeholder {
+    color: #b45309;
+    opacity: 0.85;
+}
+.openvote-survey-field--sensitive .openvote-survey-field__input:focus {
+    border-color: #b45309;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35);
+    background: #fff;
+}
+.openvote-survey-field__sensitive-notice {
+    margin: 0.375rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #b45309;
+    font-weight: 600;
 }
 
 /* ── Przyciski akcji ────────────────────────────────────────────────── */
@@ -877,6 +1110,33 @@
     border-color: #0073aa;
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}
+
+/* Pole wrażliwe — wyraźna wizualna informacja */
+.openvote-profile-field--sensitive .openvote-profile-field__label {
+    color: #b45309;
+    font-weight: 700;
+}
+.openvote-profile-field--sensitive .openvote-profile-field__input {
+    border: 2px solid #d97706;
+    background: #fffbeb;
+    color: #92400e;
+}
+.openvote-profile-field--sensitive .openvote-profile-field__input::placeholder {
+    color: #b45309;
+    opacity: 0.85;
+}
+.openvote-profile-field--sensitive .openvote-profile-field__input:focus {
+    border-color: #b45309;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35);
+    background: #fff;
+}
+.openvote-profile-field__sensitive-notice {
+    margin: 0.375rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #b45309;
+    font-weight: 600;
 }
 
 /* Footer z przyciskiem i komunikatem */
@@ -1015,6 +1275,59 @@
 .openvote-survey-responses-block__a {
     margin: 0;
     font-size: 0.875rem;
+}
+
+/* Sekcja: Zgłoszenia nie zatwierdzone (minimalne info) */
+.openvote-survey-responses-block__title--pending {
+    margin-top: 2rem;
+}
+
+.openvote-survey-responses-block__list--pending {
+    margin-top: 0.5rem;
+}
+
+.openvote-survey-responses-block__card--pending {
+    padding: 0.65rem 1rem;
+}
+
+.openvote-survey-responses-block__pending-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.openvote-survey-responses-block__pending-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.openvote-survey-responses-block__pending-row--right {
+    justify-content: space-between;
+}
+
+.openvote-survey-responses-block__pending-label {
+    color: #666;
+    font-size: 0.8125rem;
+    flex-shrink: 0;
+}
+
+.openvote-survey-responses-block__pending-title {
+    font-size: 0.9375rem;
+}
+
+.openvote-survey-responses-block__pending-desc {
+    color: #555;
+}
+
+.openvote-survey-responses-block__pending-notice {
+    margin: 0.5rem 0 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid #eee;
+    font-size: 0.8125rem;
+    color: #856404;
+    font-weight: 600;
 }
 
 @media ( max-width: 480px ) {

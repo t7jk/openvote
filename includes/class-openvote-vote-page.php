@@ -144,6 +144,8 @@ class Openvote_Vote_Page {
                 'minutes'          => __( 'min.', 'openvote' ),
                 'seconds'          => __( 'sek.', 'openvote' ),
                 'ended'            => __( 'Głosowanie zakończone', 'openvote' ),
+                'expand'           => __( 'Rozwiń', 'openvote' ),
+                'collapse'         => __( 'Zwiń', 'openvote' ),
             ],
         ] );
     }
