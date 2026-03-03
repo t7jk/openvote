@@ -362,20 +362,64 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
         <span id="openvote-invitations-status2" style="margin-left:12px;font-weight:500;font-size:13px;"></span>
     </p>
     <div id="openvote-invitations-progress2" style="display:none;max-width:600px;margin:8px 0 16px;"></div>
+    <div id="openvote-invitations-limit-msg2" style="display:none;margin-top:12px;padding:10px 12px;background:#fcf0f1;border-left:4px solid #c00;max-width:600px;"></div>
     <script>
     (function(){
-        var btn2      = document.getElementById('openvote-send-invitations-btn2');
-        var statusEl2 = document.getElementById('openvote-invitations-status2');
+        var btn2       = document.getElementById('openvote-send-invitations-btn2');
+        var statusEl2  = document.getElementById('openvote-invitations-status2');
         var progressEl2 = document.getElementById('openvote-invitations-progress2');
+        var limitMsgEl2 = document.getElementById('openvote-invitations-limit-msg2');
         var pollId    = btn2 ? btn2.dataset.pollId : '';
-        var nonce     = btn2 ? btn2.dataset.nonce  : '';
         var apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
         var batchNonce = window.openvoteBatch?.nonce || '';
         var emailDelayMs = (window.openvoteBatch?.emailDelay || 3) * 1000;
 
+        function showLimitExceeded2(message, waitSeconds, limitType) {
+            progressEl2.style.display = 'none';
+            statusEl2.style.color = '#c00';
+            statusEl2.textContent = message || '';
+            var html = '<p style="margin:0 0 8px;">' + (message || '').replace(/</g, '&lt;') + '</p>';
+            if (waitSeconds > 0 && limitType !== 'day') {
+                html += '<p style="margin:0;font-size:12px;color:#555;"><?php echo esc_js( __( 'Wznowienie za', 'openvote' ) ); ?> ' + Math.ceil(waitSeconds/60) + ' <?php echo esc_js( __( 'min', 'openvote' ) ); ?>.</p>';
+            }
+            if (limitType === 'day') {
+                html += '<button type="button" class="button button-primary" id="openvote-schedule-resume-btn2" style="margin-top:8px;"><?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?></button>';
+            }
+            limitMsgEl2.innerHTML = html;
+            limitMsgEl2.style.display = '';
+            btn2.disabled = false;
+            btn2.textContent = '<?php echo esc_js( __( 'Wyślij ponownie', 'openvote' ) ); ?>';
+            if (limitType === 'day') {
+                var scheduleBtn = document.getElementById('openvote-schedule-resume-btn2');
+                if (scheduleBtn) {
+                    scheduleBtn.onclick = function() {
+                        scheduleBtn.disabled = true;
+                        scheduleBtn.textContent = '<?php echo esc_js( __( 'Zapisywanie…', 'openvote' ) ); ?>';
+                        fetch(apiRoot + '/polls/' + pollId + '/schedule-email-resume', { method: 'POST', headers: { 'X-WP-Nonce': batchNonce, 'Content-Type': 'application/json' } })
+                            .then(function(r){ return r.json(); })
+                            .then(function(data) {
+                                if (data && data.success !== false) {
+                                    limitMsgEl2.innerHTML = '<p style="margin:0;color:#0a6b2e;">&#10003; <?php echo esc_js( __( 'Zaplanowano. E-maile zostaną automatycznie wznowione o północy (strefa głosowań).', 'openvote' ) ); ?></p>';
+                                } else {
+                                    limitMsgEl2.innerHTML = '<p style="margin:0;color:#c00;">' + (data && data.message ? data.message : '<?php echo esc_js( __( 'Błąd zapisu.', 'openvote' ) ); ?>') + '</p>';
+                                    scheduleBtn.disabled = false;
+                                    scheduleBtn.textContent = '<?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?>';
+                                }
+                            })
+                            .catch(function() {
+                                limitMsgEl2.innerHTML = '<p style="margin:0;color:#c00;"><?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?></p>';
+                                scheduleBtn.disabled = false;
+                                scheduleBtn.textContent = '<?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?>';
+                            });
+                    };
+                }
+            }
+        }
+
         function startOrResume(jobId) {
             if (!jobId) return;
             if (typeof openvoteRunBatchJob === 'undefined') return;
+            limitMsgEl2.style.display = 'none';
             btn2.disabled = true;
             btn2.textContent = '<?php esc_html_e( 'Wysyłanie…', 'openvote' ); ?>';
             openvoteRunBatchJob(
@@ -394,10 +438,13 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                 },
                 function(err) {
                     statusEl2.style.color = '#c00';
-                    statusEl2.textContent = '<?php esc_html_e( 'Błąd wysyłki:', 'openvote' ); ?> ' + err;
+                    statusEl2.textContent = '<?php esc_html_e( 'Błąd wysyłki:', 'openvote' ); ?> ' + (err && err.message ? err.message : err);
                     btn2.disabled = false;
                 },
-                emailDelayMs
+                emailDelayMs,
+                function(job) {
+                    showLimitExceeded2(job.limit_message || '', job.wait_seconds || 0, job.limit_type || '');
+                }
             );
         }
 
@@ -413,14 +460,24 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                     method: 'POST',
                     headers: { 'X-WP-Nonce': batchNonce, 'Content-Type': 'application/json' }
                 })
-                .then(function(r){ return r.json(); })
-                .then(function(data){
-                    if (data.job_id) {
-                        if (typeof openvoteSaveJobId !== 'undefined') openvoteSaveJobId(pollId, data.job_id);
-                        startOrResume(data.job_id);
+                .then(function(r){ return r.ok ? r.json().then(function(d){ return { ok: true, data: d }; }) : r.json().then(function(d){ return { ok: false, data: d }; }); })
+                .then(function(result){
+                    var d = result.data || {};
+                    if (result.ok && d.job_id) {
+                        if (typeof openvoteSaveJobId !== 'undefined') openvoteSaveJobId(pollId, d.job_id);
+                        startOrResume(d.job_id);
                     } else {
-                        statusEl2.style.color = '#c00';
-                        statusEl2.textContent = data.message || '<?php esc_html_e( 'Błąd.', 'openvote' ); ?>';
+                        var isRateLimit = !result.ok && (d.code === 'rate_limit_exceeded' || (d.data && d.data.status === 429));
+                        if (isRateLimit && d.message) {
+                            var extra = d.data || {};
+                            showLimitExceeded2(d.message, extra.wait_seconds || 0, extra.limit_type || '');
+                            statusEl2.style.color = '#c00';
+                            statusEl2.textContent = d.message;
+                        } else {
+                            statusEl2.style.color = '#c00';
+                            statusEl2.textContent = d.message || d.code || '<?php esc_html_e( 'Błąd.', 'openvote' ); ?>';
+                            btn2.disabled = false;
+                        }
                     }
                 })
                 .catch(function(e){

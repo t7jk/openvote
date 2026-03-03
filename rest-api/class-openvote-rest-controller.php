@@ -59,7 +59,17 @@ class Openvote_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/send-invitations', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'send_invitations' ],
-            'permission_callback' => fn() => current_user_can( 'manage_options' ) || current_user_can( 'openvote_admin' ),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
+            'args'                => [
+                'id' => [ 'sanitize_callback' => 'absint' ],
+            ],
+        ] );
+
+        // Zaplanuj automatyczne wznowienie wysyłki zaproszeń o północy (gdy limit dzienny).
+        register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/schedule-email-resume', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'schedule_email_resume' ],
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
@@ -230,6 +240,22 @@ class Openvote_Rest_Controller {
             );
         }
 
+        $batch_size = function_exists( 'openvote_get_email_batch_size' ) ? openvote_get_email_batch_size() : 100;
+        if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+            $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $batch_size );
+            if ( ! empty( $limit_check['exceeded'] ) ) {
+                return new WP_Error(
+                    'rate_limit_exceeded',
+                    $limit_check['message'],
+                    [
+                        'status'       => 429,
+                        'limit_type'   => $limit_check['limit_type'],
+                        'wait_seconds' => $limit_check['wait_seconds'],
+                    ]
+                );
+            }
+        }
+
         // Tłumimy wyjście DB podczas tworzenia zadania — błędy SQL nie mogą trafić do odpowiedzi JSON.
         global $wpdb;
         $suppress = $wpdb->suppress_errors( true );
@@ -251,5 +277,34 @@ class Openvote_Rest_Controller {
         $wpdb->suppress_errors( $suppress );
 
         return new WP_REST_Response( [ 'job_id' => $job_id ], 200 );
+    }
+
+    /**
+     * POST /polls/{id}/schedule-email-resume
+     * Dopisuje głosowanie do listy wznowienia o północy i planuje wp-cron.
+     */
+    public function schedule_email_resume( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $poll_id = absint( $request->get_param( 'id' ) );
+        $poll    = Openvote_Poll::get( $poll_id );
+
+        if ( ! $poll ) {
+            return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
+        if ( ! in_array( $poll->status, [ 'open', 'closed' ], true ) ) {
+            return new WP_Error(
+                'poll_not_active',
+                __( 'Zaproszenia można wysyłać tylko do otwartych lub zakończonych głosowań.', 'openvote' ),
+                [ 'status' => 400 ]
+            );
+        }
+
+        if ( ! class_exists( 'Openvote_Email_Resume_Cron', false ) ) {
+            return new WP_Error( 'unavailable', __( 'Funkcja wznowienia jest niedostępna.', 'openvote' ), [ 'status' => 503 ] );
+        }
+
+        Openvote_Email_Resume_Cron::add_poll_and_schedule( $poll_id );
+
+        return new WP_REST_Response( [ 'success' => true ], 200 );
     }
 }

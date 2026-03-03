@@ -73,13 +73,12 @@ class Openvote_Admin_Surveys {
 
         $duration_seconds = [
             '1h'  => 3600,
+            '12h' => 12 * 3600,
             '1d'  => DAY_IN_SECONDS,
-            '2d'  => 2 * DAY_IN_SECONDS,
-            '3d'  => 3 * DAY_IN_SECONDS,
             '7d'  => 7 * DAY_IN_SECONDS,
             '14d' => 14 * DAY_IN_SECONDS,
             '21d' => 21 * DAY_IN_SECONDS,
-            '30d' => 30 * DAY_IN_SECONDS,
+            '28d' => 28 * DAY_IN_SECONDS,
         ];
 
         $duration_key = sanitize_text_field( $_POST['survey_duration'] ?? '7d' );

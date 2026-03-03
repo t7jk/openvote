@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.0' );
+define( 'OPENVOTE_VERSION', '1.0.1' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -31,8 +31,10 @@ if ( file_exists( OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-field-map.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-manager.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-map.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-rate-limits.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-cron-sync.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-resume-cron.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-deactivator.php';
@@ -55,6 +57,7 @@ function openvote_run(): void {
 }
 
 Openvote_Cron_Sync::register();
+Openvote_Email_Resume_Cron::register();
 openvote_run();
 
 /**
@@ -88,11 +91,20 @@ function openvote_get_vote_page_slug(): string {
 }
 
 /**
- * Zwraca pełny URL strony głosowania (domena z instalacji WordPress + slug w ścieżce).
- * Np. https://mojadomena.pl/glosuj/
+ * Zwraca pełny URL strony głosowania.
+ * Gdy istnieje opublikowana strona o slugu głosowania — zwraca get_permalink() (poprawny URL także przy permalinkach z index.php).
+ * W przeciwnym razie: home_url + slug.
  */
 function openvote_get_vote_page_url(): string {
-	return user_trailingslashit( home_url( '/' . openvote_get_vote_page_slug() ) );
+	$slug = openvote_get_vote_page_slug();
+	if ( $slug !== '' ) {
+		$page = get_page_by_path( $slug, OBJECT, 'page' );
+		if ( $page && $page->post_status === 'publish' ) {
+			$url = get_permalink( $page );
+			return is_string( $url ) ? $url : user_trailingslashit( home_url( '/' . $slug ) );
+		}
+	}
+	return user_trailingslashit( home_url( '/' . $slug ) );
 }
 
 /**
@@ -539,30 +551,32 @@ const OPENVOTE_EMAIL_BATCH_GETRESPONSE_DELAY   = 2;
  */
 function openvote_get_email_batch_size(): int {
 	$method = openvote_get_mail_method();
-	$saved  = (int) get_option( 'openvote_email_batch_size', 0 );
 
 	if ( $method === 'wordpress' ) {
 		$default = OPENVOTE_EMAIL_BATCH_WP_MAX;
 		$cap     = OPENVOTE_EMAIL_BATCH_WP_MAX;
+		$saved   = (int) get_option( 'openvote_batch_wp_size', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return min( $cap, $val );
 	}
 	if ( $method === 'smtp' ) {
 		$default = OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX;
 		$cap     = OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX;
+		$saved   = (int) get_option( 'openvote_batch_smtp_size', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return min( $cap, $val );
 	}
 	if ( $method === 'brevo' ) {
 		$default = OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX;
 		$cap     = OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX;
+		$saved   = (int) get_option( 'openvote_batch_brevo_free_size', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return min( $cap, $val );
 	}
+	$saved = (int) get_option( 'openvote_email_batch_size', 0 );
 	if ( $method === 'brevo_paid' ) {
 		$default = OPENVOTE_EMAIL_BATCH_BREVO_PAID_DEFAULT;
-		$val     = $saved > 0 ? $saved : $default;
-		return $val;
+		return $saved > 0 ? $saved : $default;
 	}
 	if ( $method === 'freshmail' || $method === 'getresponse' ) {
 		$default = $method === 'freshmail' ? OPENVOTE_EMAIL_BATCH_FRESHMAIL_DEFAULT : OPENVOTE_EMAIL_BATCH_GETRESPONSE_DEFAULT;
@@ -570,8 +584,7 @@ function openvote_get_email_batch_size(): int {
 		return min( 1000, max( 1, $val ) );
 	}
 	// sendgrid
-	$default = OPENVOTE_EMAIL_BATCH_SENDGRID_DEFAULT;
-	return $saved > 0 ? $saved : $default;
+	return $saved > 0 ? $saved : OPENVOTE_EMAIL_BATCH_SENDGRID_DEFAULT;
 }
 
 /**
@@ -582,42 +595,109 @@ function openvote_get_email_batch_size(): int {
  */
 function openvote_get_email_batch_delay(): int {
 	$method = openvote_get_mail_method();
-	$saved  = (int) get_option( 'openvote_email_batch_delay', 0 );
 
 	if ( $method === 'wordpress' ) {
 		$default = OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN;
 		$min     = OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN;
+		$saved   = (int) get_option( 'openvote_batch_wp_delay', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return max( $min, $val );
 	}
 	if ( $method === 'smtp' ) {
 		$default = OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN;
 		$min     = OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN;
+		$saved   = (int) get_option( 'openvote_batch_smtp_delay', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return max( $min, $val );
 	}
 	if ( $method === 'brevo' ) {
 		$default = OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN;
 		$min     = OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN;
+		$saved   = (int) get_option( 'openvote_batch_brevo_free_delay', 0 );
 		$val     = $saved > 0 ? $saved : $default;
 		return max( $min, $val );
 	}
+	$saved = (int) get_option( 'openvote_email_batch_delay', 0 );
 	if ( $method === 'brevo_paid' ) {
-		$default = OPENVOTE_EMAIL_BATCH_BREVO_PAID_DELAY_DEFAULT;
-		$val     = $saved > 0 ? $saved : $default;
-		return $val;
+		return $saved > 0 ? $saved : OPENVOTE_EMAIL_BATCH_BREVO_PAID_DELAY_DEFAULT;
 	}
 	if ( $method === 'freshmail' ) {
-		$default = OPENVOTE_EMAIL_BATCH_FRESHMAIL_DELAY;
-		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : $default;
+		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : OPENVOTE_EMAIL_BATCH_FRESHMAIL_DELAY;
 	}
 	if ( $method === 'getresponse' ) {
-		$default = OPENVOTE_EMAIL_BATCH_GETRESPONSE_DELAY;
-		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : $default;
+		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : OPENVOTE_EMAIL_BATCH_GETRESPONSE_DELAY;
 	}
 	// sendgrid
-	$default = OPENVOTE_EMAIL_BATCH_SENDGRID_DELAY_DEFAULT;
-	return $saved > 0 ? $saved : $default;
+	return $saved > 0 ? $saved : OPENVOTE_EMAIL_BATCH_SENDGRID_DELAY_DEFAULT;
+}
+
+/**
+ * Limit e-maili na 15 minut dla bieżącej metody wysyłki.
+ * 0 = nie egzekwować. Tylko brevo (free), wordpress, smtp mają konfigurowalne limity.
+ *
+ * @return int
+ */
+function openvote_get_email_limit_per_15min(): int {
+	$method = openvote_get_mail_method();
+	if ( $method === 'brevo' ) {
+		$saved = (int) get_option( 'openvote_batch_brevo_free_per_15min', 0 );
+		return $saved > 0 ? min( 1000, $saved ) : 100;
+	}
+	if ( $method === 'wordpress' ) {
+		$saved = (int) get_option( 'openvote_batch_wp_per_15min', 0 );
+		return $saved > 0 ? min( 1000, $saved ) : 80;
+	}
+	if ( $method === 'smtp' ) {
+		$saved = (int) get_option( 'openvote_batch_smtp_per_15min', 0 );
+		return $saved > 0 ? min( 1000, $saved ) : 100;
+	}
+	return 0;
+}
+
+/**
+ * Limit e-maili na godzinę dla bieżącej metody wysyłki.
+ * 0 = nie egzekwować.
+ *
+ * @return int
+ */
+function openvote_get_email_limit_per_hour(): int {
+	$method = openvote_get_mail_method();
+	if ( $method === 'brevo' ) {
+		$saved = (int) get_option( 'openvote_batch_brevo_free_per_hour', 0 );
+		return $saved > 0 ? min( 10000, $saved ) : 100;
+	}
+	if ( $method === 'wordpress' ) {
+		$saved = (int) get_option( 'openvote_batch_wp_per_hour', 0 );
+		return $saved > 0 ? min( 10000, $saved ) : 320;
+	}
+	if ( $method === 'smtp' ) {
+		$saved = (int) get_option( 'openvote_batch_smtp_per_hour', 0 );
+		return $saved > 0 ? min( 10000, $saved ) : 400;
+	}
+	return 0;
+}
+
+/**
+ * Limit e-maili na dobę dla bieżącej metody wysyłki.
+ * 0 = nie egzekwować.
+ *
+ * @return int
+ */
+function openvote_get_email_limit_per_day(): int {
+	$method = openvote_get_mail_method();
+	if ( $method === 'brevo' ) {
+		$saved = (int) get_option( 'openvote_batch_brevo_free_per_day', 0 );
+		return $saved > 0 ? min( 10000, $saved ) : 300;
+	}
+	if ( $method === 'wordpress' ) {
+		$saved = (int) get_option( 'openvote_batch_wp_per_day', 0 );
+		return $saved > 0 ? min( 100000, $saved ) : 7680;
+	}
+	if ( $method === 'smtp' ) {
+		$saved = (int) get_option( 'openvote_batch_smtp_per_day', 0 );
+		return $saved > 0 ? min( 100000, $saved ) : 500;
+	}
+	return 0;
 }
 
 /**

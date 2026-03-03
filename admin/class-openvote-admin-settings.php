@@ -172,29 +172,45 @@ class Openvote_Admin_Settings {
             update_option( 'openvote_getresponse_from_field_id', sanitize_text_field( wp_unslash( $_POST['openvote_getresponse_from_field_id'] ) ), false );
         }
 
-        // Parametry wysyłki masowej — limity per metoda (cap / min delay).
-        $batch_size_raw = isset( $_POST['openvote_email_batch_size'] ) ? absint( $_POST['openvote_email_batch_size'] ) : 0;
-        $batch_delay_raw = isset( $_POST['openvote_email_batch_delay'] ) ? absint( $_POST['openvote_email_batch_delay'] ) : 0;
+        // Parametry wysyłki masowej z tabeli „Warunki wysyłki e-maili” — per metoda (bezpłatne). 0 = domyślna wartość.
+        $brevo_size  = isset( $_POST['openvote_batch_brevo_free_size'] ) ? absint( $_POST['openvote_batch_brevo_free_size'] ) : 0;
+        $brevo_delay = isset( $_POST['openvote_batch_brevo_free_delay'] ) ? absint( $_POST['openvote_batch_brevo_free_delay'] ) : 0;
+        $wp_size     = isset( $_POST['openvote_batch_wp_size'] ) ? absint( $_POST['openvote_batch_wp_size'] ) : 0;
+        $wp_delay    = isset( $_POST['openvote_batch_wp_delay'] ) ? absint( $_POST['openvote_batch_wp_delay'] ) : 0;
+        $smtp_size   = isset( $_POST['openvote_batch_smtp_size'] ) ? absint( $_POST['openvote_batch_smtp_size'] ) : 0;
+        $smtp_delay  = isset( $_POST['openvote_batch_smtp_delay'] ) ? absint( $_POST['openvote_batch_smtp_delay'] ) : 0;
+        $brevo_size  = $brevo_size > 0 ? min( OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX, $brevo_size ) : 0;
+        $brevo_delay = $brevo_delay > 0 ? max( OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN, $brevo_delay ) : 0;
+        $wp_size     = $wp_size > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_MAX, $wp_size ) : 0;
+        $wp_delay    = $wp_delay > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN, $wp_delay ) : 0;
+        $smtp_size   = $smtp_size > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX, $smtp_size ) : 0;
+        $smtp_delay  = $smtp_delay > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN, $smtp_delay ) : 0;
+        update_option( 'openvote_batch_brevo_free_size', $brevo_size, false );
+        update_option( 'openvote_batch_brevo_free_delay', $brevo_delay, false );
+        update_option( 'openvote_batch_wp_size', $wp_size, false );
+        update_option( 'openvote_batch_wp_delay', $wp_delay, false );
+        update_option( 'openvote_batch_smtp_size', $smtp_size, false );
+        update_option( 'openvote_batch_smtp_delay', $smtp_delay, false );
 
-        if ( $mail_method === 'wordpress' ) {
-            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_MAX, $batch_size_raw ) : 0;
-            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN, $batch_delay_raw ) : 0;
-        } elseif ( $mail_method === 'smtp' ) {
-            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX, $batch_size_raw ) : 0;
-            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN, $batch_delay_raw ) : 0;
-        } elseif ( $mail_method === 'brevo' ) {
-            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX, $batch_size_raw ) : 0;
-            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN, $batch_delay_raw ) : 0;
-        } elseif ( $mail_method === 'freshmail' || $mail_method === 'getresponse' ) {
-            $batch_size = $batch_size_raw > 0 ? min( 1000, max( 1, $batch_size_raw ) ) : 0;
-            $batch_delay = $batch_delay_raw > 0 ? max( 1, min( 86400, $batch_delay_raw ) ) : 0;
-        } else {
-            // sendgrid, brevo_paid — bez cap (max 1000, min 1 s)
-            $batch_size = $batch_size_raw > 0 ? min( 1000, $batch_size_raw ) : 0;
-            $batch_delay = $batch_delay_raw > 0 ? max( 1, min( 86400, $batch_delay_raw ) ) : 0;
-        }
-        update_option( 'openvote_email_batch_size', $batch_size, false );
-        update_option( 'openvote_email_batch_delay', $batch_delay, false );
+        $brevo_per_day = isset( $_POST['openvote_batch_brevo_free_per_day'] ) ? absint( $_POST['openvote_batch_brevo_free_per_day'] ) : 0;
+        $wp_per_day    = isset( $_POST['openvote_batch_wp_per_day'] ) ? absint( $_POST['openvote_batch_wp_per_day'] ) : 0;
+        $smtp_per_day  = isset( $_POST['openvote_batch_smtp_per_day'] ) ? absint( $_POST['openvote_batch_smtp_per_day'] ) : 0;
+        update_option( 'openvote_batch_brevo_free_per_day', $brevo_per_day > 0 ? min( 10000, $brevo_per_day ) : 0, false );
+        update_option( 'openvote_batch_wp_per_day', $wp_per_day > 0 ? min( 100000, $wp_per_day ) : 0, false );
+        update_option( 'openvote_batch_smtp_per_day', $smtp_per_day > 0 ? min( 100000, $smtp_per_day ) : 0, false );
+
+        $brevo_per_15   = isset( $_POST['openvote_batch_brevo_free_per_15min'] ) ? absint( $_POST['openvote_batch_brevo_free_per_15min'] ) : 0;
+        $brevo_per_hour = isset( $_POST['openvote_batch_brevo_free_per_hour'] ) ? absint( $_POST['openvote_batch_brevo_free_per_hour'] ) : 0;
+        $wp_per_15      = isset( $_POST['openvote_batch_wp_per_15min'] ) ? absint( $_POST['openvote_batch_wp_per_15min'] ) : 0;
+        $wp_per_hour    = isset( $_POST['openvote_batch_wp_per_hour'] ) ? absint( $_POST['openvote_batch_wp_per_hour'] ) : 0;
+        $smtp_per_15    = isset( $_POST['openvote_batch_smtp_per_15min'] ) ? absint( $_POST['openvote_batch_smtp_per_15min'] ) : 0;
+        $smtp_per_hour  = isset( $_POST['openvote_batch_smtp_per_hour'] ) ? absint( $_POST['openvote_batch_smtp_per_hour'] ) : 0;
+        update_option( 'openvote_batch_brevo_free_per_15min', $brevo_per_15 > 0 ? min( 1000, $brevo_per_15 ) : 0, false );
+        update_option( 'openvote_batch_brevo_free_per_hour', $brevo_per_hour > 0 ? min( 10000, $brevo_per_hour ) : 0, false );
+        update_option( 'openvote_batch_wp_per_15min', $wp_per_15 > 0 ? min( 1000, $wp_per_15 ) : 0, false );
+        update_option( 'openvote_batch_wp_per_hour', $wp_per_hour > 0 ? min( 10000, $wp_per_hour ) : 0, false );
+        update_option( 'openvote_batch_smtp_per_15min', $smtp_per_15 > 0 ? min( 1000, $smtp_per_15 ) : 0, false );
+        update_option( 'openvote_batch_smtp_per_hour', $smtp_per_hour > 0 ? min( 10000, $smtp_per_hour ) : 0, false );
 
         $short_name = isset( $_POST['openvote_brand_short_name'] ) ? sanitize_text_field( wp_unslash( $_POST['openvote_brand_short_name'] ) ) : '';
         $short_name = mb_substr( trim( $short_name ), 0, 12 );

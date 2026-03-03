@@ -138,6 +138,11 @@ class Openvote_Batch_Processor {
         $result = self::run_batch( $job );
         $job    = $result['job'];
 
+        if ( ( $job['status'] ?? '' ) === 'limit_exceeded' ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+            return $job;
+        }
+
         $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
             /* translators: %d: number of processed items */
             __( 'Przetworzono: %d rekordów', 'openvote' ),
@@ -264,9 +269,25 @@ class Openvote_Batch_Processor {
                 $items = self::batch_send_emails( $params, $offset );
                 break;
 
-            case 'send_invitations':
+            case 'send_invitations': {
+                $batch_size = openvote_get_email_batch_size();
+                if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                    $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $batch_size );
+                    if ( ! empty( $limit_check['exceeded'] ) ) {
+                        $job['status']         = 'limit_exceeded';
+                        $job['limit_type']     = $limit_check['limit_type'];
+                        $job['wait_seconds']   = $limit_check['wait_seconds'];
+                        $job['limit_message']  = $limit_check['message'];
+                        $job['limit_max']      = $limit_check['limit_max'];
+                        return [ 'job' => $job, 'items' => [] ];
+                    }
+                }
                 $items = self::batch_send_invitations( $params );
+                if ( ! empty( $items ) && class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                    Openvote_Email_Rate_Limits::increment( count( $items ) );
+                }
                 break;
+            }
         }
 
         $count = count( $items );

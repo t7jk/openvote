@@ -120,6 +120,10 @@ function openvote_settings_select( string $logical, string $current, array $core
             </tr>
         </table>
 
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+
         <div class="openvote-settings-email-section">
         <?php
         global $wpdb;
@@ -132,8 +136,21 @@ function openvote_settings_select( string $logical, string $current, array $core
         $freshmail_sec  = openvote_get_freshmail_api_secret();
         $getresponse_key = openvote_get_getresponse_api_key();
         $getresponse_ff  = openvote_get_getresponse_from_field_id();
-        $email_batch    = (int) get_option( 'openvote_email_batch_size', 0 );
-        $email_delay    = (int) get_option( 'openvote_email_batch_delay', 0 );
+        $batch_brevo_size  = (int) get_option( 'openvote_batch_brevo_free_size', 0 );
+        $batch_brevo_delay = (int) get_option( 'openvote_batch_brevo_free_delay', 0 );
+        $batch_wp_size     = (int) get_option( 'openvote_batch_wp_size', 0 );
+        $batch_wp_delay    = (int) get_option( 'openvote_batch_wp_delay', 0 );
+        $batch_smtp_size   = (int) get_option( 'openvote_batch_smtp_size', 0 );
+        $batch_smtp_delay  = (int) get_option( 'openvote_batch_smtp_delay', 0 );
+        $batch_brevo_per_day  = (int) get_option( 'openvote_batch_brevo_free_per_day', 0 );
+        $batch_wp_per_day     = (int) get_option( 'openvote_batch_wp_per_day', 0 );
+        $batch_smtp_per_day   = (int) get_option( 'openvote_batch_smtp_per_day', 0 );
+        $batch_brevo_per_15   = (int) get_option( 'openvote_batch_brevo_free_per_15min', 0 );
+        $batch_brevo_per_hour = (int) get_option( 'openvote_batch_brevo_free_per_hour', 0 );
+        $batch_wp_per_15      = (int) get_option( 'openvote_batch_wp_per_15min', 0 );
+        $batch_wp_per_hour    = (int) get_option( 'openvote_batch_wp_per_hour', 0 );
+        $batch_smtp_per_15    = (int) get_option( 'openvote_batch_smtp_per_15min', 0 );
+        $batch_smtp_per_hour  = (int) get_option( 'openvote_batch_smtp_per_hour', 0 );
         $admin_email    = wp_get_current_user()->user_email;
         $default_invitation_test_to = 'email@poczta.pl';
         $wp_mail_disabled = $email_count > 250;
@@ -276,32 +293,6 @@ function openvote_settings_select( string $logical, string $current, array $core
                         <p class="description"><?php esc_html_e( 'Użyj dedykowanego hasła aplikacji (np. dla Gmail/Outlook).', 'openvote' ); ?></p>
                     </td>
                 </tr>
-                <tr>
-                    <td colspan="2" style="padding-top:16px;">
-                        <h4 style="margin:0 0 6px;font-size:13px;"><?php esc_html_e( 'Parametry wysyłki masowej', 'openvote' ); ?></h4>
-                        <p class="description" style="margin-bottom:10px;">
-                            <?php esc_html_e( 'Te parametry dotyczą tylko wysyłki przez zewnętrzny serwer SMTP. Puste pola = wartości domyślne (100 na partię, 900 s pauzy).', 'openvote' ); ?>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="openvote_email_batch_size"><?php esc_html_e( 'Liczba e-maili na partię', 'openvote' ); ?></label></th>
-                    <td>
-                        <input type="number" name="openvote_email_batch_size" id="openvote_email_batch_size"
-                               value="<?php echo esc_attr( $email_batch > 0 ? $email_batch : '' ); ?>"
-                               class="small-text" min="1" max="100" placeholder="100" />
-                        <p class="description"><?php esc_html_e( 'Maks. 100 dla SMTP. Czas oczekiwania między partiami w przeglądarce admina.', 'openvote' ); ?></p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="openvote_email_batch_delay"><?php esc_html_e( 'Pauza między partiami (sekundy)', 'openvote' ); ?></label></th>
-                    <td>
-                        <input type="number" name="openvote_email_batch_delay" id="openvote_email_batch_delay"
-                               value="<?php echo esc_attr( $email_delay > 0 ? $email_delay : '' ); ?>"
-                               class="small-text" min="1" max="86400" placeholder="900" />
-                        <p class="description"><?php esc_html_e( 'Min. 900 s (15 min) dla SMTP. Czas oczekiwania między partiami w przeglądarce admina.', 'openvote' ); ?></p>
-                    </td>
-                </tr>
             </table>
         </div>
 
@@ -439,68 +430,163 @@ function openvote_settings_select( string $logical, string $current, array $core
                     <th scope="col"><?php esc_html_e( 'Dostępność / limit adresów', 'openvote' ); ?></th>
                     <th scope="col"><?php esc_html_e( 'Maks. rozmiar partii', 'openvote' ); ?></th>
                     <th scope="col"><?php esc_html_e( 'Min. pauza między partiami', 'openvote' ); ?></th>
-                    <th scope="col"><?php esc_html_e( 'Uwagi', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Maks. na 15 min', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Maks. na godzinę', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Maks. ilość na dobę', 'openvote' ); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td colspan="5" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Bezpłatne usługi:', 'openvote' ); ?></td>
+                    <td colspan="7" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Bezpłatne usługi:', 'openvote' ); ?></td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'BREVO (free)', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Zawsze dostępne. Jedyny limit Brevo: 300 e-maili na 24 h.', 'openvote' ); ?></td>
-                    <td>100</td>
-                    <td>1200 s (20 min)</td>
-                    <td><?php esc_html_e( 'Konto darmowe Brevo. Wtyczka: max 100 na partię, min. 20 min pauzy, aby zmieścić się w limicie 300/24 h.', 'openvote' ); ?></td>
+                    <td>
+                        <label for="openvote_batch_brevo_free_size" class="screen-reader-text"><?php esc_html_e( 'Maks. rozmiar partii BREVO', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_brevo_free_size" id="openvote_batch_brevo_free_size"
+                               value="<?php echo esc_attr( $batch_brevo_size > 0 ? $batch_brevo_size : '' ); ?>"
+                               class="small-text" min="1" max="100" placeholder="100" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_brevo_free_delay" class="screen-reader-text"><?php esc_html_e( 'Min. pauza BREVO (s)', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_brevo_free_delay" id="openvote_batch_brevo_free_delay"
+                               value="<?php echo esc_attr( $batch_brevo_delay > 0 ? $batch_brevo_delay : '' ); ?>"
+                               class="small-text" min="1" max="86400" placeholder="1200" /> s
+                    </td>
+                    <td>
+                        <label for="openvote_batch_brevo_free_per_15min" class="screen-reader-text"><?php esc_html_e( 'Maks. na 15 min BREVO', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_brevo_free_per_15min" id="openvote_batch_brevo_free_per_15min"
+                               value="<?php echo esc_attr( $batch_brevo_per_15 > 0 ? $batch_brevo_per_15 : '' ); ?>"
+                               class="small-text" min="0" max="1000" placeholder="100" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_brevo_free_per_hour" class="screen-reader-text"><?php esc_html_e( 'Maks. na godzinę BREVO', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_brevo_free_per_hour" id="openvote_batch_brevo_free_per_hour"
+                               value="<?php echo esc_attr( $batch_brevo_per_hour > 0 ? $batch_brevo_per_hour : '' ); ?>"
+                               class="small-text" min="0" max="10000" placeholder="100" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_brevo_free_per_day" class="screen-reader-text"><?php esc_html_e( 'Maks. ilość na dobę BREVO', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_brevo_free_per_day" id="openvote_batch_brevo_free_per_day"
+                               value="<?php echo esc_attr( $batch_brevo_per_day > 0 ? $batch_brevo_per_day : '' ); ?>"
+                               class="small-text" min="1" max="10000" placeholder="300" />
+                    </td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'WordPress (PHP-mail)', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Dostępne tylko przy nie więcej niż 250 adresach e-mail w systemie.', 'openvote' ); ?></td>
-                    <td>80</td>
-                    <td>900 s (15 min)</td>
-                    <td><?php esc_html_e( 'Bez konfiguracji. Zalecane do małych instalacji.', 'openvote' ); ?></td>
+                    <td>
+                        <label for="openvote_batch_wp_size" class="screen-reader-text"><?php esc_html_e( 'Maks. rozmiar partii WordPress', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_wp_size" id="openvote_batch_wp_size"
+                               value="<?php echo esc_attr( $batch_wp_size > 0 ? $batch_wp_size : '' ); ?>"
+                               class="small-text" min="1" max="80" placeholder="80" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_wp_delay" class="screen-reader-text"><?php esc_html_e( 'Min. pauza WordPress (s)', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_wp_delay" id="openvote_batch_wp_delay"
+                               value="<?php echo esc_attr( $batch_wp_delay > 0 ? $batch_wp_delay : '' ); ?>"
+                               class="small-text" min="1" max="86400" placeholder="900" /> s
+                    </td>
+                    <td>
+                        <label for="openvote_batch_wp_per_15min" class="screen-reader-text"><?php esc_html_e( 'Maks. na 15 min WordPress', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_wp_per_15min" id="openvote_batch_wp_per_15min"
+                               value="<?php echo esc_attr( $batch_wp_per_15 > 0 ? $batch_wp_per_15 : '' ); ?>"
+                               class="small-text" min="0" max="1000" placeholder="80" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_wp_per_hour" class="screen-reader-text"><?php esc_html_e( 'Maks. na godzinę WordPress', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_wp_per_hour" id="openvote_batch_wp_per_hour"
+                               value="<?php echo esc_attr( $batch_wp_per_hour > 0 ? $batch_wp_per_hour : '' ); ?>"
+                               class="small-text" min="0" max="10000" placeholder="320" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_wp_per_day" class="screen-reader-text"><?php esc_html_e( 'Maks. ilość na dobę WordPress', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_wp_per_day" id="openvote_batch_wp_per_day"
+                               value="<?php echo esc_attr( $batch_wp_per_day > 0 ? $batch_wp_per_day : '' ); ?>"
+                               class="small-text" min="1" max="100000" placeholder="7680" />
+                    </td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'SMTP zewnętrzny', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Zawsze dostępne (wymaga konfiguracji serwera).', 'openvote' ); ?></td>
-                    <td>100</td>
-                    <td>900 s (15 min)</td>
-                    <td><?php esc_html_e( 'Limity zależą od dostawcy (np. Gmail, Outlook).', 'openvote' ); ?></td>
+                    <td>
+                        <label for="openvote_batch_smtp_size" class="screen-reader-text"><?php esc_html_e( 'Maks. rozmiar partii SMTP', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_smtp_size" id="openvote_batch_smtp_size"
+                               value="<?php echo esc_attr( $batch_smtp_size > 0 ? $batch_smtp_size : '' ); ?>"
+                               class="small-text" min="1" max="100" placeholder="100" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_smtp_delay" class="screen-reader-text"><?php esc_html_e( 'Min. pauza SMTP (s)', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_smtp_delay" id="openvote_batch_smtp_delay"
+                               value="<?php echo esc_attr( $batch_smtp_delay > 0 ? $batch_smtp_delay : '' ); ?>"
+                               class="small-text" min="1" max="86400" placeholder="900" /> s
+                    </td>
+                    <td>
+                        <label for="openvote_batch_smtp_per_15min" class="screen-reader-text"><?php esc_html_e( 'Maks. na 15 min SMTP', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_smtp_per_15min" id="openvote_batch_smtp_per_15min"
+                               value="<?php echo esc_attr( $batch_smtp_per_15 > 0 ? $batch_smtp_per_15 : '' ); ?>"
+                               class="small-text" min="0" max="1000" placeholder="100" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_smtp_per_hour" class="screen-reader-text"><?php esc_html_e( 'Maks. na godzinę SMTP', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_smtp_per_hour" id="openvote_batch_smtp_per_hour"
+                               value="<?php echo esc_attr( $batch_smtp_per_hour > 0 ? $batch_smtp_per_hour : '' ); ?>"
+                               class="small-text" min="0" max="10000" placeholder="400" />
+                    </td>
+                    <td>
+                        <label for="openvote_batch_smtp_per_day" class="screen-reader-text"><?php esc_html_e( 'Maks. ilość na dobę SMTP', 'openvote' ); ?></label>
+                        <input type="number" name="openvote_batch_smtp_per_day" id="openvote_batch_smtp_per_day"
+                               value="<?php echo esc_attr( $batch_smtp_per_day > 0 ? $batch_smtp_per_day : '' ); ?>"
+                               class="small-text" min="1" max="100000" placeholder="500" />
+                    </td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Abonamentowe usługi:', 'openvote' ); ?></td>
+                    <td colspan="7" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Abonamentowe usługi:', 'openvote' ); ?></td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'BREVO (płatne)', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Zawsze dostępne (limity zależne od planu Brevo).', 'openvote' ); ?></td>
                     <td>—</td>
                     <td>—</td>
-                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'Freshmail API', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API i sekretu).', 'openvote' ); ?></td>
                     <td>—</td>
                     <td>—</td>
-                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'GetResponse API', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Wymaga dodatku Transactional (np. GetResponse MAX).', 'openvote' ); ?></td>
                     <td>—</td>
                     <td>—</td>
-                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy. Potrzebny From Field ID z panelu lub API.', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
                 </tr>
                 <tr>
                     <td><strong><?php esc_html_e( 'SendGrid API', 'openvote' ); ?></strong></td>
                     <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API).', 'openvote' ); ?></td>
                     <td>—</td>
                     <td>—</td>
-                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
                 </tr>
             </tbody>
         </table>
         </div>
+
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
 
         <script>
         (function(){
@@ -725,6 +811,10 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
         </div>
 
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+
         <div class="openvote-settings-url-section openvote-settings-time-section">
         <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
         <p class="description openvote-settings-url-section__desc">
@@ -803,6 +893,10 @@ function openvote_settings_select( string $logical, string $current, array $core
             </tr>
         </table>
         </div>
+
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
 
         <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
@@ -1209,7 +1303,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         } )();
         </script>
 
-        <p style="margin-top:16px;">
+        <p class="openvote-settings-save-wrap" style="margin-top:16px;">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
     </form>

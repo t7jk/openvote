@@ -58,6 +58,9 @@ class Openvote_Admin_Uninstall {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_survey_questions" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_surveys" );
 
+        // Clear scheduled email-resume cron.
+        wp_clear_scheduled_hook( 'openvote_resume_scheduled_invitations' );
+
         // Delete all plugin options (single source of list).
         foreach ( self::get_option_keys() as $key ) {
             delete_option( $key );
@@ -97,6 +100,28 @@ class Openvote_Admin_Uninstall {
             'openvote_getresponse_from_field_id',
             'openvote_email_batch_size',
             'openvote_email_batch_delay',
+            'openvote_batch_brevo_free_size',
+            'openvote_batch_brevo_free_delay',
+            'openvote_batch_brevo_free_per_day',
+            'openvote_batch_brevo_free_per_15min',
+            'openvote_batch_brevo_free_per_hour',
+            'openvote_batch_wp_size',
+            'openvote_batch_wp_delay',
+            'openvote_batch_wp_per_day',
+            'openvote_batch_wp_per_15min',
+            'openvote_batch_wp_per_hour',
+            'openvote_batch_smtp_size',
+            'openvote_batch_smtp_delay',
+            'openvote_batch_smtp_per_day',
+            'openvote_batch_smtp_per_15min',
+            'openvote_batch_smtp_per_hour',
+            'openvote_email_sent_15min_slot',
+            'openvote_email_sent_15min_count',
+            'openvote_email_sent_hour_slot',
+            'openvote_email_sent_hour_count',
+            'openvote_email_sent_day_slot',
+            'openvote_email_sent_day_count',
+            'openvote_email_auto_resume_poll_ids',
             'openvote_email_subject',
             'openvote_email_from_template',
             'openvote_email_body',

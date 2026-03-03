@@ -365,6 +365,12 @@ class Openvote_Groups_Rest_Controller {
                 $data['estimated_minutes_remaining'] = max( 1, (int) ceil( $est_sec / 60 ) );
             }
         }
+        if ( ( $job['status'] ?? '' ) === 'limit_exceeded' ) {
+            $data['limit_type']    = $job['limit_type'] ?? '';
+            $data['wait_seconds']  = (int) ( $job['wait_seconds'] ?? 0 );
+            $data['limit_message'] = $job['limit_message'] ?? '';
+            $data['limit_max']     = (int) ( $job['limit_max'] ?? 0 );
+        }
         return $data;
     }
 }

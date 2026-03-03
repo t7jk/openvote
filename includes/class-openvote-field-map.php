@@ -216,11 +216,11 @@ class Openvote_Field_Map {
 
     /**
      * Returns required fields for surveys as [ 'logical' => 'Label' ].
-     * Always-required: first_name, last_name, nickname, email, city.
-     * Optional (default: phone is checked): saved in openvote_survey_required_fields.
+     * Always-required: first_name, last_name, nickname, email.
+     * Optional (domyślnie odznaczone: telefon, miasto): zapis w openvote_survey_required_fields.
      */
     public static function get_survey_required_fields(): array {
-        $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [ 'phone', 'city' ] );
+        $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [] );
         $required = [];
         foreach ( array_keys( self::DEFAULTS ) as $logical ) {
             if ( 'city' === $logical && self::is_city_disabled() ) {
@@ -244,7 +244,7 @@ class Openvote_Field_Map {
         if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true ) ) {
             return true;
         }
-        $saved = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [ 'phone', 'city' ] );
+        $saved = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [] );
         return in_array( $logical, $saved, true );
     }
 

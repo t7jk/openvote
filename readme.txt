@@ -3,7 +3,7 @@ Contributors: t7jk
 Tags: voting, polls, surveys, e-voting, anonymous voting, groups, email invitations, elections
 Requires at least: 6.4
 Tested up to: 6.7
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -111,6 +111,9 @@ If you see this warning and the message says output started at a theme file (e.g
 
 == Changelog ==
 
+= 1.0.1 =
+* Wersja 1.0.1: poprawki i drobne zmiany w interfejsie.
+
 = 1.0.0 =
 * Initial release.
 * Polls: create, edit, draft/open/closed, questions and answers, target groups.
@@ -124,6 +127,9 @@ If you see this warning and the message says output started at a theme file (e.g
 * Batch processing for large user bases (sync, invitations, result lists).
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Aktualizacja do wersji 1.0.1. Zalecane po aktualizacji z 1.0.0.
 
 = 1.0.0 =
 First release. Configure vote page and field mapping after activation.

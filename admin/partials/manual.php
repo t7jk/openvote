@@ -198,7 +198,7 @@ $brand = openvote_get_brand_short_name();
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Czas trwania', 'openvote' ); ?></strong></td>
-        <td><?php esc_html_e( 'Wybierz z listy: 1 godz., 6 godz., 1 dzień, 2 dni itd. Data zakończenia jest obliczana automatycznie.', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Wybierz z listy: 1h, 12h, 1 dzień, 7 dni, 14 dni, 21 dni, 28 dni. Data zakończenia jest obliczana automatycznie.', 'openvote' ); ?></td>
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Tryb dołączania', 'openvote' ); ?></strong></td>
@@ -343,6 +343,13 @@ $brand = openvote_get_brand_short_name();
     <li><?php esc_html_e( 'Dla SMTP: host, port, szyfrowanie, nazwa użytkownika i hasło.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Opcjonalnie: wysyłka przez SendGrid API (klucz API w Konfiguracji).', 'openvote' ); ?></li>
 </ul>
+
+<h3><?php esc_html_e( 'Limity wysyłki i automatyczne wznowienie', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'W Konfiguracji w tabeli „Warunki wysyłki e-maili” można ustawić dla wybranej metody (Brevo darmowy, WordPress, SMTP) maksymalną liczbę e-maili: na 15 minut, na godzinę oraz na dobę. Wartość 0 oznacza brak limitu. Dla metod abonamentowych (SendGrid, Brevo płatny, Freshmail, GetResponse) limity czasowe nie są egzekwowane.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Gdy podczas wysyłki zaproszeń zostanie przekroczony ustawiony limit, wysyłka zatrzymuje się. Na ekranie Zaproszenia pojawia się komunikat z informacją, za ile minut można wznowić (dla limitów na 15 min i na godzinę). Przy przekroczeniu limitu dziennego dostępny jest przycisk „Zaplanuj automatyczne wznowienie” — po kliknięciu wysyłka zostanie automatycznie wznowiona o północy w strefie czasu głosowań (Konfiguracja → strefa czasowa).', 'openvote' ); ?></p>
+<div class="openvote-manual__tip">
+    <?php esc_html_e( 'Limity pomagają uniknąć zablokowania przez dostawcę poczty (np. Brevo free, WordPress) przy dużej liczbie odbiorców. Ustaw wartości zgodne z limitami Twojego planu.', 'openvote' ); ?>
+</div>
 </div>
 
 
@@ -384,6 +391,10 @@ $brand = openvote_get_brand_short_name();
     <tr>
         <td><strong><?php esc_html_e( 'Metoda wysyłki e-mail', 'openvote' ); ?></strong></td>
         <td><?php esc_html_e( '"WordPress domyślny" używa wbudowanej funkcji wp_mail(). "SMTP zewnętrzny" — wpisz dane serwera pocztowego. "SendGrid API" — wpisz klucz API z konta SendGrid.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'Warunki wysyłki e-maili', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Dla Brevo darmowy, WordPress i SMTP: maks. liczba e-maili na 15 min, na godzinę i na dobę. Po przekroczeniu limitu wysyłka zatrzymuje się; przy limitcie dziennym można zaplanować automatyczne wznowienie o północy. Wartość 0 = brak limitu.', 'openvote' ); ?></td>
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Odinstaluj', 'openvote' ); ?></strong></td>
@@ -441,6 +452,7 @@ $brand = openvote_get_brand_short_name();
 <h3><?php esc_html_e( 'Gdzie znajdziesz ankiety', 'openvote' ); ?></h3>
 <ul>
     <li><?php esc_html_e( 'Lista ankiet: Open Vote → Ankiety (lub z menu listy głosowań — opcja "Ankiety").', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Na górze listy ankiet wyświetlane jest okienko z adresami strony ankiet i strony zgłoszeń (linki do wypełniania ankiet i przeglądania zgłoszeń). Okienko można zamknąć krzyżykiem; stan zamknięcia jest zapamiętany do końca sesji przeglądarki.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Tworzenie i edycja: tytuł, opis, czas trwania, pola ankiety (etykieta, typ pola, opcjonalnie checkbox informacja wrażliwa).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Dla każdej ankiety: lista zgłoszeń ze statusem (oczekuje / nie spam / spam), przycisk "To nie spam" do zatwierdzania zgłoszeń.', 'openvote' ); ?></li>
 </ul>
@@ -477,6 +489,9 @@ $brand = openvote_get_brand_short_name();
 
 <h4><?php esc_html_e( 'Zaproszenia e-mail nie dochodzą.', 'openvote' ); ?></h4>
 <p><?php esc_html_e( 'Sprawdź: (1) Ekran Zaproszenia — czy status to "wysłano" czy "błąd"? (2) Konfiguracja → ustawienia e-mail — czy skonfigurowany jest SMTP lub SendGrid? (3) Sprawdź folder SPAM u odbiorcy.', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Wysyłka zaproszeń zatrzymała się z komunikatem o limicie.', 'openvote' ); ?></h4>
+<p><?php esc_html_e( 'Wtyczka respektuje limity ustawione w Konfiguracji (Warunki wysyłki e-maili). Poczekaj do czasu podanego w komunikacie (np. „Wznowienie za X min”) lub przy limitcie dziennym kliknij „Zaplanuj automatyczne wznowienie” — wysyłka zostanie wznowiona o północy. Możesz też zwiększyć limity w Konfiguracji, jeśli dostawca poczty na to pozwala.', 'openvote' ); ?></p>
 
 <h4><?php esc_html_e( 'Strona głosowania pokazuje błąd lub przekierowuje w pętli.', 'openvote' ); ?></h4>
 <p><?php esc_html_e( 'Przejdź do Konfiguracji i kliknij "Zaktualizuj stronę głosowania" jeśli pojawia się ostrzeżenie. Następnie odśwież permalinki w Ustawienia → Bezpośrednie odnośniki.', 'openvote' ); ?></p>

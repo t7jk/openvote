@@ -8,13 +8,14 @@
 /**
  * Uruchom wizualizację zadania masowego.
  *
- * @param {string}   jobId       ID zadania zwrócony przez REST API.
- * @param {Function} onProgress  Callback(processed, total, pct, job). job has optional .logs array.
- * @param {Function} onComplete  Callback(jobData).
- * @param {Function} onError     Callback(error).
- * @param {number}   [delayMs]   Opóźnienie między partiami w ms (nadpisuje openvoteBatch.emailDelay).
+ * @param {string}   jobId            ID zadania zwrócony przez REST API.
+ * @param {Function} onProgress       Callback(processed, total, pct, job). job has optional .logs array.
+ * @param {Function} onComplete      Callback(jobData).
+ * @param {Function} onError          Callback(error).
+ * @param {number}   [delayMs]        Opóźnienie między partiami w ms (nadpisuje openvoteBatch.emailDelay).
+ * @param {Function} [onLimitExceeded] Callback(job) gdy status === 'limit_exceeded'. job ma limit_message, wait_seconds, limit_type.
  */
-async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, delayMs ) {
+async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, delayMs, onLimitExceeded ) {
 	const apiRoot    = window.openvoteBatch?.apiRoot    || '/wp-json/openvote/v1';
 	const nonce      = window.openvoteBatch?.nonce      || '';
 	const emailDelay = delayMs ?? ( window.openvoteBatch?.emailDelay ?? 300 );
@@ -61,6 +62,16 @@ async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, dela
 				return;
 			}
 
+			if ( 'limit_exceeded' === job.status ) {
+				stopProgressPoll();
+				if ( typeof onLimitExceeded === 'function' ) {
+					onLimitExceeded( job );
+				} else if ( typeof onError === 'function' ) {
+					onError( new Error( job.limit_message || 'Limit wysyłki przekroczony.' ) );
+				}
+				return;
+			}
+
 			// 2. Przetwórz następną partię (z ponowieniem przy 503 — rate limit WAF/BitNinja)
 			const nextUrl = `${apiRoot}/jobs/${encodeURIComponent(jobId)}/next`;
 			let nextRes = null;
@@ -94,12 +105,12 @@ async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, dela
 		}
 	};
 
-	// Odpytywanie GET progress co 1.5 s — log i pasek postępu na bieżąco podczas długiego przetwarzania
+	// Odpytywanie GET progress co 30 s — log i pasek postępu na bieżąco podczas długiego przetwarzania
 	progressIntervalId = setInterval( async () => {
 		const job = await fetchProgress();
 		if ( job ) {
 			onProgress( job.processed, job.total, job.pct, job );
-			if ( 'done' === job.status || 'cancelled' === job.status ) {
+			if ( 'done' === job.status || 'cancelled' === job.status || 'limit_exceeded' === job.status ) {
 				stopProgressPoll();
 			}
 		}

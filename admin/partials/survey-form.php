@@ -12,16 +12,15 @@ $questions    = $is_edit ? Openvote_Survey::get_questions( (int) $survey->id ) :
 $now_ts              = current_time( 'timestamp' );
 $date_start_display  = wp_date( 'Y-m-d\TH:i', $now_ts );
 
-// Czas trwania: dropdown.
+// Czas trwania: dropdown (standardowo 7 dni).
 $duration_options = [
     '1h'  => __( '1h', 'openvote' ),
+    '12h' => __( '12h', 'openvote' ),
     '1d'  => __( '1 dzień', 'openvote' ),
-    '2d'  => __( '2 dni', 'openvote' ),
-    '3d'  => __( '3 dni', 'openvote' ),
     '7d'  => __( '7 dni', 'openvote' ),
     '14d' => __( '14 dni', 'openvote' ),
     '21d' => __( '21 dni', 'openvote' ),
-    '30d' => __( '30 dni', 'openvote' ),
+    '28d' => __( '28 dni', 'openvote' ),
 ];
 
 $selected_duration = '7d';
@@ -29,17 +28,16 @@ if ( $is_edit && ! empty( $survey->date_start ) && ! empty( $survey->date_end ) 
     $start_ts = strtotime( $survey->date_start );
     $end_ts   = strtotime( $survey->date_end );
     if ( $start_ts && $end_ts && $end_ts > $start_ts ) {
-        $diff  = $end_ts - $start_ts;
-        $hours = $diff / 3600;
-        $days  = $diff / 86400;
+        $diff   = $end_ts - $start_ts;
+        $hours  = $diff / 3600;
+        $days   = $diff / 86400;
         if ( $hours <= 1.1 )       $selected_duration = '1h';
+        elseif ( $hours <= 12.1 )  $selected_duration = '12h';
         elseif ( $days <= 1.1 )    $selected_duration = '1d';
-        elseif ( $days <= 2.1 )    $selected_duration = '2d';
-        elseif ( $days <= 3.1 )    $selected_duration = '3d';
         elseif ( $days <= 7.1 )    $selected_duration = '7d';
         elseif ( $days <= 14.1 )   $selected_duration = '14d';
         elseif ( $days <= 21.1 )   $selected_duration = '21d';
-        else                       $selected_duration = '30d';
+        else                       $selected_duration = '28d';
     }
 }
 
@@ -208,7 +206,7 @@ function openvote_render_survey_field_row( int $i, ?object $q, array $labels, bo
             </select>
             <input type="text"
                    name="survey_questions[<?php echo esc_attr( $i ); ?>][body]"
-                   value="<?php echo $body; ?>"
+                   value="<?php echo esc_attr( $body ); ?>"
                    placeholder="<?php esc_attr_e( 'Pytanie', 'openvote' ); ?>"
                    maxlength="512"
                    style="width:100%;"

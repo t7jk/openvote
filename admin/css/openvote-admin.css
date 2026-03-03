@@ -194,6 +194,18 @@
     color: #50575e;
 }
 
+/* Przycisk Zapisz konfigurację — 90% szerokości ekranu */
+.openvote-settings-save-wrap {
+    width: 90%;
+    max-width: none;
+    margin: 20px 0;
+}
+.openvote-settings-save-wrap input[type="submit"],
+.openvote-settings-save-wrap button[type="submit"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* ── Questions ── */
 .openvote-question-block {
     background: #f9f9f9;

@@ -20,6 +20,7 @@ class Openvote_Admin_Polls {
 
         $poll_id = isset( $_POST['poll_id'] ) ? absint( $_POST['poll_id'] ) : 0;
         $action  = sanitize_text_field( $_POST['openvote_action'] ?? 'create' );
+        $extend_duration = ! empty( $_POST['openvote_extend_duration'] );
 
         if ( 'delete' === $action && $poll_id ) {
             Openvote_Poll::delete( $poll_id );
@@ -27,7 +28,35 @@ class Openvote_Admin_Polls {
             exit;
         }
 
-        if ( $poll_id ) {
+        // Z podglądu: tylko aktualizacja czasu trwania i powiadomienia (wydłużenie głosowania).
+        if ( $extend_duration && $poll_id && 'update' === $action ) {
+            $existing = Openvote_Poll::get( $poll_id );
+            if ( $existing && in_array( $existing->status, [ 'open', 'closed' ], true ) && ! empty( $existing->date_start ) ) {
+                $duration_seconds = [
+                    '1h'  => 3600,
+                    '12h' => 12 * 3600,
+                    '1d'  => DAY_IN_SECONDS,
+                    '7d'  => 7 * DAY_IN_SECONDS,
+                    '14d' => 14 * DAY_IN_SECONDS,
+                    '21d' => 21 * DAY_IN_SECONDS,
+                    '28d' => 28 * DAY_IN_SECONDS,
+                ];
+                $duration_key = sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) );
+                if ( isset( $duration_seconds[ $duration_key ] ) ) {
+                    $start_ts = strtotime( $existing->date_start );
+                    $date_end = wp_date( 'Y-m-d H:i:s', $start_ts + $duration_seconds[ $duration_key ] );
+                    $notify_start = ! empty( $_POST['notify_start'] );
+                    Openvote_Poll::update( $poll_id, [
+                        'date_end'     => $date_end,
+                        'notify_start' => $notify_start ? 1 : 0,
+                    ] );
+                    wp_safe_redirect( add_query_arg( [ 'action' => 'view', 'poll_id' => $poll_id, 'updated' => 1 ], admin_url( 'admin.php?page=openvote' ) ) );
+                    exit;
+                }
+            }
+        }
+
+        if ( $poll_id && ! $extend_duration ) {
             $existing = Openvote_Poll::get( $poll_id );
             if ( $existing && 'draft' !== $existing->status ) {
                 set_transient( 'openvote_admin_error', __( 'Nie można edytować głosowania, które zostało rozpoczęte lub zakończone.', 'openvote' ), 30 );
@@ -83,11 +112,7 @@ class Openvote_Admin_Polls {
                 : admin_url( 'admin.php?page=openvote&created=1' );
         }
 
-        // Automatyczna wysyłka zaproszeń przez system kolejki batch.
-        if ( ! empty( $data['notify_start'] ) && 'open' === $data['status'] && ! $was_open ) {
-            $redirect = add_query_arg( 'autostart', '1', admin_url( 'admin.php?page=openvote&action=invitations&poll_id=' . $poll_id ) );
-        }
-
+        // Nie przekierowujemy na ekran wysyłki — użytkownik sam wchodzi w „Wysyłki”, jeśli chce wysłać zaproszenia (np. może rozreklamować głosowanie w mediach społecznościowych).
         wp_safe_redirect( $redirect );
         exit;
     }
@@ -112,12 +137,12 @@ class Openvote_Admin_Polls {
         $duration_key = sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) );
         $duration_seconds = [
             '1h'  => 3600,
+            '12h' => 12 * 3600,
             '1d'  => DAY_IN_SECONDS,
-            '2d'  => 2 * DAY_IN_SECONDS,
-            '3d'  => 3 * DAY_IN_SECONDS,
             '7d'  => 7 * DAY_IN_SECONDS,
             '14d' => 14 * DAY_IN_SECONDS,
             '21d' => 21 * DAY_IN_SECONDS,
+            '28d' => 28 * DAY_IN_SECONDS,
         ];
         if ( ! isset( $duration_seconds[ $duration_key ] ) ) {
             if ( $is_draft_save ) {

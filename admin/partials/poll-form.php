@@ -10,35 +10,35 @@ $now_ts       = current_time( 'timestamp' );
 $date_start_display = wp_date( 'Y-m-d\TH:i', $now_ts );
 $duration_options  = [
     '1h'   => __( '1h', 'openvote' ),
+    '12h'  => __( '12h', 'openvote' ),
     '1d'   => __( '1 dzień', 'openvote' ),
-    '2d'   => __( '2 dni', 'openvote' ),
-    '3d'   => __( '3 dni', 'openvote' ),
     '7d'   => __( '7 dni', 'openvote' ),
     '14d'  => __( '14 dni', 'openvote' ),
     '21d'  => __( '21 dni', 'openvote' ),
+    '28d'  => __( '28 dni', 'openvote' ),
 ];
 $selected_duration = '7d';
 if ( $is_edit && ! empty( $poll->date_start ) && ! empty( $poll->date_end ) ) {
     $start_ts = strtotime( $poll->date_start );
     $end_ts   = strtotime( $poll->date_end );
     if ( $start_ts && $end_ts && $end_ts > $start_ts ) {
-        $diff = $end_ts - $start_ts;
-        $hours = $diff / 3600;
-        $days  = $diff / 86400;
+        $diff   = $end_ts - $start_ts;
+        $hours  = $diff / 3600;
+        $days   = $diff / 86400;
         if ( $hours <= 1.1 ) {
             $selected_duration = '1h';
+        } elseif ( $hours <= 12.1 ) {
+            $selected_duration = '12h';
         } elseif ( $days <= 1.1 ) {
             $selected_duration = '1d';
-        } elseif ( $days <= 2.1 ) {
-            $selected_duration = '2d';
-        } elseif ( $days <= 3.1 ) {
-            $selected_duration = '3d';
         } elseif ( $days <= 7.1 ) {
             $selected_duration = '7d';
         } elseif ( $days <= 14.1 ) {
             $selected_duration = '14d';
-        } else {
+        } elseif ( $days <= 21.1 ) {
             $selected_duration = '21d';
+        } else {
+            $selected_duration = '28d';
         }
     }
 }
@@ -97,6 +97,13 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
 
     <form method="post" action="" id="openvote-poll-form"<?php echo $is_read_only ? ' class="openvote-form-readonly"' : ''; ?>
           <?php if ( ! $is_read_only ) : ?>onsubmit="var b=this.querySelectorAll('button[type=submit],input[type=submit]');for(var i=0;i<b.length;i++)b[i].disabled=true;"<?php endif; ?>>
+        <?php if ( $is_read_only && $is_edit && $poll && in_array( $poll->status ?? '', [ 'open', 'closed' ], true ) ) : ?>
+            <?php wp_nonce_field( 'openvote_save_poll', 'openvote_poll_nonce' ); ?>
+            <input type="hidden" name="poll_id" value="<?php echo esc_attr( $poll->id ); ?>">
+            <input type="hidden" name="openvote_action" value="update">
+            <input type="hidden" name="openvote_extend_duration" value="1">
+            <input type="hidden" name="openvote_submit_action" id="openvote-poll-submit-action" value="save_draft">
+        <?php endif; ?>
         <?php if ( ! $is_read_only ) : ?>
             <?php wp_nonce_field( 'openvote_save_poll', 'openvote_poll_nonce' ); ?>
             <input type="hidden" name="openvote_submit_action" id="openvote-poll-submit-action" value="save_draft">
@@ -135,7 +142,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             <tr>
                 <th scope="row"><label for="poll_duration"><?php esc_html_e( 'Czas trwania głosowania', 'openvote' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? 'disabled' : ''; ?>>
+                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? '' : ''; ?>>
                         <?php foreach ( $duration_options as $val => $label ) : ?>
                             <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $selected_duration, $val ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
@@ -168,7 +175,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                 <th scope="row"><?php esc_html_e( 'Powiadomienia e-mail', 'openvote' ); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?> <?php echo $is_read_only ? 'disabled' : ''; ?>>
+                        <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?>>
                         <?php esc_html_e( 'Wyślij e-mail przy otwarciu głosowania', 'openvote' ); ?>
                     </label>
                     <p class="description"><?php esc_html_e( 'Zaznaczone domyślnie.', 'openvote' ); ?></p>
@@ -289,6 +296,9 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
 
         <?php if ( $is_read_only ) : ?>
             <p class="submit">
+                <?php if ( $is_edit && $poll && in_array( $poll->status ?? '', [ 'open', 'closed' ], true ) ) : ?>
+                <button type="submit" class="button button-primary" name="openvote_extend_duration_submit" value="1"><?php esc_html_e( 'Zapisz zmiany czasu trwania', 'openvote' ); ?></button>
+                <?php endif; ?>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote' ) ); ?>" class="button"><?php esc_html_e( 'Wróć do listy', 'openvote' ); ?></a>
                 <?php if ( 'closed' === ( $poll->status ?? '' ) ) : ?>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote&action=results&poll_id=' . $poll->id ) ); ?>"

@@ -26,6 +26,27 @@ foreach ( $eq_stats as $row ) {
 }
 $cnt_total = $cnt_sent + $cnt_failed + $cnt_pending;
 
+// Liczba osób uprawnionych do zaproszenia (członkowie grup docelowych z e-mailem, lub wszyscy).
+$eligible_count = 0;
+$target_groups   = $poll->target_groups ? json_decode( $poll->target_groups, true ) : [];
+if ( ! empty( $target_groups ) && is_array( $target_groups ) ) {
+    $gm_table  = $wpdb->prefix . 'openvote_group_members';
+    $ids_clean = array_map( 'absint', $target_groups );
+    $placeholders = implode( ',', array_fill( 0, count( $ids_clean ), '%d' ) );
+    $eligible_count = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(DISTINCT u.ID) FROM {$wpdb->users} u
+             INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+             WHERE gm.group_id IN ({$placeholders}) AND u.user_email != '' AND u.user_email IS NOT NULL",
+            ...$ids_clean
+        )
+    );
+} else {
+    $eligible_count = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != '' AND user_email IS NOT NULL"
+    );
+}
+
 $status_labels = [
     'draft'  => __( 'Szkic', 'openvote' ),
     'open'   => __( 'Rozpoczęte', 'openvote' ),
@@ -52,11 +73,34 @@ $status_labels = [
         ); ?>
     </p>
 
-    <?php if ( current_user_can( 'manage_options' ) && 'open' === ( $poll->status ?? '' ) ) :
-        $all_sent   = $eq_exists && $cnt_pending === 0 && $cnt_failed === 0 && $cnt_sent > 0;
-        $btn_label  = $all_sent
-            ? __( 'Wszyscy powiadomieni', 'openvote' )
-            : ( $eq_exists ? __( 'Wyślij ponownie', 'openvote' ) : __( 'Wyślij zaproszenia', 'openvote' ) );
+    <div class="notice notice-info inline" style="max-width:580px;margin-bottom:20px;">
+        <p>
+            <?php
+            printf(
+                /* translators: %s: full URL of the voting page (e.g. https://example.com/glosuj/) */
+                esc_html__( 'Aby zagłosować, należy wejść na stronę %s (zgodnie z ustawieniami w Konfiguracji).', 'openvote' ),
+                '<strong><a href="' . esc_url( openvote_get_vote_page_url() ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( openvote_get_vote_page_url() ) . '</a></strong>'
+            );
+            ?>
+        </p>
+    </div>
+
+    <?php if ( ( current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators() ) && 'open' === ( $poll->status ?? '' ) ) :
+        $all_sent = $eq_exists && $cnt_pending === 0 && $cnt_failed === 0 && $cnt_sent > 0;
+        if ( $all_sent ) {
+            $btn_label = __( 'Wszyscy powiadomieni', 'openvote' );
+        } elseif ( $eq_exists ) {
+            $btn_label = __( 'Wyślij ponownie', 'openvote' );
+        } else {
+            $n = $eligible_count;
+            if ( $n === 1 ) {
+                $btn_label = __( 'Wyślij 1 zaproszenie do głosowania', 'openvote' );
+            } elseif ( $n % 10 >= 2 && $n % 10 <= 4 && ( $n < 10 || $n > 21 ) ) {
+                $btn_label = sprintf( __( 'Wyślij %d zaproszenia do głosowania', 'openvote' ), $n );
+            } else {
+                $btn_label = sprintf( __( 'Wyślij %d zaproszeń do głosowania', 'openvote' ), $n );
+            }
+        }
     ?>
     <div style="margin-bottom:24px;">
         <button type="button"
@@ -75,6 +119,7 @@ $status_labels = [
         <?php endif; ?>
         <span id="openvote-invitations-status" style="margin-left:14px;font-weight:500;font-size:13px;"></span>
         <div id="openvote-invitations-progress" style="display:none;max-width:560px;margin:10px 0 0;"></div>
+        <div id="openvote-invitations-limit-msg" style="display:none;margin-top:12px;padding:10px 12px;background:#fcf0f1;border-left:4px solid #c00;max-width:560px;"></div>
     </div>
     <?php endif; ?>
 
@@ -196,21 +241,66 @@ $status_labels = [
 
     <?php endif; // eq_exists ?>
 
-    <?php if ( current_user_can( 'manage_options' ) && 'open' === ( $poll->status ?? '' ) ) : ?>
+    <?php if ( ( current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators() ) && 'open' === ( $poll->status ?? '' ) ) : ?>
     <script>
     (function(){
         var btn       = document.getElementById('openvote-send-invitations-btn');
         var statusEl  = document.getElementById('openvote-invitations-status');
         var progressEl = document.getElementById('openvote-invitations-progress');
+        var limitMsgEl = document.getElementById('openvote-invitations-limit-msg');
         var pollId    = btn ? btn.dataset.pollId : '';
-        // URL i nonce generowane bezpośrednio z PHP — niezależne od window.openvoteBatch
         var apiRoot   = '<?php echo esc_js( esc_url_raw( rest_url( 'openvote/v1' ) ) ); ?>';
         var batchNonce = '<?php echo esc_js( wp_create_nonce( 'wp_rest' ) ); ?>';
         var emailDelayMs = <?php echo (int) ( openvote_get_email_batch_delay() * 1000 ); ?>;
 
+        function showLimitExceeded( message, waitSeconds, limitType ) {
+            progressEl.style.display = 'none';
+            statusEl.style.color = '#c00';
+            statusEl.textContent = message;
+            var html = '<p style="margin:0 0 8px;">' + ( message || '' ).replace( /</g, '&lt;' ) + '</p>';
+            if ( waitSeconds > 0 && limitType !== 'day' ) {
+                var waitMin = Math.ceil( waitSeconds / 60 );
+                html += '<p style="margin:0;font-size:12px;color:#555;"><?php echo esc_js( __( 'Wznowienie za', 'openvote' ) ); ?> ' + waitMin + ' <?php echo esc_js( __( 'min', 'openvote' ) ); ?>.</p>';
+            }
+            if ( limitType === 'day' ) {
+                html += '<button type="button" class="button button-primary" id="openvote-schedule-resume-btn" style="margin-top:8px;"><?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?></button>';
+            }
+            limitMsgEl.innerHTML = html;
+            limitMsgEl.style.display = '';
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.textContent = '<?php echo esc_js( __( 'Wyślij ponownie', 'openvote' ) ); ?>';
+            if ( limitType === 'day' ) {
+                var scheduleBtn = document.getElementById('openvote-schedule-resume-btn');
+                if ( scheduleBtn ) {
+                    scheduleBtn.addEventListener('click', function() {
+                        scheduleBtn.disabled = true;
+                        scheduleBtn.textContent = '<?php echo esc_js( __( 'Zapisywanie…', 'openvote' ) ); ?>';
+                        fetch( apiRoot + '/polls/' + pollId + '/schedule-email-resume', { method: 'POST', headers: { 'X-WP-Nonce': batchNonce, 'Content-Type': 'application/json' } } )
+                            .then(function(r) { return r.json(); })
+                            .then(function(data) {
+                                if ( data && ( data.success !== false ) ) {
+                                    limitMsgEl.innerHTML = '<p style="margin:0;color:#0a6b2e;">&#10003; <?php echo esc_js( __( 'Zaplanowano. E-maile zostaną automatycznie wznowione o północy (strefa głosowań).', 'openvote' ) ); ?></p>';
+                                } else {
+                                    limitMsgEl.innerHTML = '<p style="margin:0;color:#c00;">' + ( ( data && data.message ) ? data.message : '<?php echo esc_js( __( 'Błąd zapisu.', 'openvote' ) ); ?>' ) + '</p>';
+                                    scheduleBtn.disabled = false;
+                                    scheduleBtn.textContent = '<?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?>';
+                                }
+                            })
+                            .catch(function() {
+                                limitMsgEl.innerHTML = '<p style="margin:0;color:#c00;"><?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?></p>';
+                                scheduleBtn.disabled = false;
+                                scheduleBtn.textContent = '<?php echo esc_js( __( 'Zaplanuj automatyczne wznowienie', 'openvote' ) ); ?>';
+                            });
+                    });
+                }
+            }
+        }
+
         function startOrResume( jobId ) {
             if ( ! jobId ) return;
             if ( typeof openvoteRunBatchJob === 'undefined' ) return;
+            limitMsgEl.style.display = 'none';
             btn.disabled = true;
             btn.textContent = '<?php esc_html_e( 'Wysyłanie…', 'openvote' ); ?>';
             openvoteRunBatchJob(
@@ -225,7 +315,6 @@ $status_labels = [
                     if ( typeof openvoteClearJobId !== 'undefined' ) openvoteClearJobId( pollId );
                     statusEl.style.color = '#0a6b2e';
                     statusEl.textContent = '<?php esc_html_e( 'Zakończono. Odświeżam…', 'openvote' ); ?>';
-                    // Zawsze usuwamy ?autostart=1 z URL — zapobiega nieskończonej pętli.
                     var cleanUrl = location.href
                         .replace( /&autostart=1/, '' )
                         .replace( /\?autostart=1&/, '?' )
@@ -240,7 +329,10 @@ $status_labels = [
                     btn.style.opacity = '';
                     btn.textContent = '<?php esc_html_e( 'Wyślij ponownie', 'openvote' ); ?>';
                 },
-                emailDelayMs
+                emailDelayMs,
+                function( job ) {
+                    showLimitExceeded( job.limit_message || '', job.wait_seconds || 0, job.limit_type || '' );
+                }
             );
         }
 
@@ -264,8 +356,20 @@ $status_labels = [
                     if ( typeof openvoteSaveJobId !== 'undefined' ) openvoteSaveJobId( pollId, result.data.job_id );
                     startOrResume( result.data.job_id );
                 } else {
-                    statusEl.style.color = '#c00';
-                    statusEl.textContent = result.data.message || result.data.code || '<?php esc_html_e( 'Nieznany błąd.', 'openvote' ); ?>';
+                    var d = result.data || {};
+                    var isRateLimit = ( ! result.ok && ( d.code === 'rate_limit_exceeded' || ( d.data && d.data.status === 429 ) ) );
+                    if ( isRateLimit && d.message ) {
+                        var extra = d.data || {};
+                        var waitSec = extra.wait_seconds ? extra.wait_seconds : 0;
+                        var limitType = extra.limit_type ? extra.limit_type : '';
+                        showLimitExceeded( d.message, waitSec, limitType );
+                        statusEl.style.color = '#c00';
+                        statusEl.textContent = d.message;
+                    } else {
+                        statusEl.style.color = '#c00';
+                        statusEl.textContent = d.message || d.code || '<?php esc_html_e( 'Nieznany błąd.', 'openvote' ); ?>';
+                        btn.disabled = false;
+                    }
                 }
             })
             .catch( function(e) {
@@ -279,13 +383,8 @@ $status_labels = [
             if ( savedJob ) {
                 statusEl.textContent = '<?php esc_html_e( 'Wznawianie przerwanej wysyłki…', 'openvote' ); ?>';
                 startOrResume( savedJob );
-            } else if ( <?php echo isset( $_GET['autostart'] ) ? 'true' : 'false'; ?> ) {
-                // Auto-start po wystartowaniu głosowania z włączonymi powiadomieniami
-                statusEl.textContent = '<?php esc_html_e( 'Autostart wysyłki zaproszeń…', 'openvote' ); ?>';
-                setTimeout( triggerSend, 800 );
             }
-
-            btn.addEventListener('click', triggerSend);
+            btn.addEventListener( 'click', triggerSend );
         }
     })();
     </script>

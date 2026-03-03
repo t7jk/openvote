@@ -69,7 +69,7 @@ class Openvote_Admin {
         add_submenu_page(
             'openvote',
             __( 'Podręcznik użytkownika', 'openvote' ),
-            __( '📖 Podręcznik', 'openvote' ),
+            __( 'Podręcznik', 'openvote' ),
             'read',
             'openvote-manual',
             [ $this, 'render_manual_page' ]
@@ -78,7 +78,7 @@ class Openvote_Admin {
         add_submenu_page(
             'openvote',
             __( 'Przepisy prawne', 'openvote' ),
-            __( '⚖️ Przepisy', 'openvote' ),
+            __( 'Przepisy', 'openvote' ),
             'read',
             'openvote-law',
             [ $this, 'render_law_page' ]
