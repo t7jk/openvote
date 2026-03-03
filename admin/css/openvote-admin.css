@@ -1,15 +1,23 @@
 /* E-Voting Admin Styles */
 
-/* Ikona menu bocznego (logo z Konfiguracji) — dopasowanie rozmiaru gdy używany jest obrazek */
-#adminmenu .toplevel_page_openvote .wp-menu-image img,
+/* Ikona menu bocznego (logo z Konfiguracji) — biały kształt na ciemnym tle, rozmiar i wyśrodkowanie */
 #adminmenu .toplevel_page_openvote .wp-menu-image {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-}
-#adminmenu .toplevel_page_openvote .wp-menu-image {
-    background-size: 20px 20px !important;
+    background-color: transparent !important;
+    background-size: 28px 28px !important;
     background-position: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+}
+#adminmenu .toplevel_page_openvote .wp-menu-image img {
+    width: 28px !important;
+    height: 28px !important;
+    object-fit: contain;
+    margin-top: -6px !important;
+    filter: brightness(0) invert(1);
 }
 
 /* Menu boczne: dla ról innych niż Administrator/Author/Editor (i Koordynator) — widoczne, kursywa, nieaktywne */
