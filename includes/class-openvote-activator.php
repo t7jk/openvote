@@ -16,6 +16,9 @@ class Openvote_Activator {
         require_once __DIR__ . '/class-openvote-survey-page.php';
         Openvote_Survey_Page::add_rewrite_rule();
 
+        require_once __DIR__ . '/class-openvote-cron-sync.php';
+        Openvote_Cron_Sync::reschedule();
+
         flush_rewrite_rules();
     }
 

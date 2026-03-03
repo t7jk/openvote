@@ -101,6 +101,11 @@ class Openvote_Admin_Settings {
         $offset = max( -12, min( 12, $offset ) );
         update_option( 'openvote_time_offset_hours', $offset, false );
 
+        $raw_auto_sync = sanitize_key( (string) ( $_POST['openvote_auto_sync_schedule'] ?? 'manual' ) );
+        $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
+        $auto_sync_schedule = in_array( $raw_auto_sync, $allowed_schedules, true ) ? $raw_auto_sync : 'manual';
+        update_option( 'openvote_auto_sync_schedule', $auto_sync_schedule, false );
+
         // Logo i banner usunięte z konfiguracji — używane są Site Icon i Site Title z WordPress.
 
         $from_email = isset( $_POST['openvote_from_email'] ) ? sanitize_email( wp_unslash( $_POST['openvote_from_email'] ) ) : '';
@@ -169,6 +174,8 @@ class Openvote_Admin_Settings {
         update_option( 'openvote_email_body_plain', $email_body_plain, false );
         $email_body_html = wp_unslash( $_POST['openvote_email_body_html'] ?? '' );
         update_option( 'openvote_email_body_html', $email_body_html, false );
+
+        Openvote_Cron_Sync::reschedule();
 
         flush_rewrite_rules();
 

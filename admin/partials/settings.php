@@ -633,6 +633,45 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
         </div>
 
+        <div class="openvote-settings-url-section openvote-settings-cron-sync-section" style="margin-top:28px;">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Automatyczna synchronizacja sejmików-miast (wp-cron)', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Cron uruchamia proces synchronizacji o 00:00 w strefie czasu WordPress (w niedziele według wybranego harmonogramu).', 'openvote' ); ?>
+        </p>
+        <?php
+        $auto_sync_schedule = get_option( 'openvote_auto_sync_schedule', 'manual' );
+        $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
+        if ( ! in_array( $auto_sync_schedule, $allowed_schedules, true ) ) {
+            $auto_sync_schedule = 'manual';
+        }
+        $last_sync_date = get_option( 'openvote_last_cron_sync_date', '' );
+        ?>
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_auto_sync_schedule"><?php esc_html_e( 'Harmonogram', 'openvote' ); ?></label></th>
+                <td>
+                    <select name="openvote_auto_sync_schedule" id="openvote_auto_sync_schedule" class="regular-text">
+                        <option value="manual" <?php selected( $auto_sync_schedule, 'manual' ); ?>><?php esc_html_e( 'Tylko ręcznie', 'openvote' ); ?></option>
+                        <option value="first_sunday" <?php selected( $auto_sync_schedule, 'first_sunday' ); ?>><?php esc_html_e( 'Automatycznie w pierwszą niedzielę miesiąca', 'openvote' ); ?></option>
+                        <option value="second_sunday" <?php selected( $auto_sync_schedule, 'second_sunday' ); ?>><?php esc_html_e( 'Automatycznie co drugą niedzielę miesiąca', 'openvote' ); ?></option>
+                        <option value="weekly" <?php selected( $auto_sync_schedule, 'weekly' ); ?>><?php esc_html_e( 'Automatycznie co niedzielę', 'openvote' ); ?></option>
+                        <option value="daily" <?php selected( $auto_sync_schedule, 'daily' ); ?>><?php esc_html_e( 'Automatycznie codziennie (Nie zalecane przy dużej ilości użytkowników)', 'openvote' ); ?></option>
+                    </select>
+                    <p class="description" style="margin-top:8px;padding:8px 12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;max-width:480px;">
+                        <?php if ( $last_sync_date !== '' && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $last_sync_date ) ) : ?>
+                            <?php
+                            /* translators: %s: date in Y-m-d format */
+                            echo esc_html( sprintf( __( 'Ostatnia synchronizacja zakończona dnia %s.', 'openvote' ), $last_sync_date ) );
+                            ?>
+                        <?php else : ?>
+                            <?php esc_html_e( 'Nie było jeszcze synchronizacji.', 'openvote' ); ?>
+                        <?php endif; ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+        </div>
+
         <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
             <?php esc_html_e(

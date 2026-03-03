@@ -85,6 +85,16 @@ class Openvote_Groups_Rest_Controller {
             ],
         ] );
 
+        // POST /jobs/{job_id}/stop — zatrzymaj zadanie (synchronizację)
+        register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/stop', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'stop_job' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+            'args'                => [
+                'job_id' => [ 'sanitize_callback' => 'sanitize_text_field' ],
+            ],
+        ] );
+
         // GET /users/search-by-email — wyszukiwanie użytkowników po e-mailu (dla formularza koordynatorów, bazy 10k+).
         register_rest_route( self::NAMESPACE, '/users/search-by-email', [
             'methods'             => WP_REST_Server::READABLE,
@@ -304,10 +314,22 @@ class Openvote_Groups_Rest_Controller {
         return new WP_REST_Response( $this->format_job( $job_id, $job ), 200 );
     }
 
+    /**
+     * Zatrzymaj zadanie synchronizacji (POST /jobs/{job_id}/stop).
+     */
+    public function stop_job( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $job_id = $request->get_param( 'job_id' );
+        if ( ! Openvote_Batch_Processor::cancel_job( $job_id ) ) {
+            return new WP_Error( 'cannot_stop', __( 'Zadanie nie istnieje lub już jest zakończone.', 'openvote' ), [ 'status' => 400 ] );
+        }
+        $job = Openvote_Batch_Processor::get_job( $job_id );
+        return new WP_REST_Response( $this->format_job( $job_id, $job ), 200 );
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private function format_job( string $job_id, array $job ): array {
-        return [
+        $data = [
             'job_id'    => $job_id,
             'type'      => $job['type'],
             'status'    => $job['status'],
@@ -318,6 +340,29 @@ class Openvote_Groups_Rest_Controller {
                 ? round( $job['processed'] / $job['total'] * 100 )
                 : ( 'done' === $job['status'] ? 100 : 0 ),
             'results_count' => count( $job['results'] ),
+            'logs'      => isset( $job['logs'] ) && is_array( $job['logs'] ) ? $job['logs'] : [],
         ];
+        if ( isset( $job['users_synced'] ) && is_numeric( $job['users_synced'] ) ) {
+            $data['users_synced'] = (int) $job['users_synced'];
+        }
+        if ( isset( $job['total_users'] ) && is_numeric( $job['total_users'] ) ) {
+            $data['total_users'] = (int) $job['total_users'];
+        }
+        if ( isset( $job['started_at'] ) && $job['started_at'] > 0 ) {
+            $data['started_at'] = (int) $job['started_at'];
+        }
+        $users_synced = (int) ( $job['users_synced'] ?? 0 );
+        $total_users  = (int) ( $job['total_users'] ?? 0 );
+        $started_at   = (int) ( $job['started_at'] ?? 0 );
+        if ( $users_synced > 0 && $total_users > $users_synced && $started_at > 0 ) {
+            $elapsed_sec = time() - $started_at;
+            if ( $elapsed_sec > 0 ) {
+                $remaining    = $total_users - $users_synced;
+                $rate_per_sec = $users_synced / $elapsed_sec;
+                $est_sec      = $remaining / $rate_per_sec;
+                $data['estimated_minutes_remaining'] = max( 1, (int) ceil( $est_sec / 60 ) );
+            }
+        }
+        return $data;
     }
 }

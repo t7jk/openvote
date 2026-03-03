@@ -32,6 +32,7 @@ require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-field-map.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-manager.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-map.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-cron-sync.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-deactivator.php';
@@ -53,6 +54,7 @@ function openvote_run(): void {
     $plugin->run();
 }
 
+Openvote_Cron_Sync::register();
 openvote_run();
 
 /**

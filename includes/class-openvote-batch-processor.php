@@ -17,6 +17,9 @@ defined( 'ABSPATH' ) || exit;
 class Openvote_Batch_Processor {
 
     const BATCH_SIZE              = 100;
+    const SYNC_BATCH_SIZE         = 25;   // synchronizacja jednej grupy — użytkownicy po 25
+    const SYNC_CITIES_BATCH_SIZE = 1;   // synchronizacja wszystkich — po jednym mieście (log po każdym)
+    const SYNC_LOG_EVERY_USERS   = 100; // co tylu użytkowników dopisać linię do logu (częstszy postęp)
     const EMAIL_BATCH_SIZE_DEFAULT = 20;  // WP/SMTP
     const EMAIL_SENDGRID_BATCH_DEFAULT = 100; // SendGrid
 
@@ -41,19 +44,37 @@ class Openvote_Batch_Processor {
 
         $total = self::count_total( $type, array_merge( $params, [ 'job_id' => $job_id ] ) );
 
-        set_transient(
-            $job_id,
-            [
-                'type'      => $type,
-                'params'    => array_merge( $params, [ 'job_id' => $job_id ] ),
-                'offset'    => 0,
-                'total'     => $total,
-                'processed' => 0,
-                'status'    => 'running',
-                'results'   => [],
-            ],
-            HOUR_IN_SECONDS
-        );
+        $job_data = [
+            'type'      => $type,
+            'params'    => array_merge( $params, [ 'job_id' => $job_id ] ),
+            'offset'    => 0,
+            'total'     => $total,
+            'processed' => 0,
+            'status'    => 'running',
+            'results'   => [],
+            'logs'      => [],
+            'started_at' => time(),
+        ];
+
+        if ( 'sync_all_city_groups' === $type ) {
+            $job_data['total_users'] = 0;
+            $job_data['logs']        = [
+                gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %d: number of cities */
+                    __( 'Łącznie do przetworzenia: %d miast. Liczenie użytkowników w pierwszej partii…', 'openvote' ),
+                    $total
+                ),
+            ];
+        } else {
+            $job_data['logs'] = [
+                gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %d: total to process */
+                    __( 'Zadanie uruchomione. Łącznie do przetworzenia: %d', 'openvote' ),
+                    $total
+                ),
+            ];
+        }
+        set_transient( $job_id, $job_data, HOUR_IN_SECONDS );
 
         return $job_id;
     }
@@ -68,6 +89,26 @@ class Openvote_Batch_Processor {
     }
 
     /**
+     * Zatrzymaj zadanie (ustaw status 'cancelled').
+     *
+     * @param string $job_id ID zadania.
+     * @return bool True jeśli zadanie było running i zostało zatrzymane.
+     */
+    public static function cancel_job( string $job_id ): bool {
+        $job = get_transient( $job_id );
+        if ( false === $job || 'running' !== $job['status'] ) {
+            return false;
+        }
+        if ( ! isset( $job['logs'] ) || ! is_array( $job['logs'] ) ) {
+            $job['logs'] = [];
+        }
+        $job['status'] = 'cancelled';
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Zatrzymane przez użytkownika.', 'openvote' );
+        set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        return true;
+    }
+
+    /**
      * Przetwórz następną partię dla danego zadania.
      *
      * @return array|false Zaktualizowany stan zadania lub false jeśli wygasło.
@@ -79,16 +120,40 @@ class Openvote_Batch_Processor {
             return false;
         }
 
-        if ( 'done' === $job['status'] ) {
+        if ( 'done' === $job['status'] || 'cancelled' === $job['status'] ) {
             return $job;
         }
+
+        if ( ! isset( $job['logs'] ) || ! is_array( $job['logs'] ) ) {
+            $job['logs'] = [];
+        }
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+            /* translators: 1: offset, 2: total */
+            __( 'Partia offset %1$d / %2$d', 'openvote' ),
+            $job['offset'],
+            $job['total']
+        );
+        set_transient( $job_id, $job, HOUR_IN_SECONDS );
 
         $result = self::run_batch( $job );
         $job    = $result['job'];
 
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+            /* translators: %d: number of processed items */
+            __( 'Przetworzono: %d rekordów', 'openvote' ),
+            count( $result['items'] )
+        );
+        // Dla sync_all_city_groups — lista przetworzonych miast (widoczny postęp).
+        if ( 'sync_all_city_groups' === $job['type'] && ! empty( $result['items'] ) ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Miasta:', 'openvote' ) . ' ' . implode( ', ', array_map( 'esc_html', $result['items'] ) );
+        }
+
         // Sprawdź czy zadanie zakończone.
         if ( $job['offset'] >= $job['total'] || empty( $result['items'] ) ) {
             $job['status'] = 'done';
+            if ( 'sync_all_city_groups' === $job['type'] && function_exists( 'openvote_current_time_for_voting' ) ) {
+                update_option( 'openvote_last_cron_sync_date', openvote_current_time_for_voting( 'Y-m-d' ), false );
+            }
         }
 
         set_transient( $job_id, $job, HOUR_IN_SECONDS );
@@ -154,11 +219,33 @@ class Openvote_Batch_Processor {
     }
 
     /**
+     * Dla sync_all_city_groups: łączna liczba użytkowników do zsynchronizowania (z polem miasto).
+     */
+    private static function count_total_users_for_sync_all(): int {
+        global $wpdb;
+        if ( Openvote_Field_Map::is_city_disabled() ) {
+            return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
+        }
+        $city_key = Openvote_Field_Map::get_field( 'city' );
+        if ( Openvote_Field_Map::is_core_field( $city_key ) ) {
+            $safe_col = '`' . esc_sql( $city_key ) . '`';
+            return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE {$safe_col} != ''" );
+        }
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(DISTINCT user_id) FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value != ''",
+                sanitize_key( $city_key )
+            )
+        );
+    }
+
+    /**
      * Wykonaj jedną partię rekordów.
      *
+     * @param array $job Job (przekazywany przez referencję przy sync_all_city_groups — do logu co 250 użytk.).
      * @return array{ job: array, items: array }
      */
-    private static function run_batch( array $job ): array {
+    private static function run_batch( array &$job ): array {
         $type   = $job['type'];
         $params = $job['params'];
         $offset = $job['offset'];
@@ -170,7 +257,7 @@ class Openvote_Batch_Processor {
                 break;
 
             case 'sync_all_city_groups':
-                $items = self::batch_sync_all_city_groups( $params, $offset );
+                $items = self::batch_sync_all_city_groups( $params, $offset, $job );
                 break;
 
             case 'send_start_emails':
@@ -182,8 +269,10 @@ class Openvote_Batch_Processor {
                 break;
         }
 
-        $count             = count( $items );
-        $job['processed'] += $count;
+        $count = count( $items );
+        if ( 'sync_all_city_groups' !== $job['type'] ) {
+            $job['processed'] += $count;
+        }
 
         if ( 'send_invitations' === $job['type'] ) {
             // Dla kolejki DB: offset = liczba wierszy, które już nie są pending (dynamicznie z DB).
@@ -193,13 +282,27 @@ class Openvote_Batch_Processor {
             $job['offset'] = $pid_run
                 ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$eq} WHERE poll_id = %d AND status != 'pending'", $pid_run ) )
                 : $job['total'];
-        } else {
-            $job['offset'] += $count > 0 ? self::BATCH_SIZE : $job['total'];
+        } elseif ( 'sync_all_city_groups' !== $job['type'] ) {
+            $batch_size = self::batch_size_for_type( $job['type'] );
+            $job['offset'] += $count > 0 ? $batch_size : $job['total'];
         }
 
         $job['results'] = array_merge( $job['results'], $items );
 
         return [ 'job' => $job, 'items' => $items ];
+    }
+
+    /**
+     * Rozmiar partii dla danego typu zadania (sync = 25, pozostałe = 100).
+     */
+    private static function batch_size_for_type( string $type ): int {
+        if ( 'sync_all_city_groups' === $type ) {
+            return self::SYNC_CITIES_BATCH_SIZE;
+        }
+        if ( 'sync_group' === $type ) {
+            return self::SYNC_BATCH_SIZE;
+        }
+        return self::BATCH_SIZE;
     }
 
     // ─── Implementacje typów zadań ───────────────────────────────────────────
@@ -229,7 +332,7 @@ class Openvote_Batch_Processor {
                 $wpdb->prepare(
                     "SELECT ID FROM {$wpdb->users} WHERE {$safe_col} = %s ORDER BY ID ASC LIMIT %d OFFSET %d",
                     $city_value,
-                    self::BATCH_SIZE,
+                    self::SYNC_BATCH_SIZE,
                     $offset
                 )
             );
@@ -242,7 +345,7 @@ class Openvote_Batch_Processor {
                      ORDER BY u.ID ASC LIMIT %d OFFSET %d",
                     sanitize_key( $city_key ),
                     $city_value,
-                    self::BATCH_SIZE,
+                    self::SYNC_BATCH_SIZE,
                     $offset
                 )
             );
@@ -279,25 +382,45 @@ class Openvote_Batch_Processor {
     }
 
     /**
-     * Synchronizuj wszystkie grupy-miasta — odkryj miasta, stwórz grupy, uruchom sync per miasto.
-     * Gdy "Nie używaj miast": jedna grupa "Wszyscy", batch = 100 użytkowników dodanych do niej.
+     * Synchronizuj wszystkie grupy-miasta — jedna partia = max 25 użytkowników z bieżącego miasta (unikamy timeoutu).
+     * Gdy "Nie używaj miast": jedna grupa "Wszyscy", batch = SYNC_BATCH_SIZE użytkowników.
+     *
+     * @param array $params Zawiera job_id, sync_user_offset (offset użytk. w bieżącym mieście).
+     * @param int   $offset Indeks bieżącego miasta (0 .. total-1).
+     * @param array $job   Job (referencja) — offset, processed, logs aktualizowane tutaj.
      */
-    private static function batch_sync_all_city_groups( array $params, int $offset ): array {
+    private static function batch_sync_all_city_groups( array $params, int $offset, array &$job ): array {
         global $wpdb;
 
         if ( Openvote_Field_Map::is_city_disabled() ) {
             return self::batch_sync_wszyscy( $offset );
         }
 
-        $city_key      = Openvote_Field_Map::get_field( 'city' );
-        $groups_table  = $wpdb->prefix . 'openvote_groups';
+        $job_id           = $params['job_id'] ?? null;
+        $sync_user_offset = (int) ( $params['sync_user_offset'] ?? 0 );
+        $city_key         = Openvote_Field_Map::get_field( 'city' );
+        $groups_table     = $wpdb->prefix . 'openvote_groups';
 
+        if ( ! isset( $job['logs'] ) || ! is_array( $job['logs'] ) ) {
+            $job['logs'] = [];
+        }
+        $job['users_synced'] = isset( $job['users_synced'] ) ? (int) $job['users_synced'] : 0;
+
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+            /* translators: %d: city offset index */
+            __( 'Pobieranie miasta (pozycja %d)...', 'openvote' ),
+            $offset
+        );
+        if ( $job_id ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        }
+
+        // Pobierz jedno miasto na pozycji offset.
         if ( Openvote_Field_Map::is_core_field( $city_key ) ) {
             $cities = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT DISTINCT {$city_key} FROM {$wpdb->users}
-                     WHERE {$city_key} != '' ORDER BY {$city_key} ASC LIMIT %d OFFSET %d",
-                    self::BATCH_SIZE,
+                     WHERE {$city_key} != '' ORDER BY {$city_key} ASC LIMIT 1 OFFSET %d",
                     $offset
                 )
             );
@@ -306,45 +429,129 @@ class Openvote_Batch_Processor {
                 $wpdb->prepare(
                     "SELECT DISTINCT meta_value FROM {$wpdb->usermeta}
                      WHERE meta_key = %s AND meta_value != ''
-                     ORDER BY meta_value ASC LIMIT %d OFFSET %d",
+                     ORDER BY meta_value ASC LIMIT 1 OFFSET %d",
                     sanitize_key( $city_key ),
-                    self::BATCH_SIZE,
                     $offset
                 )
             );
         }
 
-        $processed = [];
-
-        foreach ( $cities as $city ) {
-            $city = sanitize_text_field( $city );
-
-            // Stwórz grupę jeśli nie istnieje.
-            $existing_id = $wpdb->get_var(
-                $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s", $city )
-            );
-
-            if ( ! $existing_id ) {
-                $wpdb->insert(
-                    $groups_table,
-                    [ 'name' => $city, 'type' => 'city', 'member_count' => 0 ],
-                    [ '%s', '%s', '%d' ]
-                );
-                $existing_id = $wpdb->insert_id;
+        if ( empty( $cities ) ) {
+            $job['offset'] = $job['total'];
+            if ( $job_id ) {
+                set_transient( $job_id, $job, HOUR_IN_SECONDS );
             }
+            return [];
+        }
 
-            // Uruchom pełen sync tej grupy (synchronicznie — wszystkie partie).
-            if ( $existing_id ) {
-                self::run_full_sync( (int) $existing_id, $city );
-                $processed[] = $city;
+        $city_value = sanitize_text_field( $cities[0] );
+
+        $existing_id = $wpdb->get_var(
+            $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s", $city_value )
+        );
+        if ( ! $existing_id ) {
+            $wpdb->insert(
+                $groups_table,
+                [ 'name' => $city_value, 'type' => 'city', 'member_count' => 0 ],
+                [ '%s', '%s', '%d' ]
+            );
+            $existing_id = $wpdb->insert_id;
+        }
+        $group_id = (int) $existing_id;
+
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+            /* translators: %s: city name */
+            __( 'Miasto: %s. Liczenie użytkowników...', 'openvote' ),
+            $city_value
+        );
+        if ( $job_id ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        }
+
+        $total_in_city = self::count_users_for_group( [
+            'group_id'   => $group_id,
+            'city_value' => $city_value,
+        ] );
+
+        // Pierwsza partia w tym mieście — log „start”.
+        if ( 0 === $sync_user_offset ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: 1: city name, 2: number of users */
+                __( 'Miasto %1$s: %2$d użytkowników do przetworzenia', 'openvote' ),
+                $city_value,
+                $total_in_city
+            );
+            if ( $job_id ) {
+                set_transient( $job_id, $job, HOUR_IN_SECONDS );
             }
         }
 
-        return $processed;
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Synchronizacja partii 25 użytkowników...', 'openvote' );
+        if ( $job_id ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        }
+
+        // Jedna mikropartia: max 25 użytkowników z tego miasta.
+        $items = self::batch_sync_group(
+            [ 'group_id' => $group_id, 'city_value' => $city_value ],
+            $sync_user_offset
+        );
+        $count = count( $items );
+
+        $sync_user_offset += $count;
+        $job['params']['sync_user_offset'] = $sync_user_offset;
+        $job['users_synced']              += $count;
+
+        // Log dla każdej mikropartii w tym mieście.
+        if ( $count > 0 ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: 1: city name, 2: processed in city, 3: total in city, 4: total users synced in job */
+                __( 'Miasto %1$s: przetworzono %2$d / %3$d użytkowników (łącznie w zadaniu: %4$d)', 'openvote' ),
+                $city_value,
+                min( $sync_user_offset, $total_in_city ),
+                $total_in_city,
+                $job['users_synced']
+            );
+        }
+
+        // Log co SYNC_LOG_EVERY_USERS użytkowników (łącznie).
+        $prev = (int) floor( ( $job['users_synced'] - $count ) / self::SYNC_LOG_EVERY_USERS );
+        $curr = (int) floor( $job['users_synced'] / self::SYNC_LOG_EVERY_USERS );
+        if ( $curr > $prev ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: 1: number (e.g. 100), 2: total users synced so far */
+                __( 'Przetworzono %1$d użytkowników (łącznie: %2$d)', 'openvote' ),
+                self::SYNC_LOG_EVERY_USERS,
+                $job['users_synced']
+            );
+        }
+
+        if ( $sync_user_offset >= $total_in_city ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: %s: city name */
+                __( 'Miasto %s zakończone.', 'openvote' ),
+                $city_value
+            );
+            $job['offset']++;
+            $job['processed']++;
+            $job['params']['sync_user_offset'] = 0;
+            if ( $job['processed'] > 0 && $job['total'] > 0 ) {
+                $job['total_users'] = max(
+                    $job['users_synced'],
+                    (int) round( $job['users_synced'] / $job['processed'] * $job['total'] )
+                );
+            }
+        }
+
+        if ( $job_id ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        }
+
+        return [ $city_value ];
     }
 
     /**
-     * Jedna partia: dodaj 100 użytkowników do grupy "Wszyscy" (tryb bez miast).
+     * Jedna partia: dodaj SYNC_BATCH_SIZE użytkowników do grupy "Wszyscy" (tryb bez miast).
      */
     private static function batch_sync_wszyscy( int $offset ): array {
         global $wpdb;
@@ -367,7 +574,7 @@ class Openvote_Batch_Processor {
         $user_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->users} ORDER BY ID ASC LIMIT %d OFFSET %d",
-                self::BATCH_SIZE,
+                self::SYNC_BATCH_SIZE,
                 $offset
             )
         );
@@ -396,19 +603,57 @@ class Openvote_Batch_Processor {
 
     /**
      * Wykonaj pełen sync jednej grupy (wszystkie partie synchronicznie).
-     * Używany przy batch_sync_all_city_groups.
+     * Używany przy batch_sync_all_city_groups. Gdy podano $job, co SYNC_LOG_EVERY_USERS użytk. dopisuje linię do logu.
+     *
+     * @param int         $group_id
+     * @param string      $city_value
+     * @param array $job Referencja do job — do logu co SYNC_LOG_EVERY_USERS użytkowników (tylko przy sync_all).
      */
-    public static function run_full_sync( int $group_id, string $city_value ): int {
+    public static function run_full_sync( int $group_id, string $city_value, array &$job ): int {
         global $wpdb;
 
-        $total    = self::count_users_for_group( [ 'group_id' => $group_id, 'city_value' => $city_value ] );
-        $offset   = 0;
-        $added    = 0;
+        $total  = self::count_users_for_group( [ 'group_id' => $group_id, 'city_value' => $city_value ] );
+        $offset = 0;
+        $added  = 0;
+
+        $job['users_synced'] = isset( $job['users_synced'] ) ? (int) $job['users_synced'] : 0;
+
+        if ( ! isset( $job['logs'] ) || ! is_array( $job['logs'] ) ) {
+            $job['logs'] = [];
+        }
+        $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+            /* translators: 1: city name, 2: number of users */
+            __( 'Miasto %1$s: %2$d użytkowników do przetworzenia', 'openvote' ),
+            $city_value,
+            $total
+        );
+        $job_id = $job['params']['job_id'] ?? null;
+        if ( $job_id ) {
+            set_transient( $job_id, $job, HOUR_IN_SECONDS );
+        }
 
         while ( $offset < $total ) {
             $items  = self::batch_sync_group( [ 'group_id' => $group_id, 'city_value' => $city_value ], $offset );
-            $added += count( $items );
-            $offset += self::BATCH_SIZE;
+            $count  = count( $items );
+            $added += $count;
+            $offset += self::SYNC_BATCH_SIZE;
+
+            if ( $count > 0 ) {
+                $job['users_synced'] += $count;
+                $prev_250 = (int) floor( ( $job['users_synced'] - $count ) / self::SYNC_LOG_EVERY_USERS );
+                $curr_250 = (int) floor( $job['users_synced'] / self::SYNC_LOG_EVERY_USERS );
+                if ( $curr_250 > $prev_250 ) {
+                    $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                        /* translators: 1: number (e.g. 100), 2: total users synced so far */
+                        __( 'Przetworzono %1$d użytkowników (łącznie: %2$d)', 'openvote' ),
+                        self::SYNC_LOG_EVERY_USERS,
+                        $job['users_synced']
+                    );
+                    if ( $job_id ) {
+                        set_transient( $job_id, $job, HOUR_IN_SECONDS );
+                    }
+                }
+            }
         }
 
         return $added;
