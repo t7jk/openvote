@@ -732,6 +732,8 @@ $translations = [
 // Plural forms: msgid (singular) => [ msgstr[0] (en singular), msgstr[1] (en plural) ].
 $plural_translations = [
     'Użytkownik dodany do %d grupy.' => [ 'User added to %d group.', 'User added to %d groups.' ],
+    'Usunięto %d głosowanie.' => [ '%d poll deleted.', '%d polls deleted.' ],
+    'Zakończono %d głosowanie.' => [ '%d poll ended.', '%d polls ended.' ],
 ];
 
 $pot = file_get_contents( $pot_path );

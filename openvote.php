@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name:       Open Vote
- * Plugin URI:        https://wordpress.org/plugins/open-vote/
+ * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
  * Version:           1.0.0
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
  * Author:            Tomasz Kalinowski
- * Author URI:        mailto:t7jk@protonmail.com
+ * Author URI:        https://x.com/tomas3man
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       openvote

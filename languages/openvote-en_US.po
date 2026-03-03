@@ -3,20 +3,19 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: Open Vote\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-28 15:56+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2026-03-03 12:00+0100\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: admin/class-evoting-admin.php:26 admin/class-evoting-admin.php:27
 #: admin/class-evoting-admin.php:508 admin/partials/manual.php:62
@@ -105,8 +104,8 @@ msgstr "Add new"
 #, php-format
 msgid "Usunięto %d głosowanie."
 msgid_plural "Usunięto %d głosowań."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d poll deleted."
+msgstr[1] "%d polls deleted."
 
 #: admin/class-evoting-admin.php:522
 msgid "Głosowanie zostało uruchomione."
@@ -116,8 +115,8 @@ msgstr "Poll has been started."
 #, php-format
 msgid "Zakończono %d głosowanie."
 msgid_plural "Zakończono %d głosowań."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d poll ended."
+msgstr[1] "%d polls ended."
 
 #: admin/class-evoting-admin.php:535 admin/partials/poll-list.php:21
 msgid "Głosowanie zostało usunięte."
@@ -3729,7 +3728,7 @@ msgstr "Group does not exist."
 
 #: rest-api/class-evoting-groups-rest-controller.php:177
 msgid "Synchronizacja automatyczna działa tylko dla grup typu \"city\"."
-msgstr ""
+msgstr "Automatic sync only works for groups of type \"city\"."
 
 #: rest-api/class-evoting-groups-rest-controller.php:189
 msgid "Synchronizacja uruchomiona."

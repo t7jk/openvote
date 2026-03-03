@@ -24,6 +24,13 @@ Logika w `includes/class-openvote-i18n.php`: po załadowaniu domeny `openvote` d
    `php languages/make-en-us-po.php`  
    (skrypt uzupełnia msgstr z wbudowanego słownika PL→EN; brakujące wpisy trzeba dodać ręcznie).
 
+## Status tłumaczeń
+
+- **Źródło (msgid):** W kodzie wtyczki wszystkie napisy widoczne dla użytkownika są po **polsku** i w funkcjach `__()`, `_e()`, `esc_html__()` itd. z domeną `openvote`. Dla języka polskiego (pl_PL) wyświetlają się więc bez zmian.
+- **Angielski (en_US):** Plik `openvote-en_US.po` zawiera tłumaczenia PL → EN. Nagłówek ma `Language: en_US` i `Plural-Forms: nplurals=1; plural=0;`. Część długich tekstów (np. fragmenty podręcznika) może mieć jeszcze puste `msgstr` — po uzupełnieniu należy skompilować:  
+  `msgfmt -o languages/openvote-en_US.mo languages/openvote-en_US.po`
+- **Brak wymieszania:** Polski locale = tylko polskie napisy z kodu; angielski (i inne nie‑polskie) = ładowany jest `openvote-en_US.mo`, więc napisy po angielsku.
+
 ## Dodanie języka (np. niemiecki)
 
 1. Skopiuj `openvote.pot` do `openvote-de_DE.po`.
