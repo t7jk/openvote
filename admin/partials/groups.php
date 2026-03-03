@@ -26,8 +26,8 @@ if ( isset( $_GET['updated'] ) && sanitize_key( $_GET['updated'] ?? '' ) === '1'
 // Obsługa formularza (usuń sejmik, dodaj, członkowie) jest w Openvote_Admin::handle_groups_form_early() (admin_init, priorytet 1),
 // żeby przekierowanie odbywało się przed jakimkolwiek outputem (unika błędu "headers already sent" z motywem Blocksy).
 
-// Lista użytkowników do ręcznego dodawania do grup — limit 300 ze względu na wydajność przy dużej bazie (np. 10k+).
-$openvote_users_list_limit = 300;
+// Lista użytkowników do ręcznego dodawania do grup — limit 1000 ze względu na wydajność przy dużej bazie (np. 10k+).
+$openvote_users_list_limit = 1000;
 $all_users_for_groups = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
@@ -158,7 +158,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Użytkownik', 'openvote' ); ?></th>
-                    <th><?php esc_html_e( 'E-mail', 'openvote' ); ?></th>
+                    <th><?php esc_html_e( 'E-mail (zanonimizowany)', 'openvote' ); ?></th>
                     <th style="width:80px;"><?php esc_html_e( 'Źródło', 'openvote' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Dodano', 'openvote' ); ?></th>
                     <th style="width:80px;"><?php esc_html_e( 'Akcja', 'openvote' ); ?></th>
@@ -168,10 +168,14 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 <?php if ( empty( $members ) ) : ?>
                     <tr><td colspan="5"><?php esc_html_e( 'Brak członków.', 'openvote' ); ?></td></tr>
                 <?php else : ?>
-                    <?php foreach ( $members as $m ) : ?>
+                    <?php
+                    // Panel admina: e-mail zanonimizowany (np. jan.kowalski@gmail.com → ja..ko......@gm....co).
+                    foreach ( $members as $m ) :
+                        $email_display = Openvote_Vote::anonymize_email( $m->user_email ?? '' );
+                    ?>
                         <tr>
                             <td><?php echo esc_html( $m->display_name ); ?></td>
-                            <td><?php echo esc_html( $m->user_email ); ?></td>
+                            <td><code><?php echo esc_html( $email_display ); ?></code></td>
                             <td><?php echo esc_html( $m->source ); ?></td>
                             <td><?php echo esc_html( $m->added_at ); ?></td>
                             <td>
@@ -199,7 +203,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         <?php endif; ?>
         <?php if ( ( $page_offset + 100 ) < $total_members ) : ?>
             <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid . '&member_offset=' . ( $page_offset + 100 ) ) ); ?>"
-               class="button"><?php esc_html_e( 'Następne', 'openvote' ); ?> &raquo;</a>
+               class="button"><?php esc_html_e( 'Następny »', 'openvote' ); ?></a>
         <?php endif; ?>
 
         <?php endif; // if $group ?>
@@ -215,7 +219,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
             <input type="hidden" name="openvote_groups_action" value="add_user_to_groups">
             <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:16px;">
                 <div>
-                    <label for="openvote_add_user_id"><?php esc_html_e( 'Użytkownik', 'openvote' ); ?></label>
+                    <label for="openvote_add_user_id"><?php esc_html_e( 'Użytkownicy', 'openvote' ); ?></label>
                     <p class="description" style="margin:4px 0 6px;"><?php printf( esc_html__( 'Wybierz użytkownika z listy (max %d).', 'openvote' ), (int) $openvote_users_list_limit ); ?></p>
                     <select name="openvote_add_user_id" id="openvote_add_user_id" size="15" style="min-width:280px; display:block;">
                         <option value="">— <?php esc_html_e( 'Wybierz', 'openvote' ); ?> —</option>
@@ -243,6 +247,48 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 </div>
             </div>
         </form>
+    <?php endif; ?>
+
+    <?php // ─── Dodaj członka po adresie e-mail (nad „Dodaj sejmik”) ───────── ?>
+    <?php if ( ! empty( $groups ) ) : ?>
+    <hr>
+    <section class="openvote-groups-add-by-email" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
+        <h2 class="openvote-section-title" style="margin:0 0 16px; font-size:1.1em; font-weight:600; padding-bottom:8px; border-bottom:1px solid #eee;"><?php esc_html_e( 'Dodaj członka po adresie e-mail', 'openvote' ); ?></h2>
+        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i sejmiki, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
+        <form method="post" action="" id="openvote-add-member-by-email-form">
+            <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+            <input type="hidden" name="openvote_groups_action" value="add_user_to_groups">
+            <input type="hidden" name="openvote_add_user_id" id="openvote_member_email_search_user_id" value="">
+
+            <div style="display:flex; align-items:stretch; gap:20px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <label for="openvote_member_email_search_input" class="screen-reader-text"><?php esc_html_e( 'Szukaj po e-mailu', 'openvote' ); ?></label>
+                    <input type="text"
+                           id="openvote_member_email_search_input"
+                           autocomplete="off"
+                           placeholder="<?php esc_attr_e( 'Wpisz adres e-mail lub fragment...', 'openvote' ); ?>"
+                           style="width:100%; padding:8px 12px; margin-bottom:6px;">
+                    <div id="openvote_member_email_search_status" aria-live="polite" style="min-height:20px; font-size:12px; color:#646970;"></div>
+                    <div id="openvote_member_email_search_results" style="min-height:80px; border:1px solid #c3c4c7; border-radius:4px; background:#f6f7f7; max-height:200px; overflow-y:auto;"></div>
+                    <div id="openvote_member_email_selected_user" style="margin-top:8px; font-weight:600; color:#1d2327;"></div>
+                </div>
+
+                <div style="display:flex; align-items:center; flex-shrink:0;">
+                    <button type="submit" class="button button-primary" id="openvote_add_member_by_email_btn" disabled><?php esc_html_e( 'Dodaj >>', 'openvote' ); ?></button>
+                </div>
+
+                <div style="flex:1; min-width:200px;">
+                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></h3>
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele sejmików.', 'openvote' ); ?></p>
+                    <select name="openvote_user_groups[]" id="openvote_member_email_user_groups" multiple size="12" style="min-width:100%; display:block;">
+                        <?php foreach ( $groups as $g ) : ?>
+                            <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </section>
     <?php endif; ?>
 
     <?php // ─── Dodaj grupę ─────────────────────────────────────────────────── ?>
@@ -276,6 +322,123 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         <div id="openvote-sync-all-progress" style="margin-top:10px;"></div>
     </div>
 </div>
+
+<?php if ( ! empty( $groups ) ) : ?>
+<script>
+(function() {
+    var DEBOUNCE_MS = 400;
+    var MIN_CHARS = 2;
+    var searchInput = document.getElementById('openvote_member_email_search_input');
+    var searchStatus = document.getElementById('openvote_member_email_search_status');
+    var searchResults = document.getElementById('openvote_member_email_search_results');
+    var selectedDisplay = document.getElementById('openvote_member_email_selected_user');
+    var userIdInput = document.getElementById('openvote_member_email_search_user_id');
+    var addBtn = document.getElementById('openvote_add_member_by_email_btn');
+    var timer = null;
+    var lastQuery = '';
+
+    function setStatus(text) {
+        if (searchStatus) searchStatus.textContent = text || '';
+    }
+
+    function clearSelection() {
+        if (userIdInput) userIdInput.value = '';
+        if (selectedDisplay) selectedDisplay.textContent = '';
+        if (addBtn) addBtn.disabled = true;
+        updateAddButtonState();
+    }
+
+    function updateAddButtonState() {
+        var groupsSelect = document.getElementById('openvote_member_email_user_groups');
+        var hasUser = userIdInput && userIdInput.value && parseInt(userIdInput.value, 10) > 0;
+        var hasGroup = groupsSelect && groupsSelect.selectedOptions && groupsSelect.selectedOptions.length > 0;
+        if (addBtn) addBtn.disabled = !hasUser || !hasGroup;
+    }
+
+    function selectUser(id, label) {
+        if (userIdInput) userIdInput.value = id;
+        if (selectedDisplay) selectedDisplay.textContent = label;
+        if (searchResults) searchResults.innerHTML = '';
+        setStatus('');
+        updateAddButtonState();
+    }
+
+    function runSearch() {
+        var q = (searchInput && searchInput.value) ? searchInput.value.trim() : '';
+        if (q.length < MIN_CHARS) {
+            setStatus('');
+            if (searchResults) searchResults.innerHTML = '';
+            clearSelection();
+            return;
+        }
+        lastQuery = q;
+        setStatus('<?php echo esc_js( __( 'Szukam…', 'openvote' ) ); ?>');
+        if (searchResults) searchResults.innerHTML = '';
+
+        var apiRoot = <?php echo json_encode( esc_url_raw( rest_url( 'openvote/v1' ) ) ); ?>;
+        var nonce = <?php echo json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
+
+        fetch( apiRoot + '/users/search-by-email?email=' + encodeURIComponent(q), {
+            method: 'GET',
+            headers: { 'X-WP-Nonce': nonce },
+            credentials: 'same-origin'
+        } )
+            .then(function(r) {
+                if (!r.ok) {
+                    return r.json().then(function(err) {
+                        throw new Error(err && err.message ? err.message : r.statusText || 'Błąd ' + r.status);
+                    }).catch(function() {
+                        throw new Error(r.statusText || 'Błąd ' + r.status);
+                    });
+                }
+                return r.json();
+            })
+            .then(function(data) {
+                if (lastQuery !== (searchInput && searchInput.value ? searchInput.value.trim() : '')) return;
+                setStatus('');
+                if (!searchResults) return;
+                if (!Array.isArray(data) || data.length === 0) {
+                    searchResults.innerHTML = '<p style="margin:8px 12px; color:#646970;"><?php echo esc_js( __( 'Brak wyników.', 'openvote' ) ); ?></p>';
+                    return;
+                }
+                searchResults.innerHTML = '';
+                data.forEach(function(item) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'button button-small';
+                    btn.style.cssText = 'display:block; width:100%; text-align:left; margin:4px 8px; padding:6px 10px;';
+                    btn.textContent = item.label + ' (' + item.email + ')';
+                    btn.addEventListener('click', function() { selectUser(item.id, item.label); });
+                    searchResults.appendChild(btn);
+                });
+            })
+            .catch(function(err) {
+                if (lastQuery !== (searchInput && searchInput.value ? searchInput.value.trim() : '')) return;
+                setStatus(err && err.message ? err.message : '<?php echo esc_js( __( 'Błąd wyszukiwania.', 'openvote' ) ); ?>');
+            });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearSelection();
+            if (timer) clearTimeout(timer);
+            var q = searchInput.value.trim();
+            if (q.length < MIN_CHARS) {
+                setStatus('');
+                if (searchResults) searchResults.innerHTML = '';
+                return;
+            }
+            timer = setTimeout(runSearch, DEBOUNCE_MS);
+        });
+        searchInput.addEventListener('focus', function() {
+            if (searchInput.value.trim().length >= MIN_CHARS && searchResults && !searchResults.innerHTML) runSearch();
+        });
+    }
+    var groupsSelect = document.getElementById('openvote_member_email_user_groups');
+    if (groupsSelect) groupsSelect.addEventListener('change', updateAddButtonState);
+})();
+</script>
+<?php endif; ?>
 
 <style>
 .openvote-progress-wrap { display:flex; align-items:center; gap:12px; margin:4px 0; }

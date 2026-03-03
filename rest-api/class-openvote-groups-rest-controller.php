@@ -233,13 +233,15 @@ class Openvote_Groups_Rest_Controller {
             )
         );
 
-        $data = array_map( fn( $m ) => [
-            'user_id'      => (int) $m->user_id,
-            'display_name' => $m->display_name,
-            'email'        => $m->user_email,
-            'source'       => $m->source,
-            'added_at'     => $m->added_at,
-        ], $members );
+        $data = array_map( function ( $m ) {
+            return [
+                'user_id'      => (int) $m->user_id,
+                'display_name' => $m->display_name,
+                'email'        => Openvote_Vote::anonymize_email( $m->user_email ?? '' ),
+                'source'       => $m->source,
+                'added_at'     => $m->added_at,
+            ];
+        }, $members );
 
         return new WP_REST_Response( [
             'group_id' => $group_id,

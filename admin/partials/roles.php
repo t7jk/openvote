@@ -8,8 +8,8 @@ $poll_admins = Openvote_Role_Manager::get_poll_admins();
 $editors     = Openvote_Role_Manager::get_poll_editors();
 $current_uid = get_current_user_id();
 
-// Lista do wyboru koordynatora — limit 300 ze względu na wydajność przy dużej bazie (np. 10k+).
-$openvote_roles_list_limit = 300;
+// Lista do wyboru koordynatora — limit 1000 ze względu na wydajność przy dużej bazie (np. 10k+).
+$openvote_roles_list_limit = 1000;
 $all_users_for_role = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
