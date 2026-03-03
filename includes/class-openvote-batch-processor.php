@@ -876,6 +876,50 @@ class Openvote_Batch_Processor {
                     $failed[ $row->id ] = $result['error'];
                 }
             }
+        } elseif ( 'brevo' === $method || 'brevo_paid' === $method ) {
+            $recipients = [];
+            foreach ( $rows as $row ) {
+                $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
+            }
+            $content_type_brevo = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $result = Openvote_Mailer::send_via_brevo( $recipients, $subject, $message, '', $content_type_brevo );
+            foreach ( $rows as $row ) {
+                if ( $result['sent'] > 0 ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            }
+        } elseif ( 'freshmail' === $method ) {
+            $recipients = [];
+            foreach ( $rows as $row ) {
+                $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
+            }
+            $content_type_fm = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $result = Openvote_Mailer::send_via_freshmail( $recipients, $subject, $message, '', '', $content_type_fm );
+            $all_sent = ( $result['sent'] === count( $rows ) );
+            foreach ( $rows as $row ) {
+                if ( $all_sent ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            }
+        } elseif ( 'getresponse' === $method ) {
+            $recipients = [];
+            foreach ( $rows as $row ) {
+                $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
+            }
+            $content_type_gr = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $result = Openvote_Mailer::send_via_getresponse( $recipients, $subject, $message, '', '', $content_type_gr );
+            $all_sent = ( $result['sent'] === count( $rows ) );
+            foreach ( $rows as $row ) {
+                if ( $all_sent ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            }
         } else {
             $from_email   = openvote_get_from_email();
             $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );

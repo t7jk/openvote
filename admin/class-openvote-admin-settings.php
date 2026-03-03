@@ -116,7 +116,21 @@ class Openvote_Admin_Settings {
         update_option( 'openvote_from_email', $from_email, false );
 
         $raw_method  = sanitize_key( wp_unslash( $_POST['openvote_mail_method'] ?? 'wordpress' ) );
-        $mail_method = in_array( $raw_method, [ 'wordpress', 'smtp', 'sendgrid' ], true ) ? $raw_method : 'wordpress';
+        $allowed     = [ 'wordpress', 'smtp', 'sendgrid', 'brevo', 'brevo_paid', 'freshmail', 'getresponse' ];
+        $mail_method = in_array( $raw_method, $allowed, true ) ? $raw_method : 'wordpress';
+
+        // WordPress (PHP-mail) niedostępne gdy w systemie > 250 adresów e-mail.
+        if ( $mail_method === 'wordpress' ) {
+            global $wpdb;
+            $email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != '' AND user_email IS NOT NULL" );
+            if ( $email_count > 250 ) {
+                $mail_method = get_option( 'openvote_mail_method', 'smtp' );
+                if ( ! in_array( $mail_method, $allowed, true ) ) {
+                    $mail_method = 'smtp';
+                }
+                set_transient( 'openvote_settings_error', __( 'WordPress (PHP-mail) jest niedostępne przy ponad 250 adresach e-mail w systemie. Zachowano poprzednią metodę.', 'openvote' ), 30 );
+            }
+        }
         update_option( 'openvote_mail_method', $mail_method, false );
 
         update_option( 'openvote_smtp_host',       sanitize_text_field( wp_unslash( $_POST['openvote_smtp_host']       ?? '' ) ), false );
@@ -133,17 +147,53 @@ class Openvote_Admin_Settings {
         }
 
         // SendGrid API key — zapisuj tylko gdy niepuste (zachowaj stary jeśli pole puste).
-        if ( isset( $_POST['openvote_sendgrid_api_key'] ) && '' !== trim( $_POST['openvote_sendgrid_api_key'] ) ) {
+        if ( isset( $_POST['openvote_sendgrid_api_key'] ) && '' !== trim( (string) $_POST['openvote_sendgrid_api_key'] ) ) {
             update_option( 'openvote_sendgrid_api_key', sanitize_text_field( wp_unslash( $_POST['openvote_sendgrid_api_key'] ) ), false );
         }
 
-        // Parametry wysyłki masowej.
-        $batch_size = isset( $_POST['openvote_email_batch_size'] ) ? absint( $_POST['openvote_email_batch_size'] ) : 0;
-        $batch_size = min( 1000, $batch_size ); // max 1000
-        update_option( 'openvote_email_batch_size', $batch_size, false );
+        // Brevo API key — zapisuj tylko gdy niepuste (wspólny dla brevo i brevo_paid).
+        if ( isset( $_POST['openvote_brevo_api_key'] ) && '' !== trim( (string) $_POST['openvote_brevo_api_key'] ) ) {
+            update_option( 'openvote_brevo_api_key', sanitize_text_field( wp_unslash( $_POST['openvote_brevo_api_key'] ) ), false );
+        }
 
-        $batch_delay = isset( $_POST['openvote_email_batch_delay'] ) ? absint( $_POST['openvote_email_batch_delay'] ) : 0;
-        $batch_delay = min( 60, $batch_delay ); // max 60 s
+        // Freshmail: klucz API i sekret.
+        if ( isset( $_POST['openvote_freshmail_api_key'] ) ) {
+            update_option( 'openvote_freshmail_api_key', sanitize_text_field( wp_unslash( $_POST['openvote_freshmail_api_key'] ) ), false );
+        }
+        if ( isset( $_POST['openvote_freshmail_api_secret'] ) ) {
+            update_option( 'openvote_freshmail_api_secret', sanitize_text_field( wp_unslash( $_POST['openvote_freshmail_api_secret'] ) ), false );
+        }
+
+        // GetResponse: klucz API i From Field ID.
+        if ( isset( $_POST['openvote_getresponse_api_key'] ) ) {
+            update_option( 'openvote_getresponse_api_key', sanitize_text_field( wp_unslash( $_POST['openvote_getresponse_api_key'] ) ), false );
+        }
+        if ( isset( $_POST['openvote_getresponse_from_field_id'] ) ) {
+            update_option( 'openvote_getresponse_from_field_id', sanitize_text_field( wp_unslash( $_POST['openvote_getresponse_from_field_id'] ) ), false );
+        }
+
+        // Parametry wysyłki masowej — limity per metoda (cap / min delay).
+        $batch_size_raw = isset( $_POST['openvote_email_batch_size'] ) ? absint( $_POST['openvote_email_batch_size'] ) : 0;
+        $batch_delay_raw = isset( $_POST['openvote_email_batch_delay'] ) ? absint( $_POST['openvote_email_batch_delay'] ) : 0;
+
+        if ( $mail_method === 'wordpress' ) {
+            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_MAX, $batch_size_raw ) : 0;
+            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN, $batch_delay_raw ) : 0;
+        } elseif ( $mail_method === 'smtp' ) {
+            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX, $batch_size_raw ) : 0;
+            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN, $batch_delay_raw ) : 0;
+        } elseif ( $mail_method === 'brevo' ) {
+            $batch_size = $batch_size_raw > 0 ? min( OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX, $batch_size_raw ) : 0;
+            $batch_delay = $batch_delay_raw > 0 ? max( OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN, $batch_delay_raw ) : 0;
+        } elseif ( $mail_method === 'freshmail' || $mail_method === 'getresponse' ) {
+            $batch_size = $batch_size_raw > 0 ? min( 1000, max( 1, $batch_size_raw ) ) : 0;
+            $batch_delay = $batch_delay_raw > 0 ? max( 1, min( 86400, $batch_delay_raw ) ) : 0;
+        } else {
+            // sendgrid, brevo_paid — bez cap (max 1000, min 1 s)
+            $batch_size = $batch_size_raw > 0 ? min( 1000, $batch_size_raw ) : 0;
+            $batch_delay = $batch_delay_raw > 0 ? max( 1, min( 86400, $batch_delay_raw ) ) : 0;
+        }
+        update_option( 'openvote_email_batch_size', $batch_size, false );
         update_option( 'openvote_email_batch_delay', $batch_delay, false );
 
         $short_name = isset( $_POST['openvote_brand_short_name'] ) ? sanitize_text_field( wp_unslash( $_POST['openvote_brand_short_name'] ) ) : '';

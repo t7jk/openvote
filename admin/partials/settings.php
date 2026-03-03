@@ -65,6 +65,13 @@ function openvote_settings_select( string $logical, string $current, array $core
             <p><?php esc_html_e( 'Konfiguracja została zapisana.', 'openvote' ); ?></p>
         </div>
     <?php endif; ?>
+    <?php
+    $openvote_settings_error = get_transient( 'openvote_settings_error' );
+    if ( $openvote_settings_error ) {
+        delete_transient( 'openvote_settings_error' );
+        ?>
+        <div class="notice notice-warning is-dismissible"><p><?php echo esc_html( $openvote_settings_error ); ?></p></div>
+    <?php } ?>
     <?php if ( isset( $_GET['page_created'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
             <p><?php esc_html_e( 'Strona głosowania została utworzona. Możesz ją edytować w Strony lub przejść pod skonfigurowany adres.', 'openvote' ); ?></p>
@@ -114,7 +121,35 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
 
         <div class="openvote-settings-email-section">
+        <?php
+        global $wpdb;
+        $email_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != '' AND user_email IS NOT NULL" );
+        $mail_method    = openvote_get_mail_method();
+        $smtp           = openvote_get_smtp_config();
+        $sg_api_key     = openvote_get_sendgrid_api_key();
+        $brevo_api_key  = openvote_get_brevo_api_key();
+        $freshmail_key  = openvote_get_freshmail_api_key();
+        $freshmail_sec  = openvote_get_freshmail_api_secret();
+        $getresponse_key = openvote_get_getresponse_api_key();
+        $getresponse_ff  = openvote_get_getresponse_from_field_id();
+        $email_batch    = (int) get_option( 'openvote_email_batch_size', 0 );
+        $email_delay    = (int) get_option( 'openvote_email_batch_delay', 0 );
+        $admin_email    = wp_get_current_user()->user_email;
+        $default_invitation_test_to = 'email@poczta.pl';
+        $wp_mail_disabled = $email_count > 250;
+        ?>
         <table class="form-table openvote-settings-email-section__table" role="presentation">
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Liczba adresów e-mail w systemie', 'openvote' ); ?></th>
+                <td>
+                    <p class="description" style="margin:0;">
+                        <?php printf( esc_html__( 'Obecna liczba adresów e-mail w systemie: %s', 'openvote' ), '<strong>' . (int) $email_count . '</strong>' ); ?>
+                        <?php if ( $wp_mail_disabled ) : ?>
+                            <br><span style="color:#b32d2e;"><?php esc_html_e( 'WordPress (PHP-mail) jest niedostępne przy ponad 250 adresach.', 'openvote' ); ?></span>
+                        <?php endif; ?>
+                    </p>
+                </td>
+            </tr>
             <tr>
                 <th scope="row"><label for="openvote_from_email"><?php esc_html_e( 'E-mail nadawcy', 'openvote' ); ?></label></th>
                 <td>
@@ -127,60 +162,72 @@ function openvote_settings_select( string $logical, string $current, array $core
                     </p>
                 </td>
             </tr>
-            <?php
-            $mail_method    = openvote_get_mail_method();
-            $smtp           = openvote_get_smtp_config();
-            $sg_api_key     = openvote_get_sendgrid_api_key();
-            $email_batch    = (int) get_option( 'openvote_email_batch_size', 0 );
-            $email_delay    = (int) get_option( 'openvote_email_batch_delay', 0 );
-            $admin_email    = wp_get_current_user()->user_email;
-            ?>
             <tr>
                 <th scope="row"><?php esc_html_e( 'Metoda wysyłki', 'openvote' ); ?></th>
                 <td>
                     <label style="display:block;margin-bottom:8px;">
                         <input type="radio" name="openvote_mail_method" value="wordpress"
                                id="openvote_mail_wp"
-                               <?php checked( $mail_method, 'wordpress' ); ?> />
-                        <strong><?php esc_html_e( 'WordPress (php mail)', 'openvote' ); ?></strong>
-                        &nbsp;<span class="description"><?php esc_html_e( 'Bez konfiguracji, zalecane do ~50 odbiorców.', 'openvote' ); ?></span>
+                               <?php disabled( $wp_mail_disabled ); ?> <?php checked( $mail_method, 'wordpress' ); ?> />
+                        <strong><?php esc_html_e( 'WordPress (PHP-mail)', 'openvote' ); ?></strong>
                     </label>
                     <label style="display:block;margin-bottom:8px;">
                         <input type="radio" name="openvote_mail_method" value="smtp"
                                id="openvote_mail_smtp"
                                <?php checked( $mail_method, 'smtp' ); ?> />
-                        <strong><?php esc_html_e( 'Zewnętrzny serwer SMTP', 'openvote' ); ?></strong>
-                        &nbsp;<span class="description"><?php esc_html_e( 'Gmail, Outlook itp. — zalecane do ~500 odbiorców.', 'openvote' ); ?></span>
+                        <strong><?php esc_html_e( 'SMTP zewnętrzny', 'openvote' ); ?></strong>
                     </label>
-                    <label style="display:block;">
+                    <label style="display:block;margin-bottom:8px;">
                         <input type="radio" name="openvote_mail_method" value="sendgrid"
                                id="openvote_mail_sendgrid"
                                <?php checked( $mail_method, 'sendgrid' ); ?> />
                         <strong><?php esc_html_e( 'SendGrid API', 'openvote' ); ?></strong>
-                        &nbsp;<span class="description"><?php esc_html_e( 'HTTP API, port 443 — zalecane dla 500–10 000+ odbiorców.', 'openvote' ); ?></span>
+                    </label>
+                    <label style="display:block;margin-bottom:8px;">
+                        <input type="radio" name="openvote_mail_method" value="brevo"
+                               id="openvote_mail_brevo"
+                               <?php checked( $mail_method, 'brevo' ); ?> />
+                        <strong><?php esc_html_e( 'BREVO (free)', 'openvote' ); ?></strong>
+                    </label>
+                    <label style="display:block;margin-bottom:8px;">
+                        <input type="radio" name="openvote_mail_method" value="brevo_paid"
+                               id="openvote_mail_brevo_paid"
+                               <?php checked( $mail_method, 'brevo_paid' ); ?> />
+                        <strong><?php esc_html_e( 'BREVO (płatne)', 'openvote' ); ?></strong>
+                    </label>
+                    <label style="display:block;margin-bottom:8px;">
+                        <input type="radio" name="openvote_mail_method" value="freshmail"
+                               id="openvote_mail_freshmail"
+                               <?php checked( $mail_method, 'freshmail' ); ?> />
+                        <strong><?php esc_html_e( 'Freshmail API', 'openvote' ); ?></strong>
+                    </label>
+                    <label style="display:block;">
+                        <input type="radio" name="openvote_mail_method" value="getresponse"
+                               id="openvote_mail_getresponse"
+                               <?php checked( $mail_method, 'getresponse' ); ?> />
+                        <strong><?php esc_html_e( 'GetResponse API', 'openvote' ); ?></strong>
                     </label>
                 </td>
             </tr>
             <tr>
-                <th scope="row"><label for="openvote_test_email_to"><?php esc_html_e( 'Wyślij e-mail testowy', 'openvote' ); ?></label></th>
+                <th scope="row"><label for="openvote_test_invitation_to"><?php esc_html_e( 'Wyślij test e-mail', 'openvote' ); ?></label></th>
                 <td>
-                    <input type="email" name="openvote_test_email_to" id="openvote_test_email_to"
-                           value="<?php echo esc_attr( $admin_email ); ?>"
-                           class="regular-text" style="max-width:320px;"
-                           placeholder="<?php echo esc_attr( $admin_email ); ?>" />
-                    <button type="button" class="button" id="openvote-test-email-btn" style="margin-left:8px;">
-                        <?php esc_html_e( 'Wyślij testowy e-mail', 'openvote' ); ?>
+                    <input type="email" id="openvote_test_invitation_to" class="regular-text" style="max-width:320px;"
+                           value="<?php echo esc_attr( $default_invitation_test_to ); ?>"
+                           placeholder="<?php echo esc_attr( $default_invitation_test_to ); ?>" />
+                    <button type="button" class="button button-primary" id="openvote-test-invitation-btn" style="margin-left:12px;">
+                        <?php esc_html_e( 'Wyślij e-mail testowy.', 'openvote' ); ?>
                     </button>
-                    <span id="openvote-test-email-result" style="margin-left:12px;font-weight:500;"></span>
+                    <span id="openvote-test-invitation-result" style="margin-left:12px;font-weight:500;"></span>
                     <p class="description" style="margin-top:6px;">
-                        <?php esc_html_e( 'Używa zapisanej konfiguracji (nadawca, metoda). Stała treść: test z systemu Open Vote.', 'openvote' ); ?>
+                        <?php esc_html_e( 'Wysyła na podany adres z treścią zaproszenia (HTML). Używana jest metoda zaznaczona powyżej.', 'openvote' ); ?>
                     </p>
                 </td>
             </tr>
         </table>
 
-        <?php /* ── SMTP ── */ ?>
-        <div id="openvote-smtp-fields" class="openvote-settings-email-section__smtp" style="<?php echo $mail_method === 'smtp' ? '' : 'display:none;'; ?>margin-top:0;">
+        <?php /* ── SMTP (zawsze widoczny) ── */ ?>
+        <div id="openvote-smtp-fields" class="openvote-settings-email-section__smtp" style="margin-top:0;">
             <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja serwera SMTP', 'openvote' ); ?></h3>
             <table class="form-table" role="presentation" style="max-width:780px;">
                 <tr>
@@ -230,22 +277,36 @@ function openvote_settings_select( string $logical, string $current, array $core
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Test połączenia', 'openvote' ); ?></th>
-                    <td>
-                        <button type="button" class="button" id="openvote-smtp-test">
-                            <?php esc_html_e( 'Wyślij testowy e-mail', 'openvote' ); ?>
-                        </button>
-                        <span id="openvote-smtp-test-result" style="margin-left:12px;font-weight:500;"></span>
-                        <p class="description" style="margin-top:4px;">
-                            <?php printf( esc_html__( 'Testowy e-mail zostanie wysłany na: %s', 'openvote' ), '<strong>' . esc_html( $admin_email ) . '</strong>' ); ?>
+                    <td colspan="2" style="padding-top:16px;">
+                        <h4 style="margin:0 0 6px;font-size:13px;"><?php esc_html_e( 'Parametry wysyłki masowej', 'openvote' ); ?></h4>
+                        <p class="description" style="margin-bottom:10px;">
+                            <?php esc_html_e( 'Te parametry dotyczą tylko wysyłki przez zewnętrzny serwer SMTP. Puste pola = wartości domyślne (100 na partię, 900 s pauzy).', 'openvote' ); ?>
                         </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="openvote_email_batch_size"><?php esc_html_e( 'Liczba e-maili na partię', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="number" name="openvote_email_batch_size" id="openvote_email_batch_size"
+                               value="<?php echo esc_attr( $email_batch > 0 ? $email_batch : '' ); ?>"
+                               class="small-text" min="1" max="100" placeholder="100" />
+                        <p class="description"><?php esc_html_e( 'Maks. 100 dla SMTP. Czas oczekiwania między partiami w przeglądarce admina.', 'openvote' ); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="openvote_email_batch_delay"><?php esc_html_e( 'Pauza między partiami (sekundy)', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="number" name="openvote_email_batch_delay" id="openvote_email_batch_delay"
+                               value="<?php echo esc_attr( $email_delay > 0 ? $email_delay : '' ); ?>"
+                               class="small-text" min="1" max="86400" placeholder="900" />
+                        <p class="description"><?php esc_html_e( 'Min. 900 s (15 min) dla SMTP. Czas oczekiwania między partiami w przeglądarce admina.', 'openvote' ); ?></p>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <?php /* ── SendGrid ── */ ?>
-        <div id="openvote-sendgrid-fields" class="openvote-settings-email-section__sendgrid" style="<?php echo $mail_method === 'sendgrid' ? '' : 'display:none;'; ?>margin-top:0;">
+        <?php /* ── SendGrid (zawsze widoczny) ── */ ?>
+        <div id="openvote-sendgrid-fields" class="openvote-settings-email-section__sendgrid" style="margin-top:0;">
             <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja SendGrid API', 'openvote' ); ?></h3>
             <p class="description" style="margin-bottom:12px;max-width:780px;">
                 <?php
@@ -269,155 +330,226 @@ function openvote_settings_select( string $logical, string $current, array $core
                         </p>
                     </td>
                 </tr>
+            </table>
+        </div>
+
+        <?php /* ── BREVO (zawsze widoczny) ── */ ?>
+        <div id="openvote-brevo-fields" class="openvote-settings-email-section__brevo" style="margin-top:0;">
+            <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja BREVO API', 'openvote' ); ?></h3>
+            <p class="description" style="margin-bottom:12px;max-width:780px;">
+                <?php
+                printf(
+                    /* translators: 1: opening <a> tag, 2: closing </a> */
+                    esc_html__( 'Brevo (dawniej Sendinblue): %1$sbrevo.com%2$s. Klucz API: Logowanie → SMTP & API → API Keys → Generate a new API key. Wspólny dla BREVO (free) i BREVO (płatne).', 'openvote' ),
+                    '<a href="' . esc_url( 'https://www.brevo.com' ) . '" target="_blank" rel="noopener noreferrer">',
+                    '</a>'
+                );
+                ?>
+            </p>
+            <table class="form-table" role="presentation" style="max-width:780px;">
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Test połączenia', 'openvote' ); ?></th>
+                    <th scope="row"><label for="openvote_brevo_api_key"><?php esc_html_e( 'Klucz API BREVO', 'openvote' ); ?></label></th>
                     <td>
-                        <button type="button" class="button" id="openvote-sendgrid-test">
-                            <?php esc_html_e( 'Wyślij testowy e-mail', 'openvote' ); ?>
-                        </button>
-                        <span id="openvote-sendgrid-test-result" style="margin-left:12px;font-weight:500;"></span>
-                        <p class="description" style="margin-top:4px;">
-                            <?php printf( esc_html__( 'Testowy e-mail zostanie wysłany na: %s', 'openvote' ), '<strong>' . esc_html( $admin_email ) . '</strong>' ); ?>
+                        <input type="password" name="openvote_brevo_api_key" id="openvote_brevo_api_key"
+                               value="<?php echo esc_attr( $brevo_api_key ); ?>"
+                               class="regular-text" placeholder="xkeysib-..." autocomplete="off" />
+                        <p class="description">
+                            <?php esc_html_e( 'Utwórz klucz w panelu Brevo → SMTP & API → API Keys.', 'openvote' ); ?>
                         </p>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <?php /* ── Parametry wysyłki masowej (widoczne zawsze) ── */ ?>
-        <h3 class="openvote-settings-email-section__batch-title"><?php esc_html_e( 'Parametry wysyłki masowej', 'openvote' ); ?></h3>
-        <p class="description openvote-settings-email-section__batch-desc">
-            <?php esc_html_e( 'Kontrola tempa wysyłki e-maili przy dużych grupach odbiorców. Puste pola = wartości domyślne (20 e-maili / 3 s dla WP/SMTP; 100 e-maili / 2 s dla SendGrid).', 'openvote' ); ?>
+        <?php /* ── Freshmail (zawsze widoczny) ── */ ?>
+        <div id="openvote-freshmail-fields" class="openvote-settings-email-section__freshmail" style="margin-top:0;">
+            <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja Freshmail API', 'openvote' ); ?></h3>
+            <p class="description" style="margin-bottom:12px;max-width:780px;">
+                <?php
+                printf(
+                    /* translators: 1: opening <a> tag, 2: closing </a> */
+                    esc_html__( 'Freshmail: %1$sfreshmail.com%2$s. Klucz API i sekret: Subskrypcja → Zaawansowane → API. Używane do wysyłki e-maili transakcyjnych.', 'openvote' ),
+                    '<a href="' . esc_url( 'https://www.freshmail.com' ) . '" target="_blank" rel="noopener noreferrer">',
+                    '</a>'
+                );
+                ?>
+            </p>
+            <table class="form-table" role="presentation" style="max-width:780px;">
+                <tr>
+                    <th scope="row"><label for="openvote_freshmail_api_key"><?php esc_html_e( 'Klucz API Freshmail', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="password" name="openvote_freshmail_api_key" id="openvote_freshmail_api_key"
+                               value="<?php echo esc_attr( $freshmail_key ); ?>"
+                               class="regular-text" autocomplete="off" />
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="openvote_freshmail_api_secret"><?php esc_html_e( 'Sekret API Freshmail', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="password" name="openvote_freshmail_api_secret" id="openvote_freshmail_api_secret"
+                               value="<?php echo esc_attr( $freshmail_sec ); ?>"
+                               class="regular-text" autocomplete="off" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <?php /* ── GetResponse (zawsze widoczny) ── */ ?>
+        <div id="openvote-getresponse-fields" class="openvote-settings-email-section__getresponse" style="margin-top:0;">
+            <h3 style="margin:16px 0 8px;padding-left:2px;"><?php esc_html_e( 'Konfiguracja GetResponse API', 'openvote' ); ?></h3>
+            <p class="description" style="margin-bottom:12px;max-width:780px;">
+                <?php
+                printf(
+                    /* translators: 1: opening <a> tag, 2: closing </a> */
+                    esc_html__( 'GetResponse: %1$sgetresponse.com%2$s. E-maile transakcyjne wymagają dodatku Transactional (np. GetResponse MAX). Klucz API: Integracje → API. From Field ID: pole nadawcy z panelu lub GET /from-fields.', 'openvote' ),
+                    '<a href="' . esc_url( 'https://www.getresponse.com' ) . '" target="_blank" rel="noopener noreferrer">',
+                    '</a>'
+                );
+                ?>
+            </p>
+            <table class="form-table" role="presentation" style="max-width:780px;">
+                <tr>
+                    <th scope="row"><label for="openvote_getresponse_api_key"><?php esc_html_e( 'Klucz API GetResponse', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="password" name="openvote_getresponse_api_key" id="openvote_getresponse_api_key"
+                               value="<?php echo esc_attr( $getresponse_key ); ?>"
+                               class="regular-text" autocomplete="off" />
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="openvote_getresponse_from_field_id"><?php esc_html_e( 'From Field ID', 'openvote' ); ?></label></th>
+                    <td>
+                        <input type="text" name="openvote_getresponse_from_field_id" id="openvote_getresponse_from_field_id"
+                               value="<?php echo esc_attr( $getresponse_ff ); ?>"
+                               class="regular-text" placeholder="np. ufIK" />
+                        <p class="description"><?php esc_html_e( 'ID pola nadawcy (z API from-fields lub panelu GetResponse).', 'openvote' ); ?></p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h3 style="margin:20px 0 8px;padding-left:2px;"><?php esc_html_e( 'Warunki wysyłki e-maili', 'openvote' ); ?></h3>
+        <p class="description" style="margin-bottom:10px;max-width:900px;">
+            <?php esc_html_e( 'Poniższa tabela opisuje ograniczenia i zalecenia dla każdej metody wysyłki w systemie Open Vote.', 'openvote' ); ?>
         </p>
-        <table class="form-table openvote-settings-email-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_email_batch_size"><?php esc_html_e( 'Liczba e-maili na partię', 'openvote' ); ?></label></th>
-                <td>
-                    <input type="number" name="openvote_email_batch_size" id="openvote_email_batch_size"
-                           value="<?php echo esc_attr( $email_batch > 0 ? $email_batch : '' ); ?>"
-                           class="small-text" min="1" max="1000" placeholder="<?php echo esc_attr( $mail_method === 'sendgrid' ? '100' : '20' ); ?>" />
-                    <p class="description"><?php esc_html_e( 'Dla SMTP/WP zalecane 10–50. Dla SendGrid do 1000.', 'openvote' ); ?></p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><label for="openvote_email_batch_delay"><?php esc_html_e( 'Pauza między partiami (sekundy)', 'openvote' ); ?></label></th>
-                <td>
-                    <input type="number" name="openvote_email_batch_delay" id="openvote_email_batch_delay"
-                           value="<?php echo esc_attr( $email_delay > 0 ? $email_delay : '' ); ?>"
-                           class="small-text" min="1" max="60" placeholder="<?php echo esc_attr( $mail_method === 'sendgrid' ? '2' : '3' ); ?>" />
-                    <p class="description"><?php esc_html_e( 'Czas oczekiwania między partiami w przeglądarce admina.', 'openvote' ); ?></p>
-                </td>
-            </tr>
+        <table class="widefat striped" style="max-width:900px;" role="presentation">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e( 'Metoda', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Dostępność / limit adresów', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Maks. rozmiar partii', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Min. pauza między partiami', 'openvote' ); ?></th>
+                    <th scope="col"><?php esc_html_e( 'Uwagi', 'openvote' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="5" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Bezpłatne usługi:', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'BREVO (free)', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Zawsze dostępne. Jedyny limit Brevo: 300 e-maili na 24 h.', 'openvote' ); ?></td>
+                    <td>100</td>
+                    <td>1200 s (20 min)</td>
+                    <td><?php esc_html_e( 'Konto darmowe Brevo. Wtyczka: max 100 na partię, min. 20 min pauzy, aby zmieścić się w limicie 300/24 h.', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'WordPress (PHP-mail)', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Dostępne tylko przy nie więcej niż 250 adresach e-mail w systemie.', 'openvote' ); ?></td>
+                    <td>80</td>
+                    <td>900 s (15 min)</td>
+                    <td><?php esc_html_e( 'Bez konfiguracji. Zalecane do małych instalacji.', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'SMTP zewnętrzny', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Zawsze dostępne (wymaga konfiguracji serwera).', 'openvote' ); ?></td>
+                    <td>100</td>
+                    <td>900 s (15 min)</td>
+                    <td><?php esc_html_e( 'Limity zależą od dostawcy (np. Gmail, Outlook).', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Abonamentowe usługi:', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'BREVO (płatne)', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Zawsze dostępne (limity zależne od planu Brevo).', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'Freshmail API', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API i sekretu).', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'GetResponse API', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Wymaga dodatku Transactional (np. GetResponse MAX).', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy. Potrzebny From Field ID z panelu lub API.', 'openvote' ); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e( 'SendGrid API', 'openvote' ); ?></strong></td>
+                    <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API).', 'openvote' ); ?></td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td><?php esc_html_e( 'Brak limitów w wtyczce. Limity zależą od abonamentu u dostawcy.', 'openvote' ); ?></td>
+                </tr>
+            </tbody>
         </table>
         </div>
 
         <script>
         (function(){
-            var radioWp       = document.getElementById('openvote_mail_wp');
-            var radioSmtp     = document.getElementById('openvote_mail_smtp');
-            var radioSg       = document.getElementById('openvote_mail_sendgrid');
-            var smtpBox       = document.getElementById('openvote-smtp-fields');
-            var sgBox         = document.getElementById('openvote-sendgrid-fields');
-            var batchSizeIn   = document.getElementById('openvote_email_batch_size');
-            var batchDelayIn  = document.getElementById('openvote_email_batch_delay');
-
-            function toggleMethod(){
-                var isSg   = radioSg   && radioSg.checked;
-                var isSmtp = radioSmtp && radioSmtp.checked;
-                if(smtpBox) smtpBox.style.display = isSmtp ? '' : 'none';
-                if(sgBox)   sgBox.style.display   = isSg   ? '' : 'none';
-                if(batchSizeIn)  batchSizeIn.placeholder  = isSg ? '100' : '20';
-                if(batchDelayIn) batchDelayIn.placeholder = isSg ? '2'   : '3';
+            var radioWp        = document.getElementById('openvote_mail_wp');
+            var radioSmtp      = document.getElementById('openvote_mail_smtp');
+            var radioSg        = document.getElementById('openvote_mail_sendgrid');
+            var radioBrevo     = document.getElementById('openvote_mail_brevo');
+            var radioBrevoPaid = document.getElementById('openvote_mail_brevo_paid');
+            var radioFreshmail = document.getElementById('openvote_mail_freshmail');
+            var radioGetresponse = document.getElementById('openvote_mail_getresponse');
+            function getSelectedMethod(){
+                if(radioGetresponse && radioGetresponse.checked) return 'getresponse';
+                if(radioFreshmail && radioFreshmail.checked) return 'freshmail';
+                if(radioBrevoPaid && radioBrevoPaid.checked) return 'brevo_paid';
+                if(radioBrevo && radioBrevo.checked) return 'brevo';
+                if(radioSg && radioSg.checked) return 'sendgrid';
+                if(radioSmtp && radioSmtp.checked) return 'smtp';
+                return 'wordpress';
             }
-            [radioWp, radioSmtp, radioSg].forEach(function(r){ if(r) r.addEventListener('change', toggleMethod); });
 
-            /* SMTP test */
-            var smtpTestBtn = document.getElementById('openvote-smtp-test');
-            var smtpTestRes = document.getElementById('openvote-smtp-test-result');
-            if(smtpTestBtn){
-                smtpTestBtn.addEventListener('click', function(){
-                    smtpTestBtn.disabled = true;
-                    smtpTestRes.textContent = '<?php echo esc_js( __( 'Wysyłanie…', 'openvote' ) ); ?>';
-                    smtpTestRes.style.color = '#666';
+            /* Test invitation (HTML) — jedyne miejsce wysyłki e-maila testowego */
+            var invBtn = document.getElementById('openvote-test-invitation-btn');
+            var invRes = document.getElementById('openvote-test-invitation-result');
+            var invTo = document.getElementById('openvote_test_invitation_to');
+            function getSelectedMailMethod(){
+                var r = document.querySelector('input[name="openvote_mail_method"]:checked');
+                return (r && r.value) ? r.value : 'wordpress';
+            }
+            if(invBtn){
+                invBtn.addEventListener('click', function(){
+                    var to = invTo && invTo.value ? invTo.value.trim() : '';
+                    if(!to){ if(invRes) invRes.textContent = '<?php echo esc_js( __( 'Podaj adres e-mail.', 'openvote' ) ); ?>'; if(invRes) invRes.style.color = '#c00'; return; }
+                    invBtn.disabled = true;
+                    if(invRes) invRes.textContent = '<?php echo esc_js( __( 'Wysyłanie…', 'openvote' ) ); ?>';
+                    if(invRes) invRes.style.color = '#666';
                     fetch(ajaxurl, {
                         method: 'POST',
                         headers: {'Content-Type':'application/x-www-form-urlencoded'},
                         body: new URLSearchParams({
-                            action:  'openvote_test_smtp',
-                            nonce:   '<?php echo esc_js( wp_create_nonce( 'openvote_test_smtp' ) ); ?>',
-                            host:     document.getElementById('openvote_smtp_host').value,
-                            port:     document.getElementById('openvote_smtp_port').value,
-                            enc:      document.getElementById('openvote_smtp_encryption').value,
-                            user:     document.getElementById('openvote_smtp_username').value,
-                            pass:     document.getElementById('openvote_smtp_password').value,
-                            from:     document.getElementById('openvote_from_email').value,
+                            action:       'openvote_send_test_invitation_email',
+                            nonce:        '<?php echo esc_js( wp_create_nonce( 'openvote_send_test_invitation_email' ) ); ?>',
+                            to:           to,
+                            test_method:  getSelectedMailMethod(),
                         })
                     }).then(r=>r.json()).then(function(d){
-                        smtpTestRes.textContent = d.data || d.message || '?';
-                        smtpTestRes.style.color = d.success ? 'green' : '#c00';
+                        if(invRes) { invRes.textContent = (d.data && d.data.message) ? d.data.message : (d.message || '?'); invRes.style.color = d.success ? 'green' : '#c00'; }
                     }).catch(function(){
-                        smtpTestRes.textContent = '<?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?>';
-                        smtpTestRes.style.color = '#c00';
-                    }).finally(function(){ smtpTestBtn.disabled = false; });
-                });
-            }
-
-            /* SendGrid test */
-            var sgTestBtn = document.getElementById('openvote-sendgrid-test');
-            var sgTestRes = document.getElementById('openvote-sendgrid-test-result');
-            if(sgTestBtn){
-                sgTestBtn.addEventListener('click', function(){
-                    sgTestBtn.disabled = true;
-                    sgTestRes.textContent = '<?php echo esc_js( __( 'Wysyłanie…', 'openvote' ) ); ?>';
-                    sgTestRes.style.color = '#666';
-                    fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams({
-                            action:   'openvote_test_sendgrid',
-                            nonce:    '<?php echo esc_js( wp_create_nonce( 'openvote_test_sendgrid' ) ); ?>',
-                            api_key:   document.getElementById('openvote_sendgrid_api_key').value,
-                        })
-                    }).then(r=>r.json()).then(function(d){
-                        sgTestRes.textContent = d.data || d.message || '?';
-                        sgTestRes.style.color = d.success ? 'green' : '#c00';
-                    }).catch(function(){
-                        sgTestRes.textContent = '<?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?>';
-                        sgTestRes.style.color = '#c00';
-                    }).finally(function(){ sgTestBtn.disabled = false; });
-                });
-            }
-
-            /* E-mail testowy (na podany adres, zapisana konfiguracja) */
-            var testEmailBtn  = document.getElementById('openvote-test-email-btn');
-            var testEmailRes  = document.getElementById('openvote-test-email-result');
-            var testEmailTo   = document.getElementById('openvote_test_email_to');
-            if ( testEmailBtn && testEmailTo ) {
-                testEmailBtn.addEventListener('click', function(){
-                    var to = (testEmailTo.value || '').trim();
-                    if ( ! to ) {
-                        testEmailRes.textContent = '<?php echo esc_js( __( 'Podaj adres e-mail odbiorcy.', 'openvote' ) ); ?>';
-                        testEmailRes.style.color = '#c00';
-                        return;
-                    }
-                    testEmailBtn.disabled = true;
-                    testEmailRes.textContent = '<?php echo esc_js( __( 'Wysyłanie…', 'openvote' ) ); ?>';
-                    testEmailRes.style.color = '#666';
-                    fetch(ajaxurl, {
-                        method: 'POST',
-                        headers: {'Content-Type':'application/x-www-form-urlencoded'},
-                        body: new URLSearchParams({
-                            action: 'openvote_test_email',
-                            nonce:  '<?php echo esc_js( wp_create_nonce( 'openvote_test_email' ) ); ?>',
-                            to:     to
-                        })
-                    }).then(function(r){ return r.json(); }).then(function(d){
-                        testEmailRes.textContent = d.data || d.message || '?';
-                        testEmailRes.style.color = d.success ? 'green' : '#c00';
-                    }).catch(function(){
-                        testEmailRes.textContent = '<?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?>';
-                        testEmailRes.style.color = '#c00';
-                    }).finally(function(){ testEmailBtn.disabled = false; });
+                        if(invRes) { invRes.textContent = '<?php echo esc_js( __( 'Błąd połączenia.', 'openvote' ) ); ?>'; invRes.style.color = '#c00'; }
+                    }).finally(function(){ invBtn.disabled = false; });
                 });
             }
         })();

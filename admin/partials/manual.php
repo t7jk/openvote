@@ -383,7 +383,7 @@ $brand = openvote_get_brand_short_name();
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Metoda wysyłki e-mail', 'openvote' ); ?></strong></td>
-        <td><?php esc_html_e( '"WordPress domyślny" używa wbudowanej funkcji wp_mail(). "Zewnętrzny SMTP" — wpisz dane serwera pocztowego. "SendGrid API" — wpisz klucz API z konta SendGrid.', 'openvote' ); ?></td>
+        <td><?php esc_html_e( '"WordPress domyślny" używa wbudowanej funkcji wp_mail(). "SMTP zewnętrzny" — wpisz dane serwera pocztowego. "SendGrid API" — wpisz klucz API z konta SendGrid.', 'openvote' ); ?></td>
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Odinstaluj', 'openvote' ); ?></strong></td>

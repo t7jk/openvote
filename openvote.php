@@ -453,11 +453,21 @@ function openvote_render_email_template( string $template, object $poll, string 
 }
 
 /**
- * Metoda wysyłki e-maili: 'wordpress' (domyślna), 'smtp' lub 'sendgrid'.
+ * Metoda wysyłki e-maili: 'wordpress', 'smtp', 'sendgrid', 'brevo', 'brevo_paid', 'freshmail', 'getresponse'.
  */
 function openvote_get_mail_method(): string {
-	$v = get_option( 'openvote_mail_method', 'wordpress' );
-	return in_array( $v, [ 'wordpress', 'smtp', 'sendgrid' ], true ) ? $v : 'wordpress';
+	$allowed = [ 'wordpress', 'smtp', 'sendgrid', 'brevo', 'brevo_paid', 'freshmail', 'getresponse' ];
+	$v       = get_option( 'openvote_mail_method', 'wordpress' );
+	return in_array( $v, $allowed, true ) ? $v : 'wordpress';
+}
+
+/**
+ * Klucz API Brevo (wspólny dla BREVO free i paid).
+ *
+ * @return string Pusty string gdy nie skonfigurowano.
+ */
+function openvote_get_brevo_api_key(): string {
+	return (string) get_option( 'openvote_brevo_api_key', '' );
 }
 
 /**
@@ -470,31 +480,144 @@ function openvote_get_sendgrid_api_key(): string {
 }
 
 /**
+ * Klucz API Freshmail (Subskrypcja → Zaawansowane → API).
+ *
+ * @return string
+ */
+function openvote_get_freshmail_api_key(): string {
+	return (string) get_option( 'openvote_freshmail_api_key', '' );
+}
+
+/**
+ * Sekret API Freshmail (do podpisu żądań).
+ *
+ * @return string
+ */
+function openvote_get_freshmail_api_secret(): string {
+	return (string) get_option( 'openvote_freshmail_api_secret', '' );
+}
+
+/**
+ * Klucz API GetResponse (Integracje → API).
+ *
+ * @return string
+ */
+function openvote_get_getresponse_api_key(): string {
+	return (string) get_option( 'openvote_getresponse_api_key', '' );
+}
+
+/**
+ * ID pola nadawcy GetResponse (From Field ID z panelu lub API from-fields).
+ *
+ * @return string
+ */
+function openvote_get_getresponse_from_field_id(): string {
+	return (string) get_option( 'openvote_getresponse_from_field_id', '' );
+}
+
+/** Limity wysyłki masowej per metoda (max na partię, min pauza w sekundach). */
+const OPENVOTE_EMAIL_BATCH_WP_MAX       = 80;   // PHP-mail: 80 na partię, 1 partia / 15 min, max 4 partie/h
+const OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX  = 100;
+const OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN = 900; // 15 minut między partiami, max 4 partie/h
+const OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN = 900;
+const OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX = 100;
+const OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN = 1200;
+const OPENVOTE_EMAIL_BATCH_SENDGRID_DEFAULT = 100;
+const OPENVOTE_EMAIL_BATCH_SENDGRID_DELAY_DEFAULT = 2;
+const OPENVOTE_EMAIL_BATCH_BREVO_PAID_DEFAULT = 100;
+const OPENVOTE_EMAIL_BATCH_BREVO_PAID_DELAY_DEFAULT = 2;
+const OPENVOTE_EMAIL_BATCH_FRESHMAIL_DEFAULT   = 100;
+const OPENVOTE_EMAIL_BATCH_FRESHMAIL_DELAY     = 2;
+const OPENVOTE_EMAIL_BATCH_GETRESPONSE_DEFAULT = 100;
+const OPENVOTE_EMAIL_BATCH_GETRESPONSE_DELAY   = 2;
+
+/**
  * Liczba e-maili wysyłanych w jednej partii.
- * Domyślnie: 20 dla WP/SMTP, 100 dla SendGrid.
+ * Domyślne i cap per metoda: WP 80, SMTP 100, brevo free 100, sendgrid/brevo_paid 100 (bez cap).
  *
  * @return int
  */
 function openvote_get_email_batch_size(): int {
-	$saved   = (int) get_option( 'openvote_email_batch_size', 0 );
-	if ( $saved > 0 ) {
-		return $saved;
+	$method = openvote_get_mail_method();
+	$saved  = (int) get_option( 'openvote_email_batch_size', 0 );
+
+	if ( $method === 'wordpress' ) {
+		$default = OPENVOTE_EMAIL_BATCH_WP_MAX;
+		$cap     = OPENVOTE_EMAIL_BATCH_WP_MAX;
+		$val     = $saved > 0 ? $saved : $default;
+		return min( $cap, $val );
 	}
-	return openvote_get_mail_method() === 'sendgrid' ? 100 : 20;
+	if ( $method === 'smtp' ) {
+		$default = OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX;
+		$cap     = OPENVOTE_EMAIL_BATCH_WP_SMTP_MAX;
+		$val     = $saved > 0 ? $saved : $default;
+		return min( $cap, $val );
+	}
+	if ( $method === 'brevo' ) {
+		$default = OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX;
+		$cap     = OPENVOTE_EMAIL_BATCH_BREVO_FREE_MAX;
+		$val     = $saved > 0 ? $saved : $default;
+		return min( $cap, $val );
+	}
+	if ( $method === 'brevo_paid' ) {
+		$default = OPENVOTE_EMAIL_BATCH_BREVO_PAID_DEFAULT;
+		$val     = $saved > 0 ? $saved : $default;
+		return $val;
+	}
+	if ( $method === 'freshmail' || $method === 'getresponse' ) {
+		$default = $method === 'freshmail' ? OPENVOTE_EMAIL_BATCH_FRESHMAIL_DEFAULT : OPENVOTE_EMAIL_BATCH_GETRESPONSE_DEFAULT;
+		$val     = $saved > 0 ? $saved : $default;
+		return min( 1000, max( 1, $val ) );
+	}
+	// sendgrid
+	$default = OPENVOTE_EMAIL_BATCH_SENDGRID_DEFAULT;
+	return $saved > 0 ? $saved : $default;
 }
 
 /**
  * Opóźnienie między partiami e-maili w sekundach.
- * Domyślnie: 2 s dla SendGrid, 3 s dla WP/SMTP.
+ * Domyślne i min per metoda: WP/SMTP 900 s, brevo free 1200 s, sendgrid/brevo_paid 2 s.
  *
  * @return int
  */
 function openvote_get_email_batch_delay(): int {
-	$saved = (int) get_option( 'openvote_email_batch_delay', 0 );
-	if ( $saved > 0 ) {
-		return $saved;
+	$method = openvote_get_mail_method();
+	$saved  = (int) get_option( 'openvote_email_batch_delay', 0 );
+
+	if ( $method === 'wordpress' ) {
+		$default = OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN;
+		$min     = OPENVOTE_EMAIL_BATCH_WP_DELAY_MIN;
+		$val     = $saved > 0 ? $saved : $default;
+		return max( $min, $val );
 	}
-	return openvote_get_mail_method() === 'sendgrid' ? 2 : 3;
+	if ( $method === 'smtp' ) {
+		$default = OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN;
+		$min     = OPENVOTE_EMAIL_BATCH_WP_SMTP_DELAY_MIN;
+		$val     = $saved > 0 ? $saved : $default;
+		return max( $min, $val );
+	}
+	if ( $method === 'brevo' ) {
+		$default = OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN;
+		$min     = OPENVOTE_EMAIL_BATCH_BREVO_FREE_DELAY_MIN;
+		$val     = $saved > 0 ? $saved : $default;
+		return max( $min, $val );
+	}
+	if ( $method === 'brevo_paid' ) {
+		$default = OPENVOTE_EMAIL_BATCH_BREVO_PAID_DELAY_DEFAULT;
+		$val     = $saved > 0 ? $saved : $default;
+		return $val;
+	}
+	if ( $method === 'freshmail' ) {
+		$default = OPENVOTE_EMAIL_BATCH_FRESHMAIL_DELAY;
+		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : $default;
+	}
+	if ( $method === 'getresponse' ) {
+		$default = OPENVOTE_EMAIL_BATCH_GETRESPONSE_DELAY;
+		return $saved > 0 ? max( 1, min( 86400, $saved ) ) : $default;
+	}
+	// sendgrid
+	$default = OPENVOTE_EMAIL_BATCH_SENDGRID_DELAY_DEFAULT;
+	return $saved > 0 ? $saved : $default;
 }
 
 /**
