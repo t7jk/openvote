@@ -135,7 +135,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
             <?php wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce' ); ?>
             <input type="hidden" name="openvote_roles_action" value="add_poll_editor">
 
-            <div style="display:flex; align-items:stretch; gap:20px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap;">
                 <div style="flex:1; min-width:200px;">
                     <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Użytkownicy', 'openvote' ); ?></h3>
                     <p class="description" style="margin:0 0 8px;"><?php printf( esc_html__( 'Wybierz użytkownika (max %d).', 'openvote' ), (int) $openvote_roles_list_limit ); ?></p>
@@ -145,10 +145,9 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                             <option value="<?php echo esc_attr( $u->ID ); ?>"><?php echo esc_html( openvote_roles_format_user_display( $u ) ); ?></option>
                         <?php endforeach; ?>
                     </select>
-                </div>
-
-                <div style="display:flex; align-items:center; flex-shrink:0;">
-                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Dodaj >>', 'openvote' ); ?></button>
+                    <p style="margin:10px 0 0;">
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Dodaj >>', 'openvote' ); ?></button>
+                    </p>
                 </div>
 
                 <div style="flex:1; min-width:200px;">
