@@ -21,7 +21,7 @@ $pending   = Openvote_Survey::get_responses_pending( $survey_id, $page, $per_pag
 $questions_cache = [];
 
 // W nagłówku karty tylko Imię i Nazwisko. W odpowiedziach — wszystkie wypełnione dane,
-// z wyjątkiem pól oznaczonych w konfiguracji jako wrażliwe (E-mail, Miasto, Telefon, PESEL, Dowód, Ulica, Kod pocztowy, Miejscowość).
+// z wyjątkiem pól oznaczonych w ankiecie jako informacja wrażliwa (checkbox przy pytaniu).
 ?>
 <div class="openvote-survey-responses-block">
     <h2 class="openvote-survey-responses-block__title"><?php esc_html_e( 'Zgłoszenia (zatwierdzone)', 'openvote' ); ?></h2>

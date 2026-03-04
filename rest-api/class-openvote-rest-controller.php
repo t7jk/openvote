@@ -74,6 +74,20 @@ class Openvote_Rest_Controller {
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
         ] );
+
+        // Sprawdź konfigurację (metoda wysyłki, mapowanie pól).
+        register_rest_route( self::NAMESPACE, '/check-config', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [ $this, 'check_config' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+        ] );
+
+        // Naprawa błędu braku miast: ustaw „Nie używaj miast”, grupa Wszyscy, wyłącz wymaganie.
+        register_rest_route( self::NAMESPACE, '/repair-city-no-groups', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'repair_city_no_groups' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+        ] );
     }
 
     public function get_polls( WP_REST_Request $request ): WP_REST_Response {
@@ -306,5 +320,142 @@ class Openvote_Rest_Controller {
         Openvote_Email_Resume_Cron::add_poll_and_schedule( $poll_id );
 
         return new WP_REST_Response( [ 'success' => true ], 200 );
+    }
+
+    /**
+     * GET /check-config
+     * Zwraca wynik walidacji konfiguracji: pola obowiązkowe, pola dodatkowe (Sejmik, Telefon), notę o synchronizacji.
+     */
+    public function check_config( WP_REST_Request $request ): WP_REST_Response {
+        $result = [
+            'mandatory_fields' => $this->check_config_mandatory_fields(),
+            'city_field'       => $this->check_config_city_field(),
+            'phone_field'      => $this->check_config_phone_field(),
+            'sync_note'        => '',
+        ];
+
+        if ( Openvote_Field_Map::is_city_disabled() ) {
+            Openvote_Admin_Settings::ensure_wszyscy_group_exists();
+        }
+
+        return new WP_REST_Response( $result, 200 );
+    }
+
+    /**
+     * POST /repair-city-no-groups
+     * Naprawa błędu braku miast: ustawia „Nie używaj miast”, tworzy grupę Wszyscy, wyłącza wymaganie Sejmika.
+     */
+    public function repair_city_no_groups( WP_REST_Request $request ): WP_REST_Response {
+        $map = (array) get_option( Openvote_Field_Map::OPTION_KEY, [] );
+        $map['city'] = Openvote_Field_Map::NO_CITY_KEY;
+        update_option( Openvote_Field_Map::OPTION_KEY, $map, false );
+
+        $req = (array) get_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, [] );
+        $req = array_values( array_diff( $req, [ 'city' ] ) );
+        update_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, $req, false );
+
+        $survey_req = (array) get_option( Openvote_Field_Map::SURVEY_REQUIRED_FIELDS_OPTION, [] );
+        $survey_req = array_values( array_diff( $survey_req, [ 'city' ] ) );
+        update_option( Openvote_Field_Map::SURVEY_REQUIRED_FIELDS_OPTION, $survey_req, false );
+
+        Openvote_Admin_Settings::ensure_wszyscy_group_exists();
+
+        return new WP_REST_Response( [
+            'success' => true,
+            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast”, utworzono grupę „Wszyscy”, wyłączono wymaganie pola Sejmik. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
+        ], 200 );
+    }
+
+    /**
+     * Sprawdza, czy pola obowiązkowe (Imię, Nazwisko, e-mail) są zmapowane.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    private function check_config_mandatory_fields(): array {
+        $map   = Openvote_Field_Map::get();
+        $labels = Openvote_Field_Map::LABELS;
+        $not_set = Openvote_Field_Map::NOT_SET_KEY;
+        $required_keys = [ 'first_name', 'last_name', 'email' ];
+        $missing = [];
+        foreach ( $required_keys as $logical ) {
+            $actual = $map[ $logical ] ?? $not_set;
+            if ( $actual === $not_set || $actual === '' ) {
+                $missing[] = $labels[ $logical ] ?? $logical;
+            }
+        }
+        if ( ! empty( $missing ) ) {
+            return [
+                'ok'      => false,
+                'message' => __( 'Pola obowiązkowe do głosowania i ankiet nie są zmapowane:', 'openvote' ) . ' ' . implode( ', ', $missing ) . '. ' . __( 'Bez tego użytkownicy nie przejdą weryfikacji uprawnień do głosowania ani nie będą mogli składać zgłoszeń do ankiet. Ustaw w sekcji Mapowanie pól (poniżej) klucze wbudowane w WordPress (np. first_name, last_name, user_email) lub odpowiadające im klucze z wp_usermeta.', 'openvote' ),
+            ];
+        }
+        return [
+            'ok'      => true,
+            'message' => __( 'Pola Imię, Nazwisko i E-mail są zmapowane na dane z profilu użytkownika WordPress. System używa ich przy weryfikacji uprawnień do głosowania (czy profil jest kompletny) oraz przy wypełnianiu ankiet i zgłoszeń. Mapowanie zmieniasz w tabeli „Mapowanie pól” na tej stronie.', 'openvote' ),
+        ];
+    }
+
+    /**
+     * Sprawdza pole Sejmik / Grupa / Obszar (city).
+     *
+     * @return array{ok: bool, message: string}
+     */
+    private function check_config_city_field(): array {
+        $not_set  = Openvote_Field_Map::NOT_SET_KEY;
+        $no_city  = Openvote_Field_Map::NO_CITY_KEY;
+        $city_val = Openvote_Field_Map::get_field( 'city' );
+
+        if ( $city_val === $not_set || $city_val === '' ) {
+            return [
+                'ok'      => false,
+                'message' => __( 'Pole nie jest zmapowane. Jest ono konieczne do przypisywania użytkowników do grup (sejmików) i do targetowania głosowań. Możesz przełączyć na opcję „Nie używaj miast (wszyscy w grupie Wszyscy)” w tabeli Mapowanie pól poniżej — wtedy wszyscy użytkownicy trafią do jednej grupy „Wszyscy”, a grupa zostanie utworzona automatycznie.', 'openvote' ),
+            ];
+        }
+        if ( $city_val === $no_city ) {
+            $msg = __(
+                'Nie jest zmapowane pole Sejmik / Grupa / Obszar. Bez posiadania takiego pola w bazie danych z nazwą Sejmiku dla danego użytkownika, wszystkie głosowania są organizowane w jednej grupie Wszyscy. Synchronizacja użytkowników będzie przypisywać użytkowników do jednej grupy. To ogranicza możliwości. ZALECENIE. Dodaj pole linkiem niżej, a następnie wymuś wymaganie tego pola dla głosowania oraz ankiety. Utwórz ręcznie nazwy grup w systemie. Zorganizuj głosowanie dla wszystkich użytkowników, to spowoduje, że każdy będzie musiał wypełnić pole grupy. W ten sposób użytkownicy samodzielnie wypełnią pole, dokonaj synchronizacji co doda wszystkich do właściwych grup.',
+                'openvote'
+            );
+            return [
+                'ok'              => true,
+                'not_recommended' => true,
+                'message'         => $msg,
+            ];
+        }
+        return [
+            'ok'      => true,
+            'message' => __( 'Pole jest zmapowane. Wartości z profilu użytkownika służą do przypisywania do grup (sejmików) i targetowania głosowań. Mapowanie zmieniasz w tabeli Mapowanie pól.', 'openvote' ),
+        ];
+    }
+
+    /**
+     * Sprawdza pole Telefon.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    private function check_config_phone_field(): array {
+        $not_set             = Openvote_Field_Map::NOT_SET_KEY;
+        $phone_val           = Openvote_Field_Map::get_field( 'phone' );
+        $phone_required_survey = Openvote_Field_Map::is_survey_required( 'phone' );
+
+        if ( $phone_required_survey && ( $phone_val === $not_set || $phone_val === '' ) ) {
+            return [
+                'ok'      => false,
+                'message' => __(
+                    'Telefon: Nie jest zmapowane pole Telefon. Bez posiadania takiego pola w bazie danych z nr telefonu dla danego użytkownika masz utrudnienia w organizacji Ankiet. ZALECENIE. Dodaj pole linkiem niżej, a następnie wymuś wymaganie tego pola dla głosowania oraz ankiety. Zorganizuj głosowanie dla wszystkich użytkowników, to spowoduje, że każdy będzie musiał wypełnić pole telefonu. W ten sposób użytkownicy samodzielnie wypełnią pole. Potem odznacz wymaganie telefonu dla Głosowań. A zostaw dla Ankiet.',
+                    'openvote'
+                ),
+            ];
+        }
+        if ( $phone_val === $not_set || $phone_val === '' ) {
+            return [
+                'ok'      => true,
+                'message' => __( 'Pole nie jest zmapowane. Ankiety działają poprawnie — telefon nie jest obowiązkowy, dopóki nie zaznaczysz „Wymagane do ankiety” przy Telefonie w Mapowaniu pól. Jeśli kiedyś włączysz wymaganie, trzeba będzie zmapować klucz (np. user_gsm).', 'openvote' ),
+            ];
+        }
+        return [
+            'ok'      => true,
+            'message' => __( 'Pole jest zmapowane. Używane w ankietach zgodnie z ustawieniem „Wymagane do ankiety” w tabeli Mapowanie pól.', 'openvote' ),
+        ];
     }
 }

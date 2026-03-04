@@ -142,6 +142,14 @@ $brand = openvote_get_brand_short_name();
     <li><strong><?php esc_html_e( 'Przez rejestrację', 'openvote' ); ?></strong> — <?php esc_html_e( 'gdy nowy użytkownik się rejestruje lub uzupełnia profil, wtyczka automatycznie sprawdza czy pasuje do aktywnych głosowań z trybem dołączania "Otwarte" i dodaje go do odpowiedniej grupy.', 'openvote' ); ?></li>
 </ul>
 
+<h3><?php esc_html_e( 'Synchronizacja wszystkich sejmików-miast', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Na stronie Członkowie i Sejmiki w sekcji „Synchronizacja sejmików-miast” dostępne są dwa przyciski:', 'openvote' ); ?></p>
+<ul>
+    <li><strong><?php esc_html_e( 'Synchronizuj wszystkie sejmiki-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'odkrywa unikalne wartości pola „miasto” w bazie użytkowników, tworzy brakujące sejmiki i przypisuje do nich użytkowników. Można wznawiać od ostatniego stanu (checkpoint) — przydatne przy bardzo dużej liczbie użytkowników.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Synchronizuj od początku wszystkie sejmiki-miasta (Nie zalecane)', 'openvote' ); ?></strong> — <?php esc_html_e( 'robi to samo, ale resetuje zapisany stan i zaczyna synchronizację od zera. Użyj tylko wtedy, gdy np. zmieniła się struktura bazy użytkowników, lista miast lub chcesz wymusić pełne przeliczenie. Na co dzień korzystaj z pierwszego przycisku.', 'openvote' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'Proces może trwać bardzo długo przy dużej liczbie użytkowników. W logu widać postęp (partie miast, liczbę przetworzonych użytkowników).', 'openvote' ); ?></p>
+
 <div class="openvote-manual__tip">
     <?php esc_html_e( 'Jeśli użytkownik ma "(brak)" jako miasto i zostanie ręcznie przypisany do dokładnie jednej grupy, wtyczka automatycznie zaktualizuje jego pole "Miasto" nazwą tej grupy.', 'openvote' ); ?>
 </div>
@@ -420,15 +428,11 @@ $brand = openvote_get_brand_short_name();
     <tbody>
     <tr><td><?php esc_html_e( 'Imię', 'openvote' ); ?></td><td><code>first_name</code></td><td><?php esc_html_e( 'Imię użytkownika (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Nazwisko', 'openvote' ); ?></td><td><code>last_name</code></td><td><?php esc_html_e( 'Nazwisko użytkownika (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Nickname', 'openvote' ); ?></td><td><code>nickname</code></td><td><?php esc_html_e( 'Pseudonim używany w anonimowych wynikach. Zawsze wymagane.', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Nickname', 'openvote' ); ?></td><td><code>user_nicename</code></td><td><?php esc_html_e( 'Domyślnie: wbudowane pole „Przyjazna dla URL wersja nazwy” (user_nicename) z wp_users. Pseudonim w anonimowych wynikach. Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'E-mail', 'openvote' ); ?></td><td><code>user_email</code></td><td><?php esc_html_e( 'Adres e-mail (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Miasto / miejsce spotkania', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy).', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Sejmik / Grupa / Obszar', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy).', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Numer telefonu', 'openvote' ); ?></td><td><code>user_gsm</code></td><td><?php esc_html_e( 'Opcjonalne. Ustaw na klucz z Twojej wtyczki lub zostaw "nie określone".', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Numer PESEL', 'openvote' ); ?></td><td><code>user_pesel</code></td><td><?php esc_html_e( 'Opcjonalne. Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Numer dowodu osobistego', 'openvote' ); ?></td><td><code>user_id</code></td><td><?php esc_html_e( 'Opcjonalne. Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Ulica i numer domu', 'openvote' ); ?></td><td><code>user_address</code></td><td><?php esc_html_e( 'Opcjonalne.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Kod pocztowy', 'openvote' ); ?></td><td><code>user_zip</code></td><td><?php esc_html_e( 'Opcjonalne.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Miejscowość', 'openvote' ); ?></td><td><code>user_city</code></td><td><?php esc_html_e( 'Opcjonalne. Oddzielne od "Miasta / miejsca spotkania" używanego do grup.', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Dane własne', 'openvote' ); ?></td><td><code>user_id</code></td><td><?php esc_html_e( 'Opcjonalne. Dowolne pole z profilu (np. numer dowodu). Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
     </tbody>
 </table>
 
@@ -436,10 +440,10 @@ $brand = openvote_get_brand_short_name();
 <p><?php esc_html_e( 'Checkbox przy każdym polu oznacza, że użytkownik MUSI mieć wypełnione to pole, aby móc oddać głos. Pola "zawsze" (Imię, Nazwisko, Nickname, E-mail) nie mogą zostać odznaczone.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Dane wrażliwe na stronie zgłoszeń', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Na publicznej stronie zgłoszeń (/zgloszenia lub inny skonfigurowany slug) wtyczka nie wyświetla wartości pól uznanych za wrażliwe. Są to pola z listy mapowania: E-mail, Nazwa miasta / miejsce spotkania, Numer telefonu, Numer PESEL, Numer dowodu osobistego, Ulica i numer domu, Kod pocztowy, Miejscowość. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta (pokazywane jest „—"), przy tworzeniu lub edycji ankiety należy przypisać do tego pytania odpowiednie „Pole profilu" w sekcji pól ankiety.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Na publicznej stronie zgłoszeń (/zgloszenia lub inny skonfigurowany slug) wtyczka nie wyświetla wartości pól uznanych za wrażliwe. Są to pola z listy mapowania: E-mail, Sejmik / Grupa / Obszar, Numer telefonu, Dane własne. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta (pokazywane jest „—"), przy tworzeniu lub edycji ankiety zaznacz checkbox „Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie" przy tym pytaniu.', 'openvote' ); ?></p>
 
 <div class="openvote-manual__tip">
-    <?php esc_html_e( 'Przykład: jeśli zaznaczysz PESEL jako wymagany, ale klucz pozostanie "nie określone", żaden użytkownik nie będzie mógł głosować (pole zawsze puste). Najpierw ustaw poprawny klucz meta, dopiero potem zaznacz jako wymagane.', 'openvote' ); ?>
+    <?php esc_html_e( 'Przykład: jeśli zaznaczysz pole opcjonalne (np. Telefon) jako wymagane do głosowania, ale klucz pozostanie "nie określone", żaden użytkownik nie będzie mógł głosować (pole zawsze puste). Najpierw ustaw poprawny klucz meta, dopiero potem zaznacz jako wymagane.', 'openvote' ); ?>
 </div>
 </div>
 

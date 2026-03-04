@@ -8,6 +8,37 @@ class Openvote_Admin_Settings {
     private const CREATE_NONCE  = 'openvote_create_page';
 
     public function handle_form_submission(): void {
+        // Jednorazowa akcja GET: dodaj pole user_gsm do bazy i zmapuj Telefon.
+        if ( current_user_can( self::CAP ) && isset( $_GET['openvote_add_phone_field'] ) && $_GET['openvote_add_phone_field'] === '1' ) {
+            if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'openvote_add_phone_field' ) ) {
+                $user_id = get_current_user_id();
+                update_user_meta( $user_id, 'user_gsm', '' );
+                $map = (array) get_option( Openvote_Field_Map::OPTION_KEY, [] );
+                $map['phone'] = 'user_gsm';
+                update_option( Openvote_Field_Map::OPTION_KEY, $map, false );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings&openvote_phone_field_added=1' ) );
+                exit;
+            }
+        }
+
+        // Jednorazowa akcja GET: dodaj pole user_group do bazy, zmapuj Sejmik/Grupa/Obszar i ustaw jako wymagane do głosowania.
+        if ( current_user_can( self::CAP ) && isset( $_GET['openvote_add_city_field'] ) && $_GET['openvote_add_city_field'] === '1' ) {
+            if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'openvote_add_city_field' ) ) {
+                $user_id = get_current_user_id();
+                update_user_meta( $user_id, 'user_group', '' );
+                $map = (array) get_option( Openvote_Field_Map::OPTION_KEY, [] );
+                $map['city'] = 'user_group';
+                update_option( Openvote_Field_Map::OPTION_KEY, $map, false );
+                $req = (array) get_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, [] );
+                if ( ! in_array( 'city', $req, true ) ) {
+                    $req[] = 'city';
+                    update_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, $req, false );
+                }
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings&openvote_city_field_added=1' ) );
+                exit;
+            }
+        }
+
         // Route do czyszczenia bazy — osobny nonce, osobna akcja.
         if ( isset( $_POST['openvote_clean_nonce'] ) ) {
             $this->handle_clean_database();

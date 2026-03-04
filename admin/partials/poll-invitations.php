@@ -52,6 +52,10 @@ $status_labels = [
     'open'   => __( 'Rozpoczęte', 'openvote' ),
     'closed' => __( 'Zakończone', 'openvote' ),
 ];
+
+// Szablony zaproszenia (HTML i tekst) do kopiowania na media społecznościowe.
+$invitation_html  = openvote_render_email_template( openvote_get_email_body_html_template(), $poll, 'html' );
+$invitation_plain = openvote_render_email_template( openvote_get_email_body_plain_template(), $poll, 'plain' );
 ?>
 <div class="wrap">
     <h1><?php printf( esc_html__( 'Zaproszenia: %s', 'openvote' ), esc_html( $poll->title ) ); ?></h1>
@@ -90,7 +94,7 @@ $status_labels = [
         if ( $all_sent ) {
             $btn_label = __( 'Wszyscy powiadomieni', 'openvote' );
         } elseif ( $eq_exists ) {
-            $btn_label = __( 'Wyślij ponownie', 'openvote' );
+            $btn_label = __( 'Wyślij zaproszenia e-mailem', 'openvote' );
         } else {
             $n = $eligible_count;
             if ( $n === 1 ) {
@@ -121,6 +125,60 @@ $status_labels = [
         <div id="openvote-invitations-progress" style="display:none;max-width:560px;margin:10px 0 0;"></div>
         <div id="openvote-invitations-limit-msg" style="display:none;margin-top:12px;padding:10px 12px;background:#fcf0f1;border-left:4px solid #c00;max-width:560px;"></div>
     </div>
+    <?php endif; ?>
+
+    <?php if ( current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators() ) : ?>
+    <div class="openvote-invitations-copy-box" style="max-width:560px;margin-bottom:24px;padding:16px 20px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.04);">
+        <p style="margin:0 0 12px;font-size:13px;color:#1d2327;line-height:1.5;">
+            <?php esc_html_e( 'Możesz skopiować treść zaproszenia do schowka i wkleić je samodzielnie na mediach społecznościowych lub w innym kanale (np. komunikator, forum).', 'openvote' ); ?>
+        </p>
+        <p style="margin:0 0 14px;font-size:12px;color:#50575e;">
+            <?php esc_html_e( 'Wybierz wersję HTML (do wklejenia w edytorze obsługującym formatowanie) lub tekstową (zwykły tekst).', 'openvote' ); ?>
+        </p>
+        <button type="button" class="button" id="openvote-copy-invitation-html">
+            <?php esc_html_e( 'Wyślij samodzielnie (HTML)', 'openvote' ); ?>
+        </button>
+        <button type="button" class="button" id="openvote-copy-invitation-plain" style="margin-left:8px;">
+            <?php esc_html_e( 'Wyślij samodzielnie (Text)', 'openvote' ); ?>
+        </button>
+        <span id="openvote-copy-feedback" style="margin-left:12px;font-size:13px;color:#0a6b2e;font-weight:500;display:none;"></span>
+    </div>
+    <script>
+    (function(){
+        var invitationHtml  = <?php echo wp_json_encode( $invitation_html ); ?>;
+        var invitationPlain = <?php echo wp_json_encode( $invitation_plain ); ?>;
+        var feedbackEl = document.getElementById('openvote-copy-feedback');
+        var copyMsg = <?php echo wp_json_encode( __( 'Skopiowano do schowka.', 'openvote' ) ); ?>;
+        function showFeedback() {
+            if ( ! feedbackEl ) return;
+            feedbackEl.textContent = copyMsg;
+            feedbackEl.style.display = 'inline';
+            setTimeout(function(){ feedbackEl.style.display = 'none'; }, 2500);
+        }
+        var btnHtml = document.getElementById('openvote-copy-invitation-html');
+        var btnPlain = document.getElementById('openvote-copy-invitation-plain');
+        if ( btnHtml ) {
+            btnHtml.addEventListener('click', function() {
+                if ( navigator.clipboard && navigator.clipboard.writeText ) {
+                    navigator.clipboard.writeText( invitationHtml ).then( showFeedback ).catch(function() { feedbackEl.textContent = ''; });
+                } else {
+                    feedbackEl.textContent = <?php echo wp_json_encode( __( 'Skopiuj ręcznie (Ctrl+C).', 'openvote' ) ); ?>;
+                    feedbackEl.style.display = 'inline';
+                }
+            });
+        }
+        if ( btnPlain ) {
+            btnPlain.addEventListener('click', function() {
+                if ( navigator.clipboard && navigator.clipboard.writeText ) {
+                    navigator.clipboard.writeText( invitationPlain ).then( showFeedback ).catch(function() { feedbackEl.textContent = ''; });
+                } else {
+                    feedbackEl.textContent = <?php echo wp_json_encode( __( 'Skopiuj ręcznie (Ctrl+C).', 'openvote' ) ); ?>;
+                    feedbackEl.style.display = 'inline';
+                }
+            });
+        }
+    })();
+    </script>
     <?php endif; ?>
 
     <h2 style="margin-top:0;"><?php esc_html_e( 'Status wysyłki', 'openvote' ); ?></h2>
@@ -269,7 +327,7 @@ $status_labels = [
             limitMsgEl.style.display = '';
             btn.disabled = false;
             btn.style.opacity = '';
-            btn.textContent = '<?php echo esc_js( __( 'Wyślij ponownie', 'openvote' ) ); ?>';
+            btn.textContent = '<?php echo esc_js( __( 'Wyślij zaproszenia e-mailem', 'openvote' ) ); ?>';
             if ( limitType === 'day' ) {
                 var scheduleBtn = document.getElementById('openvote-schedule-resume-btn');
                 if ( scheduleBtn ) {
@@ -327,7 +385,7 @@ $status_labels = [
                     statusEl.textContent = '<?php esc_html_e( 'Błąd:', 'openvote' ); ?> ' + ( err.message || err );
                     btn.disabled = false;
                     btn.style.opacity = '';
-                    btn.textContent = '<?php esc_html_e( 'Wyślij ponownie', 'openvote' ); ?>';
+                    btn.textContent = '<?php esc_html_e( 'Wyślij zaproszenia e-mailem', 'openvote' ); ?>';
                 },
                 emailDelayMs,
                 function( job ) {

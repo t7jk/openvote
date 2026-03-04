@@ -122,6 +122,8 @@ class Openvote_Admin_Uninstall {
             'openvote_email_sent_day_slot',
             'openvote_email_sent_day_count',
             'openvote_email_auto_resume_poll_ids',
+            'openvote_sync_all_checkpoint',
+            'openvote_last_cron_sync_date',
             'openvote_email_subject',
             'openvote_email_from_template',
             'openvote_email_body',

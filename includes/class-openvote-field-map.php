@@ -29,15 +29,11 @@ class Openvote_Field_Map {
     const DEFAULTS = [
         'first_name' => 'first_name',
         'last_name'  => 'last_name',
-        'nickname'   => 'nickname',
+        'nickname'   => 'user_nicename',
         'email'      => 'user_email',
         'city'       => 'user_registration_miejsce_spotkania',
         'phone'      => self::NOT_SET_KEY,
-        'pesel'      => self::NOT_SET_KEY,
         'id_card'    => self::NOT_SET_KEY,
-        'address'    => self::NOT_SET_KEY,
-        'zip_code'   => self::NOT_SET_KEY,
-        'town'       => self::NOT_SET_KEY,
     ];
 
     /**
@@ -48,13 +44,9 @@ class Openvote_Field_Map {
         'last_name'  => 'Nazwisko',
         'nickname'   => 'Nickname',
         'email'      => 'E-mail',
-        'city'       => 'Nazwa miasta / miejsce spotkania',
+        'city'       => 'Sejmik / Grupa / Obszar',
         'phone'      => 'Numer telefonu',
-        'pesel'      => 'Numer PESEL',
-        'id_card'    => 'Numer dowodu osobistego',
-        'address'    => 'Ulica i numer domu',
-        'zip_code'   => 'Kod pocztowy',
-        'town'       => 'Miejscowość',
+        'id_card'    => 'Dane własne',
     ];
 
     /**
@@ -65,11 +57,7 @@ class Openvote_Field_Map {
         'email',
         'city',
         'phone',
-        'pesel',
         'id_card',
-        'address',
-        'zip_code',
-        'town',
     ];
 
     /**
@@ -92,6 +80,12 @@ class Openvote_Field_Map {
     const SURVEY_ALWAYS_REQUIRED = [ 'first_name', 'last_name', 'nickname', 'email' ];
 
     /**
+     * Domyślna wartość opcji „wymagane do ankiety” dla pól opcjonalnych, gdy opcja nie była jeszcze zapisana.
+     * Telefon jest domyślnie wymagany w ankietach; dla głosowania pozostaje wyłączony (brak w ALWAYS_REQUIRED).
+     */
+    const DEFAULT_SURVEY_OPTIONAL_REQUIRED = [ 'phone' ];
+
+    /**
      * WordPress core wp_users columns (not usermeta).
      * Values from these fields must be read via $user->{field},
      * not get_user_meta().
@@ -107,12 +101,14 @@ class Openvote_Field_Map {
 
     /**
      * Return the full mapping: logical_key => actual_key.
+     * Only keys present in DEFAULTS are returned (legacy saved keys are dropped).
      */
     public static function get(): array {
-        return wp_parse_args(
+        $merged = wp_parse_args(
             (array) get_option( self::OPTION_KEY, [] ),
             self::DEFAULTS
         );
+        return array_intersect_key( $merged, self::DEFAULTS );
     }
 
     /**
@@ -128,6 +124,34 @@ class Openvote_Field_Map {
      */
     public static function is_core_field( string $actual_key ): bool {
         return in_array( $actual_key, self::CORE_USER_FIELDS, true );
+    }
+
+    /**
+     * Standardowe klucze wp_usermeta używane przez WordPress (profil, itp.).
+     */
+    const STANDARD_USERMETA_KEYS = [
+        'first_name',
+        'last_name',
+        'nickname',
+        'description',
+    ];
+
+    /**
+     * Czy dany klucz to standardowe pole wp_usermeta (WordPress core).
+     */
+    public static function is_standard_usermeta_field( string $actual_key ): bool {
+        return in_array( $actual_key, self::STANDARD_USERMETA_KEYS, true );
+    }
+
+    /**
+     * Czy dla wybranego klucza pole jest traktowane jako „dodatkowe / z zewnętrznej wtyczki”.
+     * Tak, gdy klucz jest ustawiony i nie jest ani z wp_users, ani ze standardowego wp_usermeta.
+     */
+    public static function is_external_plugin_field( string $actual_key ): bool {
+        if ( $actual_key === self::NOT_SET_KEY || $actual_key === self::NO_CITY_KEY ) {
+            return false;
+        }
+        return ! self::is_core_field( $actual_key ) && ! self::is_standard_usermeta_field( $actual_key );
     }
 
     /**
@@ -217,10 +241,10 @@ class Openvote_Field_Map {
     /**
      * Returns required fields for surveys as [ 'logical' => 'Label' ].
      * Always-required: first_name, last_name, nickname, email.
-     * Optional (domyślnie odznaczone: telefon, miasto): zapis w openvote_survey_required_fields.
+     * Optional: telefon domyślnie wymagany (DEFAULT_SURVEY_OPTIONAL_REQUIRED), miasto/city odznaczone.
      */
     public static function get_survey_required_fields(): array {
-        $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [] );
+        $saved    = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, self::DEFAULT_SURVEY_OPTIONAL_REQUIRED );
         $required = [];
         foreach ( array_keys( self::DEFAULTS ) as $logical ) {
             if ( 'city' === $logical && self::is_city_disabled() ) {
@@ -244,7 +268,7 @@ class Openvote_Field_Map {
         if ( in_array( $logical, self::SURVEY_ALWAYS_REQUIRED, true ) ) {
             return true;
         }
-        $saved = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, [] );
+        $saved = (array) get_option( self::SURVEY_REQUIRED_FIELDS_OPTION, self::DEFAULT_SURVEY_OPTIONAL_REQUIRED );
         return in_array( $logical, $saved, true );
     }
 

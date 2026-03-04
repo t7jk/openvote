@@ -75,6 +75,7 @@ $active_tab = isset( $_GET['tab'] ) && sanitize_key( $_GET['tab'] ) === 'closed'
 $polls_active = [];
 $polls_closed = [];
 
+$poll_missing_fields = [];
 if ( $is_logged ) {
     if ( 'active' === $active_tab ) {
         $all_active   = Openvote_Poll::get_active_polls();
@@ -84,9 +85,19 @@ if ( $is_logged ) {
                 return Openvote_Poll::user_in_target_groups( $user_id, $poll );
             }
         ) );
+        $poll_missing_fields = Openvote_Field_Map::get_missing_fields_for_user( $user_id );
     } else {
         $polls_closed = Openvote_Poll::get_closed_polls_for_user( $user_id );
     }
+}
+if ( ! empty( $poll_missing_fields ) ) {
+    wp_enqueue_script(
+        'openvote-profile-complete',
+        OPENVOTE_PLUGIN_URL . 'public/js/profile-complete.js',
+        [],
+        OPENVOTE_VERSION,
+        true
+    );
 }
 
 // URL zakładek — używamy zaufanego URL strony głosowania (bez HTTP_HOST/REQUEST_URI).
@@ -132,7 +143,14 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
 
     <?php elseif ( 'active' === $active_tab ) : ?>
 
-        <?php if ( empty( $polls_active ) ) : ?>
+        <?php if ( ! empty( $poll_missing_fields ) ) : ?>
+            <?php
+            $context        = 'poll';
+            $missing_fields = $poll_missing_fields;
+            $nonce          = wp_create_nonce( 'wp_rest' );
+            include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
+            ?>
+        <?php elseif ( empty( $polls_active ) ) : ?>
             <p class="openvote-poll__no-polls">
                 <?php esc_html_e( 'Brak trwających głosowań w tym momencie.', 'openvote' ); ?>
             </p>

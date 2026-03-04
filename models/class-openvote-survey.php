@@ -728,11 +728,11 @@ class Openvote_Survey {
         }
 
         return [
-            'first_name' => (string) $user->first_name,
-            'last_name'  => (string) $user->last_name,
-            'nickname'   => (string) $user->nickname,
+            'first_name' => (string) Openvote_Field_Map::get_user_value( $user, 'first_name' ),
+            'last_name'  => (string) Openvote_Field_Map::get_user_value( $user, 'last_name' ),
+            'nickname'   => (string) Openvote_Field_Map::get_user_value( $user, 'nickname' ),
             'phone'      => $phone,
-            'email'      => (string) $user->user_email,
+            'email'      => (string) Openvote_Field_Map::get_user_value( $user, 'email' ),
         ];
     }
 

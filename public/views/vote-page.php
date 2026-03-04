@@ -11,11 +11,28 @@ defined( 'ABSPATH' ) || exit;
 $is_logged      = is_user_logged_in();
 $user_id        = $is_logged ? get_current_user_id() : 0;
 $polls_for_user = [];
+$poll_missing_fields = [];
 if ( $is_logged ) {
     $active_polls   = Openvote_Poll::get_active_polls();
     $polls_for_user = array_values( array_filter( $active_polls, function ( $poll ) use ( $user_id ) {
         return Openvote_Poll::user_in_target_groups( $user_id, $poll );
     } ) );
+    $poll_missing_fields = Openvote_Field_Map::get_missing_fields_for_user( $user_id );
+}
+if ( ! empty( $poll_missing_fields ) ) {
+    wp_enqueue_script(
+        'openvote-profile-complete',
+        OPENVOTE_PLUGIN_URL . 'public/js/profile-complete.js',
+        [],
+        OPENVOTE_VERSION,
+        true
+    );
+    wp_enqueue_style(
+        'openvote-public',
+        OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
+        [],
+        OPENVOTE_VERSION
+    );
 }
 ?>
 <!DOCTYPE html>
@@ -64,6 +81,13 @@ if ( $is_logged ) {
             );
             ?>
         </p>
+    <?php elseif ( ! empty( $poll_missing_fields ) ) : ?>
+        <?php
+        $context        = 'poll';
+        $missing_fields = $poll_missing_fields;
+        $nonce          = wp_create_nonce( 'wp_rest' );
+        include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
+        ?>
     <?php elseif ( empty( $polls_for_user ) ) : ?>
         <p class="openvote-poll__no-polls"><?php esc_html_e( 'Brak głosowań w tym momencie.', 'openvote' ); ?></p>
     <?php else : ?>

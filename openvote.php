@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.0.1
+ * Version:           1.1.0
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.1' );
+define( 'OPENVOTE_VERSION', '1.1.0' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -268,7 +268,6 @@ function openvote_get_email_body_plain_default(): string {
 	$footer = "\n\n\n──────────────────────────────────────────────────\n" .
 		"Otwarte Głosowanie (Open Vote)\n" .
 		'Autor systemu: ' . OPENVOTE_PLUGIN_AUTHOR . "\n" .
-		'Kod źródłowy (Open Source): ' . OPENVOTE_GITHUB_URL . "\n" .
 		"──────────────────────────────────────────────────";
 	return "Szanowni Państwo,\n\nmamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:\n\n  „{poll_title}\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nZAGADNIENIA PODDANE POD GŁOSOWANIE:\n\n{questions}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  Głosowanie dostępne pod adresem:\n  {vote_url}\n\n  Termin głosowania: do {date_end}\n\nKażdy głos ma znaczenie – zachęcamy do wzięcia udziału.\n\nZapraszamy do głosowania!\n\nZespół {brand_short} - {site_name}\n{site_tagline}" . $footer;
 }
@@ -328,7 +327,7 @@ function openvote_get_email_body_html_default(): string {
     © {brand_short} &nbsp;|&nbsp; Wiadomość wygenerowana automatycznie<br><br>
     <span style="font-size:12px; color:#bbb;">
       Głosowanie przeprowadzono na stronie <a href="{site_url}" style="color:#bbb;">{site_url}</a><br>
-      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: ' . OPENVOTE_PLUGIN_AUTHOR . ' &mdash; <a href="' . OPENVOTE_GITHUB_URL . '" style="color:#bbb;">kod źródłowy na GitHub</a>
+      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: ' . OPENVOTE_PLUGIN_AUTHOR . '
     </span>
   </div>
 </div>

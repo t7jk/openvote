@@ -311,100 +311,112 @@ document.addEventListener( 'DOMContentLoaded', function () {
 		} );
 	} );
 
-	// Przycisk sync-all.
-	const syncAllBtn = document.getElementById( 'openvote-sync-all-btn' );
+	// Przyciski sync-all i sync-all od początku (reset).
+	const syncAllBtn     = document.getElementById( 'openvote-sync-all-btn' );
+	const syncAllResetBtn = document.getElementById( 'openvote-sync-all-reset-btn' );
 	const syncAllStopBtn = document.getElementById( 'openvote-sync-all-stop-btn' );
-	if ( syncAllBtn ) {
-		syncAllBtn.addEventListener( 'click', function () {
-			const container = document.getElementById( 'openvote-sync-all-progress' );
-			const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
-			const nonce     = window.openvoteBatch?.nonce   || '';
 
-			syncAllBtn.disabled = true;
-			if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'inline-block';
-			if ( container ) {
-				container.innerHTML = '<p class="openvote-progress-label">Uruchamianie synchronizacji…</p>';
-			}
-			const logPanel = openvoteCreateSyncLogPanel( container );
+	function runSyncAllGroups( resetFromStart ) {
+		const container = document.getElementById( 'openvote-sync-all-progress' );
+		const apiRoot   = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
+		const nonce     = window.openvoteBatch?.nonce   || '';
 
-			function doSyncAll( retries ) {
-				retries = retries || 0;
-				return fetch( `${apiRoot}/groups/sync-all`, {
-					method:  'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-WP-Nonce':   nonce,
-					},
-				} ).then( function ( r ) {
-					if ( r.status === 503 && retries < 1 && container ) {
-						container.innerHTML = '<p class="openvote-progress-label">Serwer zajęty (503). Ponawiam za 2 s…</p>';
-						return new Promise( function ( resolve ) { setTimeout( resolve, 2000 ); } ).then( function () {
-							return doSyncAll( retries + 1 );
-						} );
-					}
-					return r.json().then( function ( data ) {
-						if ( ! data.job_id ) {
-							throw new Error( data.message || ( r.status === 503 ? 'Serwer niedostępny (503). Spróbuj ponownie za chwilę.' : 'Błąd uruchamiania zadania.' ) );
-						}
-						return data;
+		if ( syncAllBtn ) syncAllBtn.disabled = true;
+		if ( syncAllResetBtn ) syncAllResetBtn.disabled = true;
+		if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'inline-block';
+		if ( container ) {
+			container.innerHTML = '<p class="openvote-progress-label">Uruchamianie synchronizacji…</p>';
+		}
+		const logPanel = openvoteCreateSyncLogPanel( container );
+
+		function doSyncAll( retries, resetFromStart ) {
+			retries = retries || 0;
+			return fetch( `${apiRoot}/groups/sync-all`, {
+				method:  'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce':   nonce,
+				},
+				body: resetFromStart ? JSON.stringify( { reset: true } ) : undefined,
+			} ).then( function ( r ) {
+				if ( r.status === 503 && retries < 1 && container ) {
+					container.innerHTML = '<p class="openvote-progress-label">Serwer zajęty (503). Ponawiam za 2 s…</p>';
+					return new Promise( function ( resolve ) { setTimeout( resolve, 2000 ); } ).then( function () {
+						return doSyncAll( retries + 1, resetFromStart );
 					} );
-				} );
-			}
-			doSyncAll()
-				.then( data => {
-					if ( syncAllStopBtn ) {
-						syncAllStopBtn.onclick = function () {
-							syncAllStopBtn.disabled = true;
-							fetch( `${apiRoot}/jobs/${encodeURIComponent( data.job_id )}/stop`, {
-								method:  'POST',
-								headers: { 'X-WP-Nonce': nonce },
-							} ).finally( () => { syncAllStopBtn.disabled = false; } );
-						};
+				}
+				return r.json().then( function ( data ) {
+					if ( ! data.job_id ) {
+						throw new Error( data.message || ( r.status === 503 ? 'Serwer niedostępny (503). Spróbuj ponownie za chwilę.' : 'Błąd uruchamiania zadania.' ) );
 					}
+					return data;
+				} );
+			} );
+		}
+		doSyncAll( 0, resetFromStart )
+			.then( function ( data ) {
+				if ( syncAllStopBtn ) {
+					syncAllStopBtn.onclick = function () {
+						syncAllStopBtn.disabled = true;
+						fetch( `${apiRoot}/jobs/${encodeURIComponent( data.job_id )}/stop`, {
+							method:  'POST',
+							headers: { 'X-WP-Nonce': nonce },
+						} ).finally( function () { syncAllStopBtn.disabled = false; } );
+					};
+				}
 
-					openvoteRunBatchJob(
-						data.job_id,
-						( processed, total, pct, job ) => {
-							openvoteRenderProgress( container, processed, total, pct, job );
-							if ( logPanel ) logPanel.update( job );
-						},
-						( job ) => {
-							if ( container ) {
-								if ( job.status === 'cancelled' ) {
-									container.innerHTML = '<p class="openvote-progress-label">Zatrzymano przez użytkownika. Przetworzone: ' + job.processed + '</p>';
-								} else {
-									container.innerHTML = `<p class="openvote-progress-done">✓ Synchronizacja zakończona. Przetworzone grupy: ${job.processed}</p>`;
-								}
+				openvoteRunBatchJob(
+					data.job_id,
+					function ( processed, total, pct, job ) {
+						openvoteRenderProgress( container, processed, total, pct, job );
+						if ( logPanel ) logPanel.update( job );
+					},
+					function ( job ) {
+						if ( container ) {
+							if ( job.status === 'cancelled' ) {
+								container.innerHTML = '<p class="openvote-progress-label">Zatrzymano przez użytkownika. Przetworzone: ' + job.processed + '</p>';
+							} else {
+								container.innerHTML = `<p class="openvote-progress-done">✓ Synchronizacja zakończona. Przetworzone grupy: ${job.processed}</p>`;
 							}
-							if ( logPanel ) logPanel.update( job );
-							syncAllBtn.disabled = false;
-							if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
-						},
-						( err ) => {
-							if ( container ) {
-								const p = document.createElement( 'p' );
-								p.className = 'openvote-progress-error';
-								p.textContent = 'Błąd: ' + err.message;
-								container.innerHTML = '';
-								container.appendChild( p );
-							}
-							syncAllBtn.disabled = false;
-							if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
-						},
-						10000
-					);
-				} )
-				.catch( err => {
-					if ( container ) {
-						const p = document.createElement( 'p' );
-						p.className = 'openvote-progress-error';
-						p.textContent = 'Błąd: ' + err.message;
-						container.innerHTML = '';
-						container.appendChild( p );
-					}
-					syncAllBtn.disabled = false;
-					if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
-				} );
-		} );
+						}
+						if ( logPanel ) logPanel.update( job );
+						if ( syncAllBtn ) syncAllBtn.disabled = false;
+						if ( syncAllResetBtn ) syncAllResetBtn.disabled = false;
+						if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
+					},
+					function ( err ) {
+						if ( container ) {
+							var p = document.createElement( 'p' );
+							p.className = 'openvote-progress-error';
+							p.textContent = 'Błąd: ' + err.message;
+							container.innerHTML = '';
+							container.appendChild( p );
+						}
+						if ( syncAllBtn ) syncAllBtn.disabled = false;
+						if ( syncAllResetBtn ) syncAllResetBtn.disabled = false;
+						if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
+					},
+					10000
+				);
+			} )
+			.catch( function ( err ) {
+				if ( container ) {
+					var p = document.createElement( 'p' );
+					p.className = 'openvote-progress-error';
+					p.textContent = 'Błąd: ' + err.message;
+					container.innerHTML = '';
+					container.appendChild( p );
+				}
+				if ( syncAllBtn ) syncAllBtn.disabled = false;
+				if ( syncAllResetBtn ) syncAllResetBtn.disabled = false;
+				if ( syncAllStopBtn ) syncAllStopBtn.style.display = 'none';
+			} );
+	}
+
+	if ( syncAllBtn ) {
+		syncAllBtn.addEventListener( 'click', function () { runSyncAllGroups( false ); } );
+	}
+	if ( syncAllResetBtn ) {
+		syncAllResetBtn.addEventListener( 'click', function () { runSyncAllGroups( true ); } );
 	}
 } );

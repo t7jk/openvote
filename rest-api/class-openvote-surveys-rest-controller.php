@@ -265,17 +265,6 @@ class Openvote_Surveys_Rest_Controller {
                 }
                 wp_update_user( [ 'ID' => $user_id, 'user_email' => $value ] );
 
-            } elseif ( in_array( $logical, [ 'first_name', 'last_name', 'nickname' ], true ) ) {
-                // Pola dostępne bezpośrednio w usermeta (WordPress odczytuje je z meta).
-                update_user_meta( $user_id, $logical, $value );
-                if ( 'nickname' === $logical ) {
-                    // Zaktualizuj też display_name jeśli był taki sam jak stary nickname.
-                    $user = get_userdata( $user_id );
-                    if ( $user && $user->display_name === $user->nickname ) {
-                        wp_update_user( [ 'ID' => $user_id, 'display_name' => $value ] );
-                    }
-                }
-
             } elseif ( Openvote_Field_Map::NOT_SET_KEY === $actual_key ) {
                 // Pole nie jest zmapowane — dla 'phone' zapisz do openvote_phone i zaktualizuj mapowanie.
                 if ( 'phone' === $logical ) {

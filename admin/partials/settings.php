@@ -3,8 +3,14 @@ defined( 'ABSPATH' ) || exit;
 
 $current_map    = Openvote_Field_Map::get();
 $available_keys = Openvote_Field_Map::available_keys();
-$labels         = Openvote_Field_Map::LABELS;
-asort( $labels, SORT_LOCALE_STRING ); // Tabela mapowania: kolejność wg tytułu pola (alfabetycznie).
+$labels_raw     = Openvote_Field_Map::LABELS;
+$field_order    = [ 'email', 'first_name', 'last_name', 'nickname', 'city', 'phone', 'id_card' ];
+$labels         = [];
+foreach ( $field_order as $logical ) {
+    if ( isset( $labels_raw[ $logical ] ) ) {
+        $labels[ $logical ] = $labels_raw[ $logical ];
+    }
+}
 
 /**
  * Render a <select> dropdown for a logical field.
@@ -19,7 +25,7 @@ function openvote_settings_select( string $logical, string $current, array $core
     echo '<select name="' . $name . '" id="openvote_field_' . esc_attr( $logical ) . '" class="openvote-settings-select">';
 
     // Optional fields: first option is "not assigned"
-    $optional_fields = [ 'phone', 'pesel', 'id_card', 'address', 'zip_code', 'town' ];
+    $optional_fields = [ 'phone', 'id_card' ];
     if ( in_array( $logical, $optional_fields, true ) ) {
         echo '<option value="' . esc_attr( Openvote_Field_Map::NOT_SET_KEY ) . '"' . selected( $current, Openvote_Field_Map::NOT_SET_KEY, false ) . '>';
         echo esc_html__( '— nie określone —', 'openvote' );
@@ -65,6 +71,16 @@ function openvote_settings_select( string $logical, string $current, array $core
             <p><?php esc_html_e( 'Konfiguracja została zapisana.', 'openvote' ); ?></p>
         </div>
     <?php endif; ?>
+    <?php if ( isset( $_GET['openvote_phone_field_added'] ) ) : ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php esc_html_e( 'Dodano pole „user_gsm” do profilu i zmapowano je na Numer telefonu. Użytkownicy mogą uzupełnić telefon w swoim profilu.', 'openvote' ); ?></p>
+        </div>
+    <?php endif; ?>
+    <?php if ( isset( $_GET['openvote_city_field_added'] ) ) : ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php esc_html_e( 'Dodano pole „user_group” do profilu, zmapowano na Sejmik / Grupa / Obszar i ustawiono jako wymagane do głosowania. Użytkownicy mogą uzupełnić grupę w swoim profilu; następnie uruchom synchronizację grup.', 'openvote' ); ?></p>
+        </div>
+    <?php endif; ?>
     <?php
     $openvote_settings_error = get_transient( 'openvote_settings_error' );
     if ( $openvote_settings_error ) {
@@ -102,6 +118,13 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
     <?php endif; ?>
 
+    <div class="openvote-check-config-wrap" style="margin-bottom:20px;">
+        <button type="button" class="button" id="openvote-check-config-btn">
+            <?php esc_html_e( 'Sprawdź konfigurację', 'openvote' ); ?>
+        </button>
+        <div id="openvote-check-config-result" class="openvote-check-config-result" style="display:none;margin-top:12px;max-width:720px;"></div>
+    </div>
+
     <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-settings' ) ); ?>" id="openvote-settings-form">
         <?php wp_nonce_field( 'openvote_save_settings', 'openvote_settings_nonce' ); ?>
         <?php wp_nonce_field( 'openvote_create_page', 'openvote_create_page_nonce' ); ?>
@@ -119,6 +142,166 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
         </table>
+
+        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 12px;">
+            <?php esc_html_e(
+                'Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych WordPress. '
+                . 'Dzięki temu wtyczka będzie działać poprawnie niezależnie od użytej wtyczki rejestracji '
+                . 'lub własnego schematu metadanych.',
+                'openvote'
+            ); ?>
+        </p>
+
+        <div class="notice notice-warning inline" style="max-width:860px;margin:0 0 16px;padding:12px 16px;">
+            <p style="margin:0 0 6px;">
+                <strong>⚠ <?php esc_html_e( 'Wymagana wtyczka do rozszerzonych pól profilu', 'openvote' ); ?></strong>
+            </p>
+            <p style="margin:0 0 8px;color:#3c3c3c;">
+                <?php esc_html_e(
+                    'Pola takie jak Telefon czy Dane własne nie istnieją domyślnie w WordPress. '
+                    . 'Aby użytkownicy mogli je uzupełniać, potrzebujesz wtyczki, która dodaje własne pola rejestracji i profilu — np.:',
+                    'openvote'
+                ); ?>
+            </p>
+            <ul style="margin:0 0 8px;padding-left:20px;list-style:disc;color:#3c3c3c;">
+                <li>
+                    <a href="https://wordpress.org/plugins/user-registration/" target="_blank" rel="noopener noreferrer">
+                        <strong>User Registration &amp; Membership</strong>
+                    </a>
+                    <?php esc_html_e( '— darmowa, 60 000+ aktywnych instalacji, obsługuje własne pola i powiązuje je z usermeta.', 'openvote' ); ?>
+                </li>
+                <li>
+                    <?php esc_html_e( 'Lub każda inna wtyczka zapisująca dane w', 'openvote' ); ?>
+                    <code>wp_usermeta</code>
+                    <?php esc_html_e( 'pod dowolnym kluczem (meta_key) — wpisz ten klucz w kolumnie poniżej.', 'openvote' ); ?>
+                </li>
+            </ul>
+            <p style="margin:0;font-size:12px;color:#777;">
+                <?php esc_html_e(
+                    'Jeśli dana wtyczka zapisuje numer telefonu jako „user_gsm", wpisz „user_gsm" jako klucz dla pola Telefon.',
+                    'openvote'
+                ); ?>
+            </p>
+        </div>
+
+        <div class="openvote-fieldmap-table-wrap">
+        <table class="widefat fixed openvote-settings-table openvote-settings-table--fieldmap">
+            <thead>
+                <tr>
+                    <th class="openvote-th-logical"><?php esc_html_e( 'Pole logiczne', 'openvote' ); ?></th>
+                    <th class="openvote-th-key"><?php esc_html_e( 'Klucz w bazie danych WordPress', 'openvote' ); ?></th>
+                    <th class="openvote-th-source" title="<?php esc_attr_e( 'W wp_users (standardowe)', 'openvote' ); ?>"><?php esc_html_e( 'wp_users', 'openvote' ); ?></th>
+                    <th class="openvote-th-source" title="<?php esc_attr_e( 'W wp_usermeta (standardowe)', 'openvote' ); ?>"><?php esc_html_e( 'wp_usermeta', 'openvote' ); ?></th>
+                    <th class="openvote-th-source" title="<?php esc_attr_e( 'Pole z zewnętrznej wtyczki', 'openvote' ); ?>"><?php esc_html_e( 'Zewn. wtyczki', 'openvote' ); ?></th>
+                    <th class="openvote-th-required"><?php esc_html_e( 'Wymagane', 'openvote' ); ?><br><span class="openvote-th-sub"><?php esc_html_e( 'do głosowania', 'openvote' ); ?></span></th>
+                    <th class="openvote-th-required"><?php esc_html_e( 'Wymagane', 'openvote' ); ?><br><span class="openvote-th-sub"><?php esc_html_e( 'do ankiety', 'openvote' ); ?></span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $labels as $logical => $label ) :
+                    $current_val      = $current_map[ $logical ] ?? Openvote_Field_Map::DEFAULTS[ $logical ];
+                    $is_core          = Openvote_Field_Map::is_core_field( $current_val );
+                    $always_req       = in_array( $logical, Openvote_Field_Map::ALWAYS_REQUIRED, true );
+                    $is_req           = Openvote_Field_Map::is_required( $logical );
+                    $survey_always    = in_array( $logical, Openvote_Field_Map::SURVEY_ALWAYS_REQUIRED, true );
+                    $is_survey_req    = Openvote_Field_Map::is_survey_required( $logical );
+                ?>
+                <tr>
+                    <td>
+                        <strong><?php echo esc_html( __( $label, 'openvote' ) ); ?></strong>
+                        <?php if ( 'email' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Zazwyczaj user_email (pole wbudowane)', 'openvote' ); ?>
+                            </span>
+                        <?php elseif ( 'nickname' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_nicename (pole wbudowane)', 'openvote' ); ?>
+                            </span>
+                        <?php elseif ( 'phone' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Domyślnie: user_gsm', 'openvote' ); ?>
+                            </span>
+                        <?php elseif ( 'id_card' === $logical ) : ?>
+                            <br><span class="description" style="font-size:11px;">
+                                <?php esc_html_e( 'Np. user_id lub inny klucz wp_usermeta', 'openvote' ); ?>
+                            </span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php openvote_settings_select(
+                            $logical,
+                            $current_val,
+                            $available_keys['core'],
+                            $available_keys['meta']
+                        ); ?>
+                        <br>
+                        <?php if ( $current_val === Openvote_Field_Map::NOT_SET_KEY ) : ?>
+                            <span class="openvote-badge" style="background:#f0f0f1;color:#787c82;"><?php esc_html_e( 'nie określone', 'openvote' ); ?></span>
+                        <?php elseif ( 'city' === $logical && $current_val === Openvote_Field_Map::NO_CITY_KEY ) : ?>
+                            <code style="margin-top:4px;display:inline-block;"><?php esc_html_e( 'Nie używaj miast', 'openvote' ); ?></code>
+                            <span class="openvote-badge openvote-badge--meta"><?php esc_html_e( 'grupa Wszyscy', 'openvote' ); ?></span>
+                        <?php else : ?>
+                            <code style="margin-top:4px;display:inline-block;"><?php echo esc_html( $current_val ); ?></code>
+                            <?php if ( $is_core ) : ?>
+                                <span class="openvote-badge openvote-badge--core"><?php esc_html_e( 'wbudowane', 'openvote' ); ?></span>
+                            <?php else : ?>
+                                <span class="openvote-badge openvote-badge--meta"><?php esc_html_e( 'usermeta', 'openvote' ); ?></span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if ( 'phone' === $logical ) : ?>
+                            <br><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'openvote_add_phone_field', '1', admin_url( 'admin.php?page=openvote-settings' ) ), 'openvote_add_phone_field' ) ); ?>" class="openvote-add-phone-field-link" style="font-size:12px;"><?php esc_html_e( 'Dodaj pole', 'openvote' ); ?></a>
+                        <?php endif; ?>
+                        <?php if ( 'city' === $logical ) : ?>
+                            <br><a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'openvote_add_city_field', '1', admin_url( 'admin.php?page=openvote-settings' ) ), 'openvote_add_city_field' ) ); ?>" class="openvote-add-city-field-link" style="font-size:12px;"><?php esc_html_e( 'Dodaj pole', 'openvote' ); ?></a>
+                        <?php endif; ?>
+                    </td>
+                    <?php
+                    $is_no_key = in_array( $current_val, [ Openvote_Field_Map::NOT_SET_KEY, Openvote_Field_Map::NO_CITY_KEY ], true );
+                    $in_wp_users   = $is_no_key ? null : Openvote_Field_Map::is_core_field( $current_val );
+                    $in_wp_usermeta = $is_no_key ? null : Openvote_Field_Map::is_standard_usermeta_field( $current_val );
+                    $is_external   = $is_no_key ? null : Openvote_Field_Map::is_external_plugin_field( $current_val );
+                    ?>
+                    <td style="text-align:center;vertical-align:middle;font-size:12px;">
+                        <?php echo $in_wp_users === null ? '—' : ( $in_wp_users ? esc_html__( 'Tak', 'openvote' ) : esc_html__( 'Nie', 'openvote' ) ); ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;font-size:12px;">
+                        <?php echo $in_wp_usermeta === null ? '—' : ( $in_wp_usermeta ? esc_html__( 'Tak', 'openvote' ) : esc_html__( 'Nie', 'openvote' ) ); ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;font-size:12px;">
+                        <?php echo $is_external === null ? '—' : ( $is_external ? esc_html__( 'Tak', 'openvote' ) : esc_html__( 'Nie', 'openvote' ) ); ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;">
+                        <?php if ( $always_req ) : ?>
+                            <span class="openvote-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane', 'openvote' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'openvote' ); ?>">
+                                <span class="openvote-always-required-box__check" aria-hidden="true">✓</span>
+                            </span>
+                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'openvote' ); ?></span>
+                        <?php else : ?>
+                            <input type="checkbox"
+                                   name="openvote_required_fields[]"
+                                   value="<?php echo esc_attr( $logical ); ?>"
+                                   <?php checked( $is_req ); ?>>
+                        <?php endif; ?>
+                    </td>
+                    <td style="text-align:center;vertical-align:middle;">
+                        <?php if ( $survey_always ) : ?>
+                            <span class="openvote-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane dla ankiet', 'openvote' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'openvote' ); ?>">
+                                <span class="openvote-always-required-box__check" aria-hidden="true">✓</span>
+                            </span>
+                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'openvote' ); ?></span>
+                        <?php else : ?>
+                            <input type="checkbox"
+                                   name="openvote_survey_required_fields[]"
+                                   value="<?php echo esc_attr( $logical ); ?>"
+                                   <?php checked( $is_survey_req ); ?>>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
 
         <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
@@ -898,152 +1081,6 @@ function openvote_settings_select( string $logical, string $current, array $core
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
 
-        <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 12px;">
-            <?php esc_html_e(
-                'Powiąż logiczne pola wtyczki z rzeczywistymi kluczami w bazie danych WordPress. '
-                . 'Dzięki temu wtyczka będzie działać poprawnie niezależnie od użytej wtyczki rejestracji '
-                . 'lub własnego schematu metadanych.',
-                'openvote'
-            ); ?>
-        </p>
-
-        <div class="notice notice-warning inline" style="max-width:860px;margin:0 0 16px;padding:12px 16px;">
-            <p style="margin:0 0 6px;">
-                <strong>⚠ <?php esc_html_e( 'Wymagana wtyczka do rozszerzonych pól profilu', 'openvote' ); ?></strong>
-            </p>
-            <p style="margin:0 0 8px;color:#3c3c3c;">
-                <?php esc_html_e(
-                    'Pola takie jak Telefon, PESEL czy Numer dowodu osobistego nie istnieją domyślnie w WordPress. '
-                    . 'Aby użytkownicy mogli je uzupełniać, potrzebujesz wtyczki, która dodaje własne pola rejestracji i profilu — np.:',
-                    'openvote'
-                ); ?>
-            </p>
-            <ul style="margin:0 0 8px;padding-left:20px;list-style:disc;color:#3c3c3c;">
-                <li>
-                    <a href="https://wordpress.org/plugins/user-registration/" target="_blank" rel="noopener noreferrer">
-                        <strong>User Registration &amp; Membership</strong>
-                    </a>
-                    <?php esc_html_e( '— darmowa, 60 000+ aktywnych instalacji, obsługuje własne pola i powiązuje je z usermeta.', 'openvote' ); ?>
-                </li>
-                <li>
-                    <?php esc_html_e( 'Lub każda inna wtyczka zapisująca dane w', 'openvote' ); ?>
-                    <code>wp_usermeta</code>
-                    <?php esc_html_e( 'pod dowolnym kluczem (meta_key) — wpisz ten klucz w kolumnie poniżej.', 'openvote' ); ?>
-                </li>
-            </ul>
-            <p style="margin:0;font-size:12px;color:#777;">
-                <?php esc_html_e(
-                    'Jeśli dana wtyczka zapisuje numer telefonu jako „user_gsm", wpisz „user_gsm" jako klucz dla pola Telefon.',
-                    'openvote'
-                ); ?>
-            </p>
-        </div>
-
-        <table class="widefat fixed openvote-settings-table" style="max-width:960px;">
-            <thead>
-                <tr>
-                    <th style="width:220px;"><?php esc_html_e( 'Pole logiczne', 'openvote' ); ?></th>
-                    <th><?php esc_html_e( 'Klucz w bazie danych WordPress', 'openvote' ); ?></th>
-                    <th style="width:110px;text-align:center;"><?php esc_html_e( 'Wymagane', 'openvote' ); ?><br><span style="font-weight:400;font-size:11px;color:#888;"><?php esc_html_e( 'do głosowania', 'openvote' ); ?></span></th>
-                    <th style="width:110px;text-align:center;"><?php esc_html_e( 'Wymagane', 'openvote' ); ?><br><span style="font-weight:400;font-size:11px;color:#888;"><?php esc_html_e( 'do ankiety', 'openvote' ); ?></span></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ( $labels as $logical => $label ) :
-                    $current_val      = $current_map[ $logical ] ?? Openvote_Field_Map::DEFAULTS[ $logical ];
-                    $is_core          = Openvote_Field_Map::is_core_field( $current_val );
-                    $always_req       = in_array( $logical, Openvote_Field_Map::ALWAYS_REQUIRED, true );
-                    $is_req           = Openvote_Field_Map::is_required( $logical );
-                    $survey_always    = in_array( $logical, Openvote_Field_Map::SURVEY_ALWAYS_REQUIRED, true );
-                    $is_survey_req    = Openvote_Field_Map::is_survey_required( $logical );
-                ?>
-                <tr>
-                    <td>
-                        <strong><?php echo esc_html( $label ); ?></strong>
-                        <?php if ( 'email' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Zazwyczaj user_email (pole wbudowane)', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'phone' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_gsm', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'pesel' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_pesel', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'id_card' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_id', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'address' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_address', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'zip_code' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_zip', 'openvote' ); ?>
-                            </span>
-                        <?php elseif ( 'town' === $logical ) : ?>
-                            <br><span class="description" style="font-size:11px;">
-                                <?php esc_html_e( 'Domyślnie: user_city', 'openvote' ); ?>
-                            </span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php openvote_settings_select(
-                            $logical,
-                            $current_val,
-                            $available_keys['core'],
-                            $available_keys['meta']
-                        ); ?>
-                        <br>
-                        <?php if ( $current_val === Openvote_Field_Map::NOT_SET_KEY ) : ?>
-                            <span class="openvote-badge" style="background:#f0f0f1;color:#787c82;"><?php esc_html_e( 'nie określone', 'openvote' ); ?></span>
-                        <?php elseif ( 'city' === $logical && $current_val === Openvote_Field_Map::NO_CITY_KEY ) : ?>
-                            <code style="margin-top:4px;display:inline-block;"><?php esc_html_e( 'Nie używaj miast', 'openvote' ); ?></code>
-                            <span class="openvote-badge openvote-badge--meta"><?php esc_html_e( 'grupa Wszyscy', 'openvote' ); ?></span>
-                        <?php else : ?>
-                            <code style="margin-top:4px;display:inline-block;"><?php echo esc_html( $current_val ); ?></code>
-                            <?php if ( $is_core ) : ?>
-                                <span class="openvote-badge openvote-badge--core"><?php esc_html_e( 'wbudowane', 'openvote' ); ?></span>
-                            <?php else : ?>
-                                <span class="openvote-badge openvote-badge--meta"><?php esc_html_e( 'usermeta', 'openvote' ); ?></span>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                    </td>
-                    <td style="text-align:center;vertical-align:middle;">
-                        <?php if ( $always_req ) : ?>
-                            <span class="openvote-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane', 'openvote' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'openvote' ); ?>">
-                                <span class="openvote-always-required-box__check" aria-hidden="true">✓</span>
-                            </span>
-                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'openvote' ); ?></span>
-                        <?php else : ?>
-                            <input type="checkbox"
-                                   name="openvote_required_fields[]"
-                                   value="<?php echo esc_attr( $logical ); ?>"
-                                   <?php checked( $is_req ); ?>>
-                        <?php endif; ?>
-                    </td>
-                    <td style="text-align:center;vertical-align:middle;">
-                        <?php if ( $survey_always ) : ?>
-                            <span class="openvote-always-required-box" title="<?php esc_attr_e( 'To pole jest zawsze wymagane dla ankiet', 'openvote' ); ?>" aria-label="<?php esc_attr_e( 'zawsze wymagane', 'openvote' ); ?>">
-                                <span class="openvote-always-required-box__check" aria-hidden="true">✓</span>
-                            </span>
-                            <br><span style="font-size:11px;color:#888;"><?php esc_html_e( 'zawsze', 'openvote' ); ?></span>
-                        <?php else : ?>
-                            <input type="checkbox"
-                                   name="openvote_survey_required_fields[]"
-                                   value="<?php echo esc_attr( $logical ); ?>"
-                                   <?php checked( $is_survey_req ); ?>>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
         <?php
         $role_screen_map = openvote_get_role_screen_map();
         $role_labels = [
@@ -1328,11 +1365,88 @@ function openvote_settings_select( string $logical, string $current, array $core
     } )();
     </script>
 
+    <script>
+    ( function () {
+        var btn = document.getElementById( 'openvote-check-config-btn' );
+        var resultEl = document.getElementById( 'openvote-check-config-result' );
+        if ( ! btn || ! resultEl ) return;
+        var apiRoot = <?php echo wp_json_encode( esc_url_raw( rest_url( 'openvote/v1' ) ) ); ?>;
+        var nonce = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
+        var labelChecking = <?php echo wp_json_encode( __( 'Sprawdzanie…', 'openvote' ) ); ?>;
+        var labelError = <?php echo wp_json_encode( __( 'Błąd połączenia.', 'openvote' ) ); ?>;
+        var repair1Title = <?php echo wp_json_encode( __( 'Naprawa: Nie używaj miast / grup (ograniczone możliwości)', 'openvote' ) ); ?>;
+        var repair1Desc1 = <?php echo wp_json_encode( __( 'automatycznie dodaj grupę „Wszyscy”', 'openvote' ) ); ?>;
+        var repair1Desc2 = <?php echo wp_json_encode( __( 'automatycznie ustaw Sejmik na „Nie używaj miast”', 'openvote' ) ); ?>;
+        var repair1Desc3 = <?php echo wp_json_encode( __( 'wyłącz checkbox „Wymagane” dla Sejmika', 'openvote' ) ); ?>;
+        var repair1Btn = <?php echo wp_json_encode( __( 'Zastosuj tę naprawę', 'openvote' ) ); ?>;
+        var repair2Title = <?php echo wp_json_encode( __( 'Używaj miast / grup', 'openvote' ) ); ?>;
+        var repair2Message = <?php echo wp_json_encode( __( 'Należy zainstalować wtyczkę do rozszerzonych pól profilu (np. User Registration) i dodać pole do rejestracji lub profilu, zapisujące wartość w wp_usermeta pod kluczem np. user_registration_miejsce_spotkania (lub podobnym). Następnie w Konfiguracji → Mapowanie pól ustaw pole „Sejmik / Grupa / Obszar” na ten klucz.', 'openvote' ) ); ?>;
+        function renderConfig( data ) {
+            var html = '';
+            function section( title, obj ) {
+                if ( ! obj || typeof obj.message === 'undefined' ) return;
+                var cls = ( obj.ok && ! obj.not_recommended ) ? 'openvote-check-ok' : 'openvote-check-error';
+                html += '<div class="openvote-check-config-block"><p class="openvote-check-config-item ' + cls + '"><strong>' + title + '</strong> ' + ( obj.message || '' ).replace( /</g, '&lt;' ) + '</p></div>';
+            }
+            section( '<?php echo esc_js( __( 'Pola obowiązkowe (wbudowane): Imię, Nazwisko, E-mail', 'openvote' ) ); ?>:', data.mandatory_fields );
+            section( '<?php echo esc_js( __( 'Sejmik / Grupa / Obszar', 'openvote' ) ); ?>:', data.city_field );
+            section( '<?php echo esc_js( __( 'Telefon', 'openvote' ) ); ?>:', data.phone_field );
+            if ( data.city_field && ! data.city_field.ok ) {
+                html += '<div class="openvote-check-config-block openvote-check-repair">';
+                html += '<p><strong>' + repair1Title + '</strong></p><ul style="margin:8px 0 12px;padding-left:20px;">';
+                html += '<li>' + repair1Desc1 + '</li><li>' + repair1Desc2 + '</li><li>' + repair1Desc3 + '</li></ul>';
+                html += '<button type="button" class="button button-primary openvote-repair-city-no-groups-btn">' + repair1Btn + '</button>';
+                html += '</div>';
+                html += '<div class="openvote-check-config-block openvote-check-repair-2"><p><strong>' + repair2Title + '</strong></p>';
+                html += '<p class="openvote-check-config-item" style="color:#555;">' + ( repair2Message + '' ).replace( /</g, '&lt;' ) + '</p></div>';
+            }
+            if ( data.sync_note ) {
+                html += '<div class="openvote-check-config-block openvote-check-sync-note"><p class="openvote-check-config-item openvote-check-not-recommended">' + ( data.sync_note + '' ).replace( /</g, '&lt;' ) + '</p></div>';
+            }
+            resultEl.innerHTML = html || '<p class="openvote-check-ok"><?php echo esc_js( __( 'Sprawdzenie zakończone.', 'openvote' ) ); ?></p>';
+            var repairBtn = resultEl.querySelector( '.openvote-repair-city-no-groups-btn' );
+            if ( repairBtn ) {
+                repairBtn.addEventListener( 'click', function () {
+                    repairBtn.disabled = true;
+                    fetch( apiRoot + '/repair-city-no-groups', { method: 'POST', headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' } } )
+                        .then( function ( r ) { return r.json(); } )
+                        .then( function ( res ) {
+                            if ( res && res.success ) {
+                                return fetch( apiRoot + '/check-config', { method: 'GET', headers: { 'X-WP-Nonce': nonce, 'Accept': 'application/json' } } ).then( function ( re ) { return re.json(); } );
+                            }
+                            return null;
+                        } )
+                        .then( function ( newData ) { if ( newData ) renderConfig( newData ); } )
+                        .catch( function () { repairBtn.disabled = false; } )
+                        .finally( function () { repairBtn.disabled = false; } );
+                } );
+            }
+        }
+        btn.addEventListener( 'click', function () {
+            btn.disabled = true;
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<p class="openvote-check-config-loading">' + labelChecking + '</p>';
+            fetch( apiRoot + '/check-config', {
+                method: 'GET',
+                headers: { 'X-WP-Nonce': nonce, 'Accept': 'application/json' }
+            } )
+            .then( function ( r ) { return r.json(); } )
+            .then( renderConfig )
+            .catch( function () {
+                resultEl.innerHTML = '<p class="openvote-check-config-item openvote-check-error">' + labelError + '</p>';
+            } )
+            .finally( function () {
+                btn.disabled = false;
+            } );
+        } );
+    } )();
+    </script>
+
     <hr>
     <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'openvote' ); ?></h2>
     <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
         <li><?php esc_html_e( 'Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie pola oznaczone jako "Wymagane" są wypełnione.', 'openvote' ); ?></li>
-        <li><?php esc_html_e( 'Pole "Nazwa miasta" służy do definiowania grup docelowych głosowania.', 'openvote' ); ?></li>
+        <li><?php esc_html_e( 'Pole "Sejmik / Grupa / Obszar" służy do definiowania grup docelowych głosowania.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają nowych kluczy.', 'openvote' ); ?></li>

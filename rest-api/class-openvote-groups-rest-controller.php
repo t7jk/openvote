@@ -286,6 +286,12 @@ class Openvote_Groups_Rest_Controller {
     }
 
     public function sync_all_city_groups( WP_REST_Request $request ): WP_REST_Response {
+        $body  = $request->get_json_params() ?: [];
+        $reset = ! empty( $body['reset'] );
+        if ( $reset ) {
+            delete_option( Openvote_Batch_Processor::OPTION_SYNC_ALL_CHECKPOINT );
+        }
+
         $job_id = Openvote_Batch_Processor::start_job( 'sync_all_city_groups', [] );
 
         return new WP_REST_Response( [

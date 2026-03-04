@@ -23,6 +23,8 @@ class Openvote_Batch_Processor {
     const EMAIL_BATCH_SIZE_DEFAULT = 20;  // WP/SMTP
     const EMAIL_SENDGRID_BATCH_DEFAULT = 100; // SendGrid
 
+    const OPTION_SYNC_ALL_CHECKPOINT = 'openvote_sync_all_checkpoint';
+
     // ─── Publiczne API ───────────────────────────────────────────────────────
 
     /**
@@ -58,11 +60,40 @@ class Openvote_Batch_Processor {
 
         if ( 'sync_all_city_groups' === $type ) {
             $job_data['total_users'] = 0;
-            $job_data['logs']        = [
-                gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
-                    /* translators: %d: number of cities */
-                    __( 'Łącznie do przetworzenia: %d miast. Liczenie użytkowników w pierwszej partii…', 'openvote' ),
-                    $total
+            $checkpoint              = get_option( self::OPTION_SYNC_ALL_CHECKPOINT, [] );
+            $city_disabled           = Openvote_Field_Map::is_city_disabled();
+            $resumed                 = false;
+            // Wznowienie tylko gdy checkpoint jest niepusty (po resecie jest [] — wtedy start od zera, bez komunikatu "Wznowiono").
+            if ( is_array( $checkpoint ) && ! empty( $checkpoint ) && $total > 0 ) {
+                if ( $city_disabled ) {
+                    $user_off = isset( $checkpoint['user_offset'] ) ? (int) $checkpoint['user_offset'] : 0;
+                    if ( $user_off >= 0 && $user_off <= $total ) {
+                        $job_data['offset'] = $user_off;
+                        $resumed             = true;
+                    }
+                } else {
+                    $city_off   = isset( $checkpoint['city_offset'] ) ? (int) $checkpoint['city_offset'] : 0;
+                    $sync_off   = isset( $checkpoint['sync_user_offset'] ) ? (int) $checkpoint['sync_user_offset'] : 0;
+                    if ( $city_off >= 0 && $city_off <= $total ) {
+                        $job_data['offset'] = $city_off;
+                        $job_data['params']['sync_user_offset'] = $sync_off;
+                        $resumed = true;
+                    }
+                }
+            }
+            $job_data['logs'] = [
+                gmdate( 'Y-m-d H:i:s' ) . ' ' . (
+                    $resumed
+                    ? sprintf(
+                        /* translators: %d: number of cities or users */
+                        __( 'Wznowiono od ostatniego stanu. Łącznie do przetworzenia: %d.', 'openvote' ),
+                        $total
+                    )
+                    : sprintf(
+                        /* translators: %d: number of cities */
+                        __( 'Łącznie do przetworzenia: %d miast. Liczenie użytkowników w pierwszej partii…', 'openvote' ),
+                        $total
+                    )
                 ),
             ];
         } else {
@@ -158,6 +189,27 @@ class Openvote_Batch_Processor {
             $job['status'] = 'done';
             if ( 'sync_all_city_groups' === $job['type'] && function_exists( 'openvote_current_time_for_voting' ) ) {
                 update_option( 'openvote_last_cron_sync_date', openvote_current_time_for_voting( 'Y-m-d' ), false );
+            }
+        }
+
+        // Zapis checkpointu dla sync_all_city_groups (wznowienie od ostatniego stanu).
+        if ( 'sync_all_city_groups' === $job['type'] ) {
+            $city_disabled = Openvote_Field_Map::is_city_disabled();
+            if ( $job['status'] === 'done' ) {
+                if ( $city_disabled ) {
+                    update_option( self::OPTION_SYNC_ALL_CHECKPOINT, [ 'user_offset' => $job['total'] ], false );
+                } else {
+                    update_option( self::OPTION_SYNC_ALL_CHECKPOINT, [ 'city_offset' => $job['total'], 'sync_user_offset' => 0 ], false );
+                }
+            } else {
+                if ( $city_disabled ) {
+                    update_option( self::OPTION_SYNC_ALL_CHECKPOINT, [ 'user_offset' => $job['offset'] ], false );
+                } else {
+                    update_option( self::OPTION_SYNC_ALL_CHECKPOINT, [
+                        'city_offset'      => $job['offset'],
+                        'sync_user_offset' => (int) ( $job['params']['sync_user_offset'] ?? 0 ),
+                    ], false );
+                }
             }
         }
 
@@ -303,6 +355,9 @@ class Openvote_Batch_Processor {
             $job['offset'] = $pid_run
                 ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$eq} WHERE poll_id = %d AND status != 'pending'", $pid_run ) )
                 : $job['total'];
+        } elseif ( 'sync_all_city_groups' === $job['type'] && Openvote_Field_Map::is_city_disabled() ) {
+            // Tryb „Wszyscy”: offset = następna partia użytkowników.
+            $job['offset'] += $count > 0 ? self::SYNC_BATCH_SIZE : $job['total'];
         } elseif ( 'sync_all_city_groups' !== $job['type'] ) {
             $batch_size = self::batch_size_for_type( $job['type'] );
             $job['offset'] += $count > 0 ? $batch_size : $job['total'];
