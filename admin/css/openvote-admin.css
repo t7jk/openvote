@@ -534,14 +534,61 @@ input.evoting-date-readonly {
     padding: 10px 12px;
 }
 
-/* Kolumna Konfiguracja w tabeli Mapowanie roli — wyróżnienie ostrzegawcze */
-.openvote-role-map-table th.openvote-col-config,
-.openvote-role-map-table td.openvote-col-config {
-    background-color: #fff8e1;
-    border-left: 3px solid #dba617;
+/* Etykiety dwujęzyczne: polski nad angielskim */
+.openvote-role-map-table .openvote-label-pl { display: block; }
+.openvote-role-map-table .openvote-label-en {
+    display: block;
+    font-size: 0.9em;
+    color: #646970;
+    font-weight: normal;
+}
+
+/* Tabela Mapowanie roli — siatka i kolory dla czytelności */
+.openvote-role-map-table {
+    border-collapse: collapse;
+    border: 1px solid #c3c4c7;
+}
+.openvote-role-map-table thead th {
+    background: #f0f0f1;
+    border: 1px solid #c3c4c7;
+    border-bottom: 2px solid #8c8f94;
+    padding: 10px 12px;
+    font-weight: 600;
+    text-align: left;
+}
+.openvote-role-map-table tbody th.openvote-role-map-row-label {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-right: 2px solid #8c8f94;
+    padding: 10px 12px;
+    font-weight: 600;
+    width: 140px;
+}
+.openvote-role-map-table tbody td {
+    border: 1px solid #dcdcde;
+    padding: 8px 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+.openvote-role-map-table tbody tr:nth-child(even) td {
+    background-color: #f9f9f9;
+}
+.openvote-role-map-table tbody tr:nth-child(even) th.openvote-role-map-row-label {
+    background: #f0f0f1;
+}
+
+/* Wiersz Konfiguracja w tabeli Mapowanie roli — wyróżnienie (wyraźny kolor) */
+.openvote-role-map-table tr.openvote-row-config th.openvote-role-map-row-label,
+.openvote-role-map-table tr.openvote-row-config td {
+    background: linear-gradient( to right, #fff3e0 0%, #ffe0b2 100% ) !important;
+    border-color: #e65100;
     font-weight: 600;
 }
-.openvote-role-map-table td.openvote-col-config {
+.openvote-role-map-table tr.openvote-row-config th.openvote-role-map-row-label {
+    border-left: 4px solid #e65100;
+    color: #bf360c;
+}
+.openvote-role-map-table tr.openvote-row-config td {
     font-weight: normal;
 }
 

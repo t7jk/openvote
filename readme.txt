@@ -1,153 +1,50 @@
-=== Open Vote ===
-Contributors: t7jk
-Tags: voting, polls, surveys, e-voting, anonymous voting, groups, email invitations, elections
-Requires at least: 6.4
-Tested up to: 6.7
-Stable tag: 1.2.0
-Requires PHP: 8.1
-License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+body { font-family: Arial, sans-serif; color: #2c2c2c; background: #f5f5f5; margin: 0; padding: 20px; }
+  .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .header { background: #1a3c6e; color: #ffffff; padding: 32px 40px; text-align: center; }
+  .header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+  .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.8; }
+  .header p.header__tagline { margin-top: 4px; font-size: 13px; opacity: 0.9; }
+  .header p:empty { display: none; }
+  .body { padding: 36px 40px; }
+  .body p { line-height: 1.7; font-size: 15px; }
+  .poll-title { font-size: 18px; font-weight: 700; color: #1a3c6e; margin: 16px 0; }
+  .questions { background: #f0f4fa; border-left: 4px solid #1a3c6e; border-radius: 4px; padding: 16px 20px; margin: 20px 0; }
+  .questions h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
+  .questions ul { margin: 0; padding-left: 18px; }
+  .questions ul li { margin-bottom: 6px; font-size: 15px; }
+  .deadline { font-size: 14px; color: #666; margin: 16px 0; }
+  .deadline strong { color: #c0392b; }
+  .cta { text-align: center; margin: 28px 0; }
+  .cta a { background: #1a3c6e; color: #ffffff; padding: 14px 36px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; letter-spacing: 0.3px; }
+  .footer { text-align: center; padding: 20px 40px; background: #f5f5f5; font-size: 13px; color: #999; border-top: 1px solid #e0e0e0; }
 
-Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
 
-== Description ==
 
-Open Vote is a WordPress plugin for running electronic polls and surveys within your organisation. It lets you create polls with multiple questions and answers, manage participant groups (including by city or custom groups), send email invitations in batches, and view results with optional anonymity.
-
-= Features =
-
-* **Polls** — Create drafts, open and close polls. Each poll has a title, description, start/end dates, and multiple questions with up to 12 answers each (including "Abstain").
-* **Anonymous or public voting** — Choose whether voters appear in results by name or as "Anonymous".
-* **Groups** — Define user groups (e.g. by city from profile field). Target polls to specific groups. Sync members in batches (100 at a time) for large sites.
-* **Coordinators** — Assign coordinators to groups; they can create and run polls for their groups.
-* **Surveys** — Separate surveys with custom fields (short/long text, number, URL, email). Responses can be marked as draft or ready; spam flag and public submissions view (sensitive data hidden).
-* **Email** — Invitations and notifications via WordPress mail, external SMTP, or SendGrid API. Batch sending with progress bar for large recipient lists.
-* **Results** — Turnout, per-question counts and percentages, lists of voters and non-voters (paginated). Optional PDF export (requires Composer dependency).
-* **i18n** — Polish and English; interface language follows WordPress locale.
-
-= Requirements =
-
-* WordPress 6.4 or later
-* PHP 8.1 or later
-* For PDF export: run `composer install` in the plugin directory (TCPDF)
-
-= Good for =
-
-* Associations, clubs, and organisations that need internal votes
-* Sites with many users (batch processing avoids timeouts)
-* When you need anonymity or auditable, transparent results
-
-== Installation ==
-
-1. Upload the plugin folder to `/wp-content/plugins/` or install via WordPress admin (Plugins → Add New → Upload).
-2. Activate the plugin via the "Plugins" screen.
-3. Go to **E-głosowania → Konfiguracja** (or **E-Voting → Settings** in English) to set:
-   * Sender email and mail method (WordPress / SMTP / SendGrid)
-   * Vote page URL (e.g. `?glosuj`)
-   * User profile field mapping (first name, last name, city, etc.) if you use custom profile plugins
-4. Create groups under **E-głosowania → Grupy** and optionally run "Synchronizuj wszystkie grupy-miasta" to fill groups by city.
-5. Add coordinators under **E-głosowania → Koordynatorzy** if you use role-based access.
-6. Create a WordPress Page or use the configured vote slug so users can open the voting page.
-
-= Optional: PDF reports =
-
-To enable "Pobierz wyniki (PDF)" on poll results, run in the plugin directory:
-
-`composer install`
-
-This installs TCPDF (LGPL). Without it, the button is hidden and a short notice is shown.
-
-== Frequently Asked Questions ==
-
-= What is the difference between a Poll and a Survey? =
-
-Polls are for formal votes: one vote per user per poll, optional anonymity, results with turnout and percentages. Surveys are for collecting open-ended or structured responses (text, numbers, etc.) with draft/ready status and optional spam marking.
-
-= Can I use this with 10,000+ users? =
-
-Yes. Group sync, invitation sending, and result lists are processed in batches (e.g. 100 at a time) with a progress bar. List screens (e.g. user picker) are limited (e.g. 300) with an option to enter a user ID directly.
-
-= Which languages are supported? =
-
-Polish (when WordPress is set to Polish) and English (for any other locale). All interface strings are translatable (domain: openvote).
-
-= Is voting really anonymous when I choose "anonymous"? =
-
-Yes. The server forces anonymous mode: even if the client sent a different preference, the vote is stored and displayed as anonymous. No list of voters is shown for anonymous polls.
-
-== Troubleshooting ==
-
-= "chmod(): Operation not permitted" or "Some files could not be copied" when installing/updating =
-
-These messages come from the server, not the plugin. WordPress tries to set file permissions after unpacking; if the web server user cannot run chmod (e.g. in Docker, some hostings, or when files are owned by root), the installer reports failures.
-
-* **Option 1 – Fix ownership:** On the server, make the web server user (e.g. www-data or apache) the owner of the WordPress directory, e.g. `sudo chown -R www-data:www-data /var/www/html/wordpress`. Then install or update the plugin again.
-* **Option 2 – Install manually:** Download the plugin zip, extract it on your computer, then upload the `openvote` folder to `wp-content/plugins/` via SFTP/FTP or file manager, so that the server does not run chmod.
-* **Option 3 – One-time permissions script:** If you have a script that sets correct ownership (e.g. the plugin’s `fix-wordpress-permissions.sh`), run it as root once (e.g. `sudo ./fix-wordpress-permissions.sh /var/www/html/wordpress`), then retry the plugin update in the admin.
-
-The plugin works normally once the files are present; the warnings only affect the installer’s ability to set permissions automatically.
-
-== Screenshots ==
-
-1. Poll list (draft, open, closed) with actions: Edit, Results, Invitations
-2. Poll form: questions and answers, target groups, dates
-3. Groups: list and members; sync by city
-4. Coordinators: assign users to groups
-5. Settings: email method, SMTP/SendGrid, vote page URL, field mapping
-6. Public vote page: active and ended polls, vote form
-7. Results: turnout, per-question stats, voter and non-voter lists (paginated)
-
-== Troubleshooting ==
-
-= "Cannot modify header information - headers already sent" =
-
-If you see this warning and the message says output started at a theme file (e.g. `themes/blocksy/inc/dynamic-css.php`), the theme is sending output before WordPress sends HTTP headers (e.g. before a redirect after saving).
-
-* **Quick fix (site-wide):** In `wp-config.php`, add at the very top right after `<?php`:  
-  `ob_start();`  
-  This buffers early output so headers can still be sent. Remove it after updating the theme or changing the option below.
-* **Blocksy theme:** In WordPress Admin → Appearance → Customize → Performance (or Blocksy options), set "Dynamic CSS" to **File** instead of **Inline**, then save. Clear any cache and regenerate assets (change one Customizer option and save again).
-* **General:** Update the theme and disable any plugin that minifies or combines CSS; ensure no PHP notices are shown (set `display_errors` off in production).
-
-== Changelog ==
-
-= 1.2.0 =
-* Wersja 1.2.0: zmiany i nowe funkcje.
-
-= 1.1.2 =
-* Wersja 1.1.2: poprawki i zmiany.
-
-= 1.1.1 =
-* Wersja 1.1.1: poprawki (m.in. jedna opcja „Wstrzymuję się” w głosowaniach).
-
-= 1.1.0 =
-* Wersja 1.1.0: poprawki i drobne zmiany w interfejsie.
-
-= 1.0.0 =
-* Initial release.
-* Polls: create, edit, draft/open/closed, questions and answers, target groups.
-* Voting: public page, eligibility checks, anonymous or public mode.
-* Groups: create, sync by city (batch), manual members.
-* Coordinators: assign users to groups, limit roles.
-* Surveys: create, fields (text, number, URL, email), responses, spam flag, public submissions block (sensitive data hidden).
-* Email: WordPress / SMTP / SendGrid, batch invitations with progress.
-* Results: turnout, lists (paginated), optional PDF (with Composer).
-* i18n: Polish and English.
-* Batch processing for large user bases (sync, invitations, result lists).
-
-== Upgrade Notice ==
-
-= 1.2.0 =
-Aktualizacja do wersji 1.2.0. Zalecane po aktualizacji z 1.1.2.
-
-= 1.1.2 =
-Aktualizacja do wersji 1.1.2. Zalecane po aktualizacji z 1.1.1.
-
-= 1.1.1 =
-Aktualizacja do wersji 1.1.1. Zalecane po aktualizacji z 1.1.0.
-
-= 1.1.0 =
-Aktualizacja do wersji 1.1.0. Zalecane po aktualizacji z 1.0.0.
-
-= 1.0.0 =
-First release. Configure vote page and field mapping after activation.
+<div class="wrapper">
+  <div class="header">
+    <h1>Zaproszenie do głosowania</h1>
+    <p>{brand_short} — {site_name}</p>
+    <p class="header__tagline">{site_tagline}</p>
+  </div>
+  <div class="body">
+    <p>Szanowni Państwo,</p>
+    <p>mamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:</p>
+    <div class="poll-title">„{poll_title}"</div>
+    <div class="questions">
+      <h3>Zagadnienia poddane pod głosowanie</h3>
+      {questions}
+    </div>
+    <div class="deadline">Termin głosowania: <strong>do {date_end}</strong></div>
+    <div class="cta">
+      <a href="{vote_url}">Przejdź do głosowania →</a>
+    </div>
+    <p>Każdy głos ma znaczenie. Dziękujemy za zaangażowanie.</p>
+  </div>
+  <div class="footer">
+    © {brand_short} &nbsp;|&nbsp; Wiadomość wygenerowana automatycznie<br><br>
+    <span style="font-size:12px;color:#bbb">
+      Głosowanie przeprowadzono na stronie <a href="{site_url}" style="color:#bbb">{site_url}</a><br>
+      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: Tomasz Kalinowski &mdash; <a href="https://github.com/t7jk/openvote" style="color:#bbb">kod źródłowy na GitHub</a>
+    </span>
+  </div>
+</div>

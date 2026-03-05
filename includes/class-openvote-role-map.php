@@ -10,12 +10,12 @@ class Openvote_Role_Map {
     const OPTION_KEY = 'openvote_role_screen_map';
 
     /** Dozwolone slugi ról (wiersze tabeli). */
-    const ROLES = [ 'subscriber', 'contributor', 'author', 'editor', 'administrator', 'openvote_coordinator' ];
+    const ROLES = [ 'subscriber', 'administrator', 'openvote_coordinator' ];
 
     /** Dozwolone slugi ekranów (kolumny tabeli). Konfiguracja jako ostatnia. */
     const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-statistics', 'openvote-settings' ];
 
-    /** Domyślna mapa: rola => [ ekran => 1|0 ]. Podręcznik standardowo włączony dla wszystkich oprócz Subskrybenta. */
+    /** Domyślna mapa: tylko Administrator (wszystko) i Koordynator (wszystko oprócz Konfiguracji). Subscriber — brak dostępu. */
     const DEFAULT_MAP = [
         'administrator'       => [
             'openvote'           => 1,
@@ -25,33 +25,6 @@ class Openvote_Role_Map {
             'openvote-manual'   => 1,
             'openvote-statistics' => 1,
             'openvote-settings' => 1,
-        ],
-        'editor'              => [
-            'openvote'           => 0,
-            'openvote-surveys'  => 0,
-            'openvote-groups'   => 0,
-            'openvote-roles'    => 0,
-            'openvote-manual'   => 1,
-            'openvote-statistics' => 1,
-            'openvote-settings' => 0,
-        ],
-        'contributor'         => [
-            'openvote'           => 0,
-            'openvote-surveys'  => 0,
-            'openvote-groups'   => 0,
-            'openvote-roles'    => 0,
-            'openvote-manual'   => 1,
-            'openvote-statistics' => 1,
-            'openvote-settings' => 0,
-        ],
-        'author'              => [
-            'openvote'           => 0,
-            'openvote-surveys'  => 0,
-            'openvote-groups'   => 0,
-            'openvote-roles'    => 0,
-            'openvote-manual'   => 1,
-            'openvote-statistics' => 1,
-            'openvote-settings' => 0,
         ],
         'subscriber'          => [
             'openvote'           => 0,

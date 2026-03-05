@@ -95,14 +95,14 @@ class Openvote_Admin {
     }
 
     /**
-     * Czy użytkownik ma dostęp do zakładki Koordynatorzy (Administrator / Editor / Author lub Koordynator dowolnej grupy).
+     * Czy użytkownik ma dostęp do zakładki Koordynatorzy (Administrator lub Koordynator).
      */
     public static function user_can_access_coordinators(): bool {
         $user = wp_get_current_user();
         if ( ! $user->exists() ) {
             return false;
         }
-        $allowed_wp_roles = [ 'administrator', 'editor', 'author' ];
+        $allowed_wp_roles = [ 'administrator' ];
         if ( array_intersect( $allowed_wp_roles, (array) $user->roles ) ) {
             return true;
         }
@@ -131,28 +131,26 @@ class Openvote_Admin {
     }
 
     /**
-     * Dla użytkowników bez dostępu: menu Open Vote w kursywie i nieaktywne.
-     * Dla samych Koordynatorów (bez Admin/Editor/Author): tylko zakładka Koordynatorzy jest klikalna.
+     * Menu Open Vote widzą tylko Administrator (wszystko) i Koordynator (wszystko oprócz Konfiguracji).
+     * Subscriber, Contributor, Autor, Edytor — brak dostępu do menu (nie ma znaczenia, którą z tych ról mają).
      */
     public function style_menu_for_restricted_roles(): void {
         $user = wp_get_current_user();
         if ( ! $user->exists() ) {
             return;
         }
-        $has_wp_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], (array) $user->roles );
-        $can_access_coordinators = self::user_can_access_coordinators();
+        $is_administrator = in_array( 'administrator', (array) $user->roles, true );
+        $is_coordinator  = self::user_can_access_coordinators();
 
-        if ( $has_wp_role ) {
+        if ( $is_administrator || $is_coordinator ) {
             return;
         }
-        if ( ! $can_access_coordinators ) {
-            global $menu;
-            if ( is_array( $menu ) ) {
-                foreach ( $menu as $key => $item ) {
-                    if ( isset( $item[2] ) && 'openvote' === $item[2] ) {
-                        $menu[ $key ][4] = ( isset( $item[4] ) ? $item[4] . ' ' : '' ) . 'openvote-menu-disabled';
-                        break;
-                    }
+        global $menu;
+        if ( is_array( $menu ) ) {
+            foreach ( $menu as $key => $item ) {
+                if ( isset( $item[2] ) && 'openvote' === $item[2] ) {
+                    $menu[ $key ][4] = ( isset( $item[4] ) ? $item[4] . ' ' : '' ) . 'openvote-menu-disabled';
+                    break;
                 }
             }
         }

@@ -322,6 +322,15 @@ class Openvote_Role_Manager {
             update_user_meta( $user_id, self::META_GROUPS, wp_json_encode( array_values( array_map( 'absint', $group_ids ) ) ) );
         }
 
+        $user = get_userdata( $user_id );
+        if ( $user && $user->exists() ) {
+            $roles = (array) $user->roles;
+            $has_dashboard_role = (bool) array_intersect( [ 'administrator', 'editor', 'author', 'contributor' ], $roles );
+            if ( ! $has_dashboard_role ) {
+                $user->add_role( 'contributor' );
+            }
+        }
+
         return true;
     }
 
@@ -350,6 +359,15 @@ class Openvote_Role_Manager {
                 'cannot_remove',
                 __( 'Nie masz uprawnień do usunięcia tej roli.', 'openvote' )
             );
+        }
+
+        $user = get_userdata( $user_id );
+        if ( $user && $user->exists() ) {
+            $roles = (array) $user->roles;
+            $has_higher_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], $roles );
+            if ( ! $has_higher_role && in_array( 'contributor', $roles, true ) ) {
+                $user->set_role( 'subscriber' );
+            }
         }
 
         delete_user_meta( $user_id, self::META_ROLE );
@@ -419,6 +437,14 @@ class Openvote_Role_Manager {
         $new_ids = array_values( array_diff( $current, [ $group_id ] ) );
 
         if ( empty( $new_ids ) ) {
+            $user = get_userdata( $user_id );
+            if ( $user && $user->exists() ) {
+                $roles = (array) $user->roles;
+                $has_higher_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], $roles );
+                if ( ! $has_higher_role && in_array( 'contributor', $roles, true ) ) {
+                    $user->set_role( 'subscriber' );
+                }
+            }
             delete_user_meta( $user_id, self::META_ROLE );
             delete_user_meta( $user_id, self::META_GROUPS );
         } else {

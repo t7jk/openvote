@@ -1085,11 +1085,13 @@ function openvote_settings_select( string $logical, string $current, array $core
         $role_screen_map = openvote_get_role_screen_map();
         $role_labels = [
             'subscriber'          => __( 'Subskrybent', 'openvote' ),
-            'contributor'         => __( 'Współtwórca', 'openvote' ),
-            'author'              => __( 'Autor', 'openvote' ),
-            'editor'              => __( 'Edytor', 'openvote' ),
             'administrator'       => __( 'Administrator', 'openvote' ),
             'openvote_coordinator' => __( 'Koordynator', 'openvote' ),
+        ];
+        $role_labels_en = [
+            'subscriber'          => 'Subscriber',
+            'administrator'       => 'Administrator',
+            'openvote_coordinator' => 'Coordinator',
         ];
         $screen_labels = [
             'openvote'           => __( 'Głosowania', 'openvote' ),
@@ -1100,6 +1102,17 @@ function openvote_settings_select( string $logical, string $current, array $core
             'openvote-statistics' => __( 'Statystyka', 'openvote' ),
             'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
         ];
+        $screen_labels_en = [
+            'openvote'           => 'Polls',
+            'openvote-surveys'  => 'Surveys',
+            'openvote-groups'   => 'Groups',
+            'openvote-roles'    => 'Coordinators',
+            'openvote-manual'   => 'Manual',
+            'openvote-statistics' => 'Statistics',
+            'openvote-settings' => 'Configuration',
+        ];
+        // Kolumny = role (pierwsza kolumna = Koordynator), wiersze = ekrany.
+        $role_order = [ 'openvote_coordinator', 'subscriber', 'administrator' ];
         ?>
         <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Mapowanie roli', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 16px;">
@@ -1108,39 +1121,40 @@ function openvote_settings_select( string $logical, string $current, array $core
         <table class="widefat fixed openvote-settings-table openvote-role-map-table" style="max-width:900px;">
             <thead>
                 <tr>
-                    <th scope="col"><?php esc_html_e( 'Rola', 'openvote' ); ?></th>
-                    <?php foreach ( $screen_labels as $screen_slug => $label ) : ?>
-                        <th scope="col"<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-col-config"' : ''; ?>><?php echo esc_html( $label ); ?></th>
+                    <th scope="col" style="width:140px;"></th>
+                    <?php foreach ( $role_order as $role_slug ) : ?>
+                        <th scope="col"><span class="openvote-label-pl"><?php echo esc_html( $role_labels[ $role_slug ] ); ?></span><br><span class="openvote-label-en"><?php echo esc_html( $role_labels_en[ $role_slug ] ); ?></span></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( array_keys( $role_labels ) as $role_slug ) :
-                    $is_admin      = ( $role_slug === 'administrator' );
-                    $is_subscriber = ( $role_slug === 'subscriber' );
+                <?php
+                $locale_is_pl = ( strpos( get_locale(), 'pl' ) === 0 );
+                foreach ( $screen_labels as $screen_slug => $screen_label ) :
+                    $row_label = $locale_is_pl ? $screen_label : $screen_labels_en[ $screen_slug ];
                 ?>
-                <tr>
-                    <td><?php echo esc_html( $role_labels[ $role_slug ] ); ?></td>
-                    <?php foreach ( array_keys( $screen_labels ) as $screen_slug ) : ?>
-                        <td<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-col-config"' : ''; ?>>
+                <tr<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-row-config"' : ''; ?>>
+                    <th scope="row" class="openvote-role-map-row-label"><?php echo esc_html( $row_label ); ?></th>
+                    <?php foreach ( $role_order as $role_slug ) :
+                        $is_admin      = ( $role_slug === 'administrator' );
+                        $is_subscriber = ( $role_slug === 'subscriber' );
+                    ?>
+                        <td>
                             <?php if ( $is_admin ) : ?>
-                                <?php // Administrator ma zawsze dostęp; checkbox tylko do odczytu, wartość wysyłana hidden. ?>
                                 <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="1">
                                 <input type="checkbox"
                                        id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
                                        checked
                                        disabled
-                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?>">
+                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
                             <?php elseif ( $is_subscriber ) : ?>
-                                <?php // Subskrybent: brak dostępu; wiersz tylko do odczytu. ?>
                                 <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="0">
                                 <input type="checkbox"
                                        id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
                                        disabled
-                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?>">
+                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
                             <?php else : ?>
-                                <?php // Autor, Edytor, Koordynator: wszystkie kolumny edytowalne; domyślnie Konfiguracja wyłączona (0) w DEFAULT_MAP. ?>
-                                <label class="screen-reader-text" for="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"><?php echo esc_html( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?></label>
+                                <label class="screen-reader-text" for="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"><?php echo esc_html( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?></label>
                                 <input type="checkbox"
                                        id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
                                        name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]"
