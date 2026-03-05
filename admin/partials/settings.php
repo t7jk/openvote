@@ -1085,6 +1085,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         $role_screen_map = openvote_get_role_screen_map();
         $role_labels = [
             'subscriber'          => __( 'Subskrybent', 'openvote' ),
+            'contributor'         => __( 'Współtwórca', 'openvote' ),
             'author'              => __( 'Autor', 'openvote' ),
             'editor'              => __( 'Edytor', 'openvote' ),
             'administrator'       => __( 'Administrator', 'openvote' ),

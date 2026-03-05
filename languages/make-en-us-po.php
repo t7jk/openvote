@@ -709,6 +709,7 @@ $translations = [
     'Rola wtyczki (poll_admin). Nadawana ręcznie przez Administratora lub innego Koordynatora. Dostęp do listy głosowań, ankiet, grup i koordynatorów; bez dostępu do Konfiguracji. Może dodawać i usuwać koordynatorów oraz grupy.' => 'Plugin role (poll_admin). Assigned manually by Administrator or another Coordinator. Access to poll list, surveys, groups and coordinators; no access to Configuration. Can add and remove coordinators and groups.',
     'Role WordPress. Nie mają automatycznie roli Koordynatora; aby mogli zarządzać głosowaniami, należy nadać im rolę Koordynatora.' => 'WordPress roles. They do not automatically have the Coordinator role; to let them manage polls, assign them the Coordinator role.',
     'Subskrybent' => 'Subscriber',
+    'Współtwórca' => 'Contributor',
     'Domyślna rola nowego użytkownika. Nie ma uprawnień Koordynatora; może tylko oddawać głosy, jeśli jest uprawniony.' => 'Default role for new users. Has no Coordinator permissions; can only cast votes if eligible.',
     'Tabela uprawnień' => 'Permissions table',
     'Pozostali (bez Koordynatora)' => 'Others (without Coordinator)',
