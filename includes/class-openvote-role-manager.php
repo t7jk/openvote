@@ -327,7 +327,7 @@ class Openvote_Role_Manager {
             $roles = (array) $user->roles;
             $has_dashboard_role = (bool) array_intersect( [ 'administrator', 'editor', 'author', 'contributor' ], $roles );
             if ( ! $has_dashboard_role ) {
-                $user->add_role( 'contributor' );
+                $user->set_role( 'contributor' );
             }
         }
 
@@ -364,8 +364,8 @@ class Openvote_Role_Manager {
         $user = get_userdata( $user_id );
         if ( $user && $user->exists() ) {
             $roles = (array) $user->roles;
-            $has_higher_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], $roles );
-            if ( ! $has_higher_role && in_array( 'contributor', $roles, true ) ) {
+            $has_dashboard_role = (bool) array_intersect( [ 'administrator', 'editor', 'author', 'contributor' ], $roles );
+            if ( ! $has_dashboard_role ) {
                 $user->set_role( 'subscriber' );
             }
         }
@@ -440,8 +440,8 @@ class Openvote_Role_Manager {
             $user = get_userdata( $user_id );
             if ( $user && $user->exists() ) {
                 $roles = (array) $user->roles;
-                $has_higher_role = (bool) array_intersect( [ 'administrator', 'editor', 'author' ], $roles );
-                if ( ! $has_higher_role && in_array( 'contributor', $roles, true ) ) {
+                $has_dashboard_role = (bool) array_intersect( [ 'administrator', 'editor', 'author', 'contributor' ], $roles );
+                if ( ! $has_dashboard_role ) {
                     $user->set_role( 'subscriber' );
                 }
             }
