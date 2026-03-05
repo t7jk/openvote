@@ -41,8 +41,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Członkowie i grupy', 'openvote' ),
-            __( 'Członkowie i grupy', 'openvote' ),
+            __( 'Grupy', 'openvote' ),
+            __( 'Grupy', 'openvote' ),
             'read',
             'openvote-groups',
             [ $this, 'render_groups_page' ]
@@ -50,8 +50,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Koordynatorzy i grupy', 'openvote' ),
-            __( 'Koordynatorzy i grupy', 'openvote' ),
+            __( 'Koordynatorzy', 'openvote' ),
+            __( 'Koordynatorzy', 'openvote' ),
             'read',
             'openvote-roles',
             [ $this, 'render_roles_page' ]

@@ -57,7 +57,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
 }
 ?>
 <div class="wrap openvote-roles-page">
-    <h1><?php esc_html_e( 'Koordynatorzy i grupy', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></h1>
     <p class="description" style="max-width:720px; margin:8px 0 24px;">
         <?php esc_html_e( 'Dodanie użytkownika do grupy powoduje, że staje się koordynatorem tej grupy (jednej lub wielu) i może uruchamiać dla tych grup głosowania dla członków grupy. Jeden koordynator może być przypisany do jednej lub wielu grup.', 'openvote' ); ?>
     </p>

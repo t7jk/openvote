@@ -86,7 +86,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
 ] );
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Członkowie i grupy', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Grupy', 'openvote' ); ?></h1>
 
     <?php if ( $message ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>

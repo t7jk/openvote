@@ -1093,8 +1093,8 @@ function openvote_settings_select( string $logical, string $current, array $core
         $screen_labels = [
             'openvote'          => __( 'Głosowania', 'openvote' ),
             'openvote-surveys'  => __( 'Ankiety', 'openvote' ),
-            'openvote-groups'   => __( 'Członkowie i grupy', 'openvote' ),
-            'openvote-roles'    => __( 'Koordynatorzy i grupy', 'openvote' ),
+            'openvote-groups'   => __( 'Grupy', 'openvote' ),
+            'openvote-roles'    => __( 'Koordynatorzy', 'openvote' ),
             'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
             'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
         ];

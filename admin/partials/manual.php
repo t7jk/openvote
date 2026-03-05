@@ -185,7 +185,7 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Jak nadać rolę Koordynatora', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Koordynatorzy i grupy.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Koordynatorzy.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W lewej kolumnie znajdź użytkownika (wpisz imię lub nazwisko).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W prawej kolumnie wybierz grupę (lub kilka grup).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Dodaj". Użytkownik stanie się Koordynatorem wybranych grup.', 'openvote' ); ?></li>
