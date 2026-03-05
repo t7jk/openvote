@@ -65,6 +65,13 @@ class Openvote_Groups_Rest_Controller {
             'permission_callback' => fn() => current_user_can( 'manage_options' ),
         ] );
 
+        // POST /statistics/recalc-inactive — start przeliczania statystyk nieaktywnych (partiami, z paskiem postępu)
+        register_rest_route( self::NAMESPACE, '/statistics/recalc-inactive', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'start_recalc_inactive' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+        ] );
+
         // GET /jobs/{job_id}/progress
         register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/progress', [
             'methods'             => WP_REST_Server::READABLE,
@@ -309,6 +316,17 @@ class Openvote_Groups_Rest_Controller {
         return new WP_REST_Response( [
             'job_id'  => $job_id,
             'message' => __( 'Synchronizacja wszystkich grup-miast uruchomiona.', 'openvote' ),
+        ], 200 );
+    }
+
+    /**
+     * Uruchom przeliczanie statystyk nieaktywnych (partiami, z ograniczeniem zapytań).
+     */
+    public function start_recalc_inactive( WP_REST_Request $request ): WP_REST_Response {
+        $job_id = Openvote_Batch_Processor::start_job( 'recalc_inactive', [] );
+        return new WP_REST_Response( [
+            'job_id'  => $job_id,
+            'message' => __( 'Przeliczanie statystyk nieaktywnych uruchomione.', 'openvote' ),
         ], 200 );
     }
 

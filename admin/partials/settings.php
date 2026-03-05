@@ -1091,11 +1091,12 @@ function openvote_settings_select( string $logical, string $current, array $core
             'openvote_coordinator' => __( 'Koordynator', 'openvote' ),
         ];
         $screen_labels = [
-            'openvote'          => __( 'Głosowania', 'openvote' ),
+            'openvote'           => __( 'Głosowania', 'openvote' ),
             'openvote-surveys'  => __( 'Ankiety', 'openvote' ),
             'openvote-groups'   => __( 'Grupy', 'openvote' ),
             'openvote-roles'    => __( 'Koordynatorzy', 'openvote' ),
             'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
+            'openvote-statistics' => __( 'Statystyka', 'openvote' ),
             'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
         ];
         ?>

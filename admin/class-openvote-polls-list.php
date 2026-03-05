@@ -352,15 +352,19 @@ class Openvote_Polls_List extends WP_List_Table {
             if ( ! current_user_can( 'edit_others_posts' ) && ! Openvote_Admin::user_can_access_coordinators() ) {
                 return;
             }
-            $now = current_time( 'Y-m-d H:i:s' );
+            $now   = current_time( 'Y-m-d H:i:s' );
             $count = 0;
             foreach ( $ids as $id ) {
                 $poll = Openvote_Poll::get( $id );
                 if ( $poll && 'open' === $poll->status ) {
+                    $date_end_was_past = isset( $poll->date_end ) && $poll->date_end <= $now;
                     Openvote_Poll::update( $id, [
                         'status'   => 'closed',
                         'date_end' => $now,
                     ] );
+                    if ( $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
+                        openvote_increment_missed_for_poll_non_voters( (int) $id );
+                    }
                     ++$count;
                 }
             }

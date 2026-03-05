@@ -13,49 +13,54 @@ class Openvote_Role_Map {
     const ROLES = [ 'subscriber', 'author', 'editor', 'administrator', 'openvote_coordinator' ];
 
     /** Dozwolone slugi ekranów (kolumny tabeli). Konfiguracja jako ostatnia. */
-    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-settings' ];
+    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-statistics', 'openvote-settings' ];
 
     /** Domyślna mapa: rola => [ ekran => 1|0 ]. Podręcznik standardowo włączony dla wszystkich oprócz Subskrybenta. */
     const DEFAULT_MAP = [
         'administrator'       => [
-            'openvote'          => 1,
+            'openvote'           => 1,
             'openvote-surveys'  => 1,
             'openvote-groups'   => 1,
             'openvote-roles'    => 1,
-            'openvote-settings' => 1,
             'openvote-manual'   => 1,
+            'openvote-statistics' => 1,
+            'openvote-settings' => 1,
         ],
         'editor'              => [
-            'openvote'          => 0,
+            'openvote'           => 0,
             'openvote-surveys'  => 0,
             'openvote-groups'   => 0,
             'openvote-roles'    => 0,
-            'openvote-settings' => 0,
             'openvote-manual'   => 1,
+            'openvote-statistics' => 0,
+            'openvote-settings' => 0,
         ],
         'author'              => [
-            'openvote'          => 0,
+            'openvote'           => 0,
             'openvote-surveys'  => 0,
             'openvote-groups'   => 0,
             'openvote-roles'    => 0,
-            'openvote-settings' => 0,
             'openvote-manual'   => 1,
+            'openvote-statistics' => 0,
+            'openvote-settings' => 0,
         ],
         'subscriber'          => [
-            'openvote'          => 0,
+            'openvote'           => 0,
             'openvote-surveys'  => 0,
             'openvote-groups'   => 0,
             'openvote-roles'    => 0,
-            'openvote-settings' => 0,
             'openvote-manual'   => 0,
+            'openvote-statistics' => 0,
+            'openvote-settings' => 0,
         ],
         'openvote_coordinator' => [
-            'openvote'          => 1,
+            'openvote'           => 1,
             'openvote-surveys'  => 1,
             'openvote-groups'   => 1,
             'openvote-roles'    => 1,
-            'openvote-settings' => 0,
             'openvote-manual'   => 1,
+            'openvote-statistics' => 1,
+            'openvote-settings' => 0,
         ],
     ];
 

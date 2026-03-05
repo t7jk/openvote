@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.1.2
+ * Version:           1.2.0
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.1.2' );
+define( 'OPENVOTE_VERSION', '1.2.0' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -331,6 +331,164 @@ function openvote_surveys_audit_log_get(): array {
 		update_option( 'openvote_surveys_audit_log', $log, false );
 	}
 	return $log;
+}
+
+// ─── Statystyka i nieaktywni użytkownicy ───────────────────────────────────
+
+/** Opcja: próg opuszczonych głosowań (1–24); gdy obie opcje = 24, oznaczanie nieaktywnych wyłączone. */
+const OPENVOTE_STAT_MISSED_DEFAULT = 10;
+/** Opcja: próg miesięcy od ostatniego głosu (1–24). */
+const OPENVOTE_STAT_MONTHS_DEFAULT = 12;
+
+/**
+ * Zwraca wartość opcji „ilość opuszczonych głosowań” (prog nieaktywności).
+ *
+ * @return int 1–24
+ */
+function openvote_get_stat_missed_votes(): int {
+	$v = (int) get_option( 'openvote_stat_missed_votes', OPENVOTE_STAT_MISSED_DEFAULT );
+	return max( 1, min( 24, $v ) );
+}
+
+/**
+ * Zwraca wartość opcji „ilość miesięcy” (prog nieaktywności).
+ *
+ * @return int 1–24
+ */
+function openvote_get_stat_months_inactive(): int {
+	$v = (int) get_option( 'openvote_stat_months_inactive', OPENVOTE_STAT_MONTHS_DEFAULT );
+	return max( 1, min( 24, $v ) );
+}
+
+/**
+ * Data ostatniego głosu użytkownika (MySQL datetime lub null).
+ *
+ * @param int $user_id
+ * @return string|null
+ */
+function openvote_get_last_voted_at( int $user_id ): ?string {
+	if ( $user_id <= 0 ) {
+		return null;
+	}
+	$v = get_user_meta( $user_id, 'openvote_last_voted_at', true );
+	return is_string( $v ) && $v !== '' ? $v : null;
+}
+
+/**
+ * Liczba zakończonych głosowań (date_end <= now), w których użytkownik był uprawniony i nie oddał głosu.
+ *
+ * @param int $user_id
+ * @return int
+ */
+function openvote_get_missed_polls_count( int $user_id ): int {
+	if ( $user_id <= 0 ) {
+		return 0;
+	}
+	$v = get_user_meta( $user_id, 'openvote_missed_polls_count', true );
+	return is_numeric( $v ) ? max( 0, (int) $v ) : 0;
+}
+
+/**
+ * Czy użytkownik jest uznawany za nieaktywnego (OR: opuszczone >= próg LUB miesiące od ostatniego głosu >= próg).
+ * Gdy obie opcje mają wartość 24, zwraca false (wyłączenie oznaczania).
+ *
+ * @param int $user_id
+ * @return bool
+ */
+function openvote_is_user_inactive( int $user_id ): bool {
+	$missed_prog = openvote_get_stat_missed_votes();
+	$months_prog = openvote_get_stat_months_inactive();
+	if ( $missed_prog >= 24 && $months_prog >= 24 ) {
+		return false;
+	}
+	$missed = openvote_get_missed_polls_count( $user_id );
+	if ( $missed >= $missed_prog ) {
+		return true;
+	}
+	$last = openvote_get_last_voted_at( $user_id );
+	if ( $last === null || $last === '' ) {
+		return $months_prog >= 1;
+	}
+	$last_ts = strtotime( $last );
+	$now_ts  = current_time( 'timestamp' );
+	$months  = (int) floor( ( $now_ts - $last_ts ) / ( 30 * DAY_IN_SECONDS ) );
+	return $months >= $months_prog;
+}
+
+/**
+ * Aktualizuje statystyki użytkownika po oddaniu głosu: ustawia openvote_last_voted_at.
+ * Opcjonalnie przelicza openvote_missed_polls_count (tylko głosowania z date_end < now()).
+ *
+ * @param int $user_id
+ */
+function openvote_update_user_vote_stats( int $user_id ): void {
+	if ( $user_id <= 0 ) {
+		return;
+	}
+	update_user_meta( $user_id, 'openvote_last_voted_at', current_time( 'mysql' ) );
+	openvote_recalculate_missed_polls_count( $user_id );
+}
+
+/**
+ * Przelicza openvote_missed_polls_count dla jednego użytkownika (tylko głosowania z date_end <= now()).
+ *
+ * @param int $user_id
+ */
+function openvote_recalculate_missed_polls_count( int $user_id ): void {
+	global $wpdb;
+	$polls_table = $wpdb->prefix . 'openvote_polls';
+	$votes_table = $wpdb->prefix . 'openvote_votes';
+	$now         = current_time( 'mysql' );
+	$count       = 0;
+	$poll_ids    = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT id FROM {$polls_table} WHERE status = 'closed' AND date_end <= %s ORDER BY id ASC",
+			$now
+		)
+	);
+	foreach ( (array) $poll_ids as $poll_id ) {
+		$poll_id = (int) $poll_id;
+		$poll    = Openvote_Poll::get( $poll_id );
+		if ( ! $poll ) {
+			continue;
+		}
+		if ( ! Openvote_Vote::user_was_eligible_for_poll( $user_id, $poll ) ) {
+			continue;
+		}
+		if ( Openvote_Vote::has_voted( $poll_id, $user_id ) ) {
+			continue;
+		}
+		++$count;
+	}
+	update_user_meta( $user_id, 'openvote_missed_polls_count', $count );
+}
+
+/**
+ * Dla zakończonego głosowania (date_end <= now): zwiększa openvote_missed_polls_count o 1
+ * dla każdego uprawnionego użytkownika, który nie oddał głosu. Partiami po 100.
+ * Wywoływać tylko gdy date_end danego głosowania jest w przeszłości.
+ *
+ * @param int $poll_id
+ */
+function openvote_increment_missed_for_poll_non_voters( int $poll_id ): void {
+	$poll = Openvote_Poll::get( $poll_id );
+	if ( ! $poll ) {
+		return;
+	}
+	$now = current_time( 'mysql' );
+	if ( ! isset( $poll->date_end ) || $poll->date_end > $now ) {
+		return;
+	}
+	$batch_size = 100;
+	$offset     = 0;
+	do {
+		$user_ids = Openvote_Vote::get_eligible_non_voter_user_ids( $poll_id, $batch_size, $offset );
+		foreach ( $user_ids as $uid ) {
+			$cur = openvote_get_missed_polls_count( $uid );
+			update_user_meta( $uid, 'openvote_missed_polls_count', $cur + 1 );
+		}
+		$offset += $batch_size;
+	} while ( count( $user_ids ) === $batch_size );
 }
 
 // Administrator WordPress tylko z grupy "Administratorzy".

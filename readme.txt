@@ -3,7 +3,7 @@ Contributors: t7jk
 Tags: voting, polls, surveys, e-voting, anonymous voting, groups, email invitations, elections
 Requires at least: 6.4
 Tested up to: 6.7
-Stable tag: 1.1.2
+Stable tag: 1.2.0
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -111,6 +111,9 @@ If you see this warning and the message says output started at a theme file (e.g
 
 == Changelog ==
 
+= 1.2.0 =
+* Wersja 1.2.0: zmiany i nowe funkcje.
+
 = 1.1.2 =
 * Wersja 1.1.2: poprawki i zmiany.
 
@@ -133,6 +136,9 @@ If you see this warning and the message says output started at a theme file (e.g
 * Batch processing for large user bases (sync, invitations, result lists).
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Aktualizacja do wersji 1.2.0. Zalecane po aktualizacji z 1.1.2.
 
 = 1.1.2 =
 Aktualizacja do wersji 1.1.2. Zalecane po aktualizacji z 1.1.1.

@@ -16,9 +16,10 @@ defined( 'ABSPATH' ) || exit;
  */
 class Openvote_Batch_Processor {
 
-    const BATCH_SIZE              = 100;
-    const SYNC_BATCH_SIZE         = 25;   // synchronizacja jednej grupy — użytkownicy po 25
-    const SYNC_CITIES_BATCH_SIZE = 1;   // synchronizacja wszystkich — po jednym mieście (log po każdym)
+    const BATCH_SIZE                   = 100;
+    const SYNC_BATCH_SIZE              = 25;   // synchronizacja jednej grupy — użytkownicy po 25
+    const SYNC_CITIES_BATCH_SIZE       = 1;   // synchronizacja wszystkich — po jednym mieście (log po każdym)
+    const RECALC_INACTIVE_BATCH_SIZE   = 50;   // przelicz statystyki nieaktywnych — po 50 użytkowników (ograniczenie zapytań/firewall)
     const SYNC_LOG_EVERY_USERS   = 100; // co tylu użytkowników dopisać linię do logu (częstszy postęp)
     const EMAIL_BATCH_SIZE_DEFAULT = 20;  // WP/SMTP
     const EMAIL_SENDGRID_BATCH_DEFAULT = 100; // SendGrid
@@ -223,6 +224,9 @@ class Openvote_Batch_Processor {
             if ( 'send_invitations' === $job['type'] ) {
                 $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Wysyłka zakończona.', 'openvote' );
             }
+            if ( 'recalc_inactive' === $job['type'] ) {
+                $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Przeliczanie statystyk nieaktywnych zakończone.', 'openvote' );
+            }
             if ( 'sync_all_city_groups' === $job['type'] && function_exists( 'openvote_current_time_for_voting' ) ) {
                 update_option( 'openvote_last_cron_sync_date', openvote_current_time_for_voting( 'Y-m-d' ), false );
             }
@@ -289,6 +293,24 @@ class Openvote_Batch_Processor {
                 if ( ! $poll_id ) {
                     return 0;
                 }
+                $poll = Openvote_Poll::get( $poll_id );
+                if ( ! $poll ) {
+                    return 0;
+                }
+                $target_groups = $poll->target_groups ? json_decode( $poll->target_groups, true ) : [];
+                if ( ! empty( $target_groups ) ) {
+                    $gm_table   = $wpdb->prefix . 'openvote_group_members';
+                    $ids_clean  = array_map( 'absint', (array) $target_groups );
+                    $placeholders = implode( ',', array_fill( 0, count( $ids_clean ), '%d' ) );
+                    return (int) $wpdb->get_var(
+                        $wpdb->prepare(
+                            "SELECT COUNT(DISTINCT u.ID) FROM {$wpdb->users} u
+                             INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                             WHERE gm.group_id IN ({$placeholders}) AND u.user_email != ''",
+                            ...$ids_clean
+                        )
+                    );
+                }
                 return (int) $wpdb->get_var(
                     "SELECT COUNT(*) FROM {$wpdb->users} WHERE user_email != ''"
                 );
@@ -305,6 +327,10 @@ class Openvote_Batch_Processor {
                         $poll_id_ci
                     )
                 );
+
+            case 'recalc_inactive':
+                $gm_table = $wpdb->prefix . 'openvote_group_members';
+                return (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$gm_table}" );
 
             default:
                 return 0;
@@ -382,6 +408,10 @@ class Openvote_Batch_Processor {
                 }
                 break;
             }
+
+            case 'recalc_inactive':
+                $items = self::batch_recalc_inactive( $offset );
+                break;
         }
 
         $count = count( $items );
@@ -420,10 +450,37 @@ class Openvote_Batch_Processor {
         if ( 'sync_group' === $type ) {
             return self::SYNC_BATCH_SIZE;
         }
+        if ( 'recalc_inactive' === $type ) {
+            return self::RECALC_INACTIVE_BATCH_SIZE;
+        }
         return self::BATCH_SIZE;
     }
 
     // ─── Implementacje typów zadań ───────────────────────────────────────────
+
+    /**
+     * Przelicz statystyki nieaktywnych (openvote_missed_polls_count) dla partii członków grup.
+     *
+     * @param int $offset Liczba już przetworzonych użytkowników.
+     * @return array Lista user_id przetworzonych w tej partii.
+     */
+    private static function batch_recalc_inactive( int $offset ): array {
+        global $wpdb;
+        $gm_table = $wpdb->prefix . 'openvote_group_members';
+        $user_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT DISTINCT user_id FROM {$gm_table} ORDER BY user_id ASC LIMIT %d OFFSET %d",
+                self::RECALC_INACTIVE_BATCH_SIZE,
+                $offset
+            )
+        );
+        $items = [];
+        foreach ( (array) $user_ids as $uid ) {
+            openvote_recalculate_missed_polls_count( (int) $uid );
+            $items[] = (int) $uid;
+        }
+        return $items;
+    }
 
     /**
      * Synchronizuj jedną grupę — dodaj użytkowników z pasującym polem city.
@@ -790,32 +847,51 @@ class Openvote_Batch_Processor {
             return [];
         }
 
-        $users = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT user_email, display_name FROM {$wpdb->users}
-                 WHERE user_email != '' ORDER BY ID ASC LIMIT %d OFFSET %d",
-                self::BATCH_SIZE,
-                $offset
-            )
-        );
+        $target_groups = $poll->target_groups ? json_decode( $poll->target_groups, true ) : [];
+        if ( ! empty( $target_groups ) ) {
+            $gm_table     = $wpdb->prefix . 'openvote_group_members';
+            $ids_clean    = array_map( 'absint', (array) $target_groups );
+            $placeholders = implode( ',', array_fill( 0, count( $ids_clean ), '%d' ) );
+            $users = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT u.ID, u.user_email, u.display_name FROM {$wpdb->users} u
+                     INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                     WHERE gm.group_id IN ({$placeholders}) AND u.user_email != ''
+                     GROUP BY u.ID ORDER BY u.ID ASC LIMIT %d OFFSET %d",
+                    array_merge( $ids_clean, [ self::BATCH_SIZE, $offset ] )
+                )
+            );
+        } else {
+            $users = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT ID, user_email, display_name FROM {$wpdb->users}
+                     WHERE user_email != '' ORDER BY ID ASC LIMIT %d OFFSET %d",
+                    self::BATCH_SIZE,
+                    $offset
+                )
+            );
+        }
 
         if ( empty( $users ) ) {
             return [];
         }
 
-        $from_email = openvote_get_from_email();
-        $from_name  = openvote_render_email_template( openvote_get_email_from_template(), $poll );
-        $subject    = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
-        $email_type = openvote_get_email_template_type();
-        $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
+        $from_email   = openvote_get_from_email();
+        $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );
+        $subject      = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
+        $email_type   = openvote_get_email_template_type();
+        $message      = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
         $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
-        $headers = [
+        $headers      = [
             'Content-Type: ' . $content_type,
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
-        $sent    = [];
+        $sent         = [];
 
         foreach ( $users as $user ) {
+            if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $user->ID ) ) {
+                continue;
+            }
             if ( is_email( $user->user_email ) ) {
                 wp_mail( $user->user_email, $subject, $message, $headers );
                 $sent[] = $user->user_email;
@@ -882,6 +958,9 @@ class Openvote_Batch_Processor {
 
         foreach ( $users as $u ) {
             if ( ! is_email( $u->user_email ) ) {
+                continue;
+            }
+            if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
                 continue;
             }
             $values[] = $job_id;

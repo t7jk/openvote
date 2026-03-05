@@ -82,6 +82,65 @@ class Openvote_Vote {
     }
 
     /**
+     * Whether the user was in the eligible set for the poll (profile + group only; ignores status/date).
+     * Used when recalculating missed_polls_count for closed polls.
+     *
+     * @param int    $user_id
+     * @param object $poll Poll object from Openvote_Poll::get().
+     * @return bool
+     */
+    public static function user_was_eligible_for_poll( int $user_id, object $poll ): bool {
+        global $wpdb;
+
+        if ( $user_id <= 0 ) {
+            return false;
+        }
+
+        $map    = Openvote_Field_Map::get();
+        $joins  = '';
+        $where  = [ '1=1', 'u.ID = %d' ];
+        $params = [ $user_id ];
+
+        $email_key = $map['email'] ?? 'user_email';
+        if ( Openvote_Field_Map::is_core_field( $email_key ) ) {
+            $where[] = "u.{$email_key} != ''";
+        } else {
+            $key_safe = sanitize_key( $email_key );
+            $joins   .= " INNER JOIN {$wpdb->usermeta} um_email"
+                      . " ON u.ID = um_email.user_id AND um_email.meta_key = %s AND um_email.meta_value != ''";
+            $params[] = $key_safe;
+        }
+
+        $meta_fields = [
+            'nickname'   => 'um_nick',
+            'first_name' => 'um_fn',
+            'last_name'  => 'um_ln',
+            'city'       => 'um_city',
+        ];
+        foreach ( $meta_fields as $logical => $alias ) {
+            $actual = sanitize_key( $map[ $logical ] ?? $logical );
+            if ( Openvote_Field_Map::is_core_field( $actual ) ) {
+                $where[] = "u.{$actual} != ''";
+            } else {
+                $joins   .= " INNER JOIN {$wpdb->usermeta} {$alias}"
+                          . " ON u.ID = {$alias}.user_id AND {$alias}.meta_key = %s AND {$alias}.meta_value != ''";
+                $params[] = $actual;
+            }
+        }
+
+        $group_ids = Openvote_Poll::get_target_group_ids( $poll );
+        if ( ! empty( $group_ids ) ) {
+            $gm_table  = $wpdb->prefix . 'openvote_group_members';
+            $holders   = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $joins    .= " INNER JOIN {$gm_table} gm ON u.ID = gm.user_id AND gm.group_id IN ({$holders})";
+            $params    = array_merge( $params, $group_ids );
+        }
+
+        $sql = "SELECT 1 FROM {$wpdb->users} u {$joins} WHERE " . implode( ' AND ', $where ) . " LIMIT 1";
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) ) === 1;
+    }
+
+    /**
      * Cast votes for all questions in a poll.
      *
      * @param int                $poll_id
@@ -174,6 +233,10 @@ class Openvote_Vote {
             }
         }
         $wpdb->query( 'COMMIT' );
+
+        if ( function_exists( 'openvote_update_user_vote_stats' ) ) {
+            openvote_update_user_vote_stats( $user_id );
+        }
 
         return true;
     }
@@ -432,6 +495,76 @@ class Openvote_Vote {
         }
 
         return $result;
+    }
+
+    /**
+     * Returns list of user IDs that were eligible to vote in the poll but did not vote.
+     * Used for incrementing openvote_missed_polls_count when a poll ends (batch processing).
+     *
+     * @param int $poll_id
+     * @param int $limit   Max number of IDs to return (e.g. 100).
+     * @param int $offset  Offset for batching.
+     * @return array<int>  User IDs.
+     */
+    public static function get_eligible_non_voter_user_ids( int $poll_id, int $limit = 100, int $offset = 0 ): array {
+        global $wpdb;
+
+        $poll = Openvote_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return [];
+        }
+
+        $map    = Openvote_Field_Map::get();
+        $joins  = '';
+        $where  = [ '1=1' ];
+        $params = [];
+
+        $email_key = $map['email'] ?? 'user_email';
+        if ( Openvote_Field_Map::is_core_field( $email_key ) ) {
+            $where[] = "u.{$email_key} != ''";
+        } else {
+            $key_safe = sanitize_key( $email_key );
+            $joins   .= " INNER JOIN {$wpdb->usermeta} um_email"
+                      . " ON u.ID = um_email.user_id AND um_email.meta_key = %s AND um_email.meta_value != ''";
+            $params[] = $key_safe;
+        }
+
+        $meta_fields = [
+            'nickname'   => 'um_nick',
+            'first_name' => 'um_fn',
+            'last_name'  => 'um_ln',
+            'city'       => 'um_city',
+        ];
+        foreach ( $meta_fields as $logical => $alias ) {
+            $actual = sanitize_key( $map[ $logical ] ?? $logical );
+            if ( Openvote_Field_Map::is_core_field( $actual ) ) {
+                $where[] = "u.{$actual} != ''";
+            } else {
+                $joins   .= " INNER JOIN {$wpdb->usermeta} {$alias}"
+                          . " ON u.ID = {$alias}.user_id AND {$alias}.meta_key = %s AND {$alias}.meta_value != ''";
+                $params[] = $actual;
+            }
+        }
+
+        $group_ids = Openvote_Poll::get_target_group_ids( $poll );
+        if ( ! empty( $group_ids ) ) {
+            $gm_table  = $wpdb->prefix . 'openvote_group_members';
+            $holders   = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $joins    .= " INNER JOIN {$gm_table} gm ON u.ID = gm.user_id AND gm.group_id IN ({$holders})";
+            $params    = array_merge( $params, $group_ids );
+        }
+
+        $votes_table = self::table();
+        $joins      .= " LEFT JOIN {$votes_table} vt ON u.ID = vt.user_id AND vt.poll_id = %d";
+        $where[]     = 'vt.user_id IS NULL';
+        $params[]    = $poll_id;
+
+        $sql = "SELECT DISTINCT u.ID FROM {$wpdb->users} u {$joins} WHERE " . implode( ' AND ', $where ) . " ORDER BY u.ID ASC LIMIT %d OFFSET %d";
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $ids = $wpdb->get_col( $wpdb->prepare( $sql, ...$params ) );
+        return is_array( $ids ) ? array_map( 'intval', $ids ) : [];
     }
 
     /**

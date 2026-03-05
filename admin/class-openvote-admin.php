@@ -59,6 +59,15 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
+            __( 'Statystyka', 'openvote' ),
+            __( 'Statystyka', 'openvote' ),
+            'read',
+            'openvote-statistics',
+            [ $this, 'render_statistics_page' ]
+        );
+
+        add_submenu_page(
+            'openvote',
             __( 'Konfiguracja', 'openvote' ),
             __( 'Konfiguracja', 'openvote' ),
             'read',
@@ -150,7 +159,7 @@ class Openvote_Admin {
     }
 
     /** Slugi ekranów objętych mapowaniem roli (menu + dostęp). */
-    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings', 'openvote-manual' ];
+    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings', 'openvote-manual', 'openvote-statistics' ];
 
     /**
      * Slugi podstron, które mają być wyłączone (kursywa, brak kliku) według mapy roli.
@@ -346,6 +355,27 @@ class Openvote_Admin {
     }
 
     /**
+     * Obsługa formularzy Statystyki (zapisz progi, przelicz nieaktywnych) — przed jakimkolwiek outputem,
+     * żeby przekierowanie nie powodowało "headers already sent" (np. z motywem Blocksy).
+     */
+    public function handle_statistics_form_early(): void {
+        if ( isset( $_POST['openvote_statistics_nonce'] ) ) {
+            check_admin_referer( 'openvote_save_statistics', 'openvote_statistics_nonce' );
+            $missed  = isset( $_POST['openvote_stat_missed_votes'] ) ? absint( $_POST['openvote_stat_missed_votes'] ) : 0;
+            $months  = isset( $_POST['openvote_stat_months_inactive'] ) ? absint( $_POST['openvote_stat_months_inactive'] ) : 0;
+            if ( $missed >= 1 && $missed <= 24 ) {
+                update_option( 'openvote_stat_missed_votes', $missed, false );
+            }
+            if ( $months >= 1 && $months <= 24 ) {
+                update_option( 'openvote_stat_months_inactive', $months, false );
+            }
+            wp_safe_redirect( add_query_arg( 'saved', 1, admin_url( 'admin.php?page=openvote-statistics' ) ) );
+            exit;
+        }
+        // Przeliczanie nieaktywnych jest uruchamiane przez REST (POST /statistics/recalc-inactive) i przetwarzane partiami z paskiem postępu — zob. statistics.php i batch-progress.js.
+    }
+
+    /**
      * Pobieranie wyników głosowania jako PDF (admin_init, priorytet 1).
      */
     public function handle_results_pdf_download(): void {
@@ -444,10 +474,14 @@ class Openvote_Admin {
             check_admin_referer( 'openvote_end_poll_' . $poll_id );
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll && 'open' === $poll->status ) {
+                $date_end_was_past = isset( $poll->date_end ) && $poll->date_end <= current_time( 'mysql' );
                 Openvote_Poll::update( $poll_id, [
                     'status'   => 'closed',
                     'date_end' => current_time( 'Y-m-d H:i:s' ),
                 ] );
+                if ( $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
+                    openvote_increment_missed_for_poll_non_voters( $poll_id );
+                }
                 $title = isset( $poll->title ) ? $poll->title : '';
                 if ( $title !== '' ) {
                     openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył głosowanie %s', 'openvote' ), $title ) );
@@ -863,6 +897,13 @@ class Openvote_Admin {
         }
 
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/roles.php';
+    }
+
+    public function render_statistics_page(): void {
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-statistics' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
+        }
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/statistics.php';
     }
 
     public function render_settings_page(): void {
