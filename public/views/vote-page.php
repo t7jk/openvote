@@ -75,9 +75,11 @@ if ( ! empty( $poll_missing_fields ) ) {
         <p class="openvote-poll__login-notice">
             <?php
             printf(
-                /* translators: %s: login link with text "zaloguj się" */
-                esc_html__( 'Aby głosować, %s.', 'openvote' ),
-                '<a href="' . esc_url( wp_login_url( $vote_page_url ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>'
+                /* translators: %1$s: login link, %2$s: lost password link, %3$s: register link */
+                esc_html__( 'Aby głosować, %1$s. %2$s. %3$s', 'openvote' ),
+                '<a href="' . esc_url( wp_login_url( $vote_page_url ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>',
+                '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'nie pamiętam hasła', 'openvote' ) . '</a>',
+                '<a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'zarejestruj się', 'openvote' ) . '</a>'
             );
             ?>
         </p>

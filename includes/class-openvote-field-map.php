@@ -44,7 +44,7 @@ class Openvote_Field_Map {
         'last_name'  => 'Nazwisko',
         'nickname'   => 'Nickname',
         'email'      => 'E-mail',
-        'city'       => 'Sejmik / Grupa / Obszar',
+        'city'       => 'Grupa',
         'phone'      => 'Numer telefonu',
         'id_card'    => 'Dane własne',
     ];

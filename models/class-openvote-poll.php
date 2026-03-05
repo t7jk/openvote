@@ -113,10 +113,25 @@ class Openvote_Poll {
         }
 
         if ( ! empty( $update ) ) {
+            $update['modified_by'] = get_current_user_id();
+            $update['modified_at'] = current_time( 'mysql' );
+            $format[]              = '%d';
+            $format[]              = '%s';
             $result = $wpdb->update( self::polls_table(), $update, [ 'id' => $poll_id ], $format, [ '%d' ] );
             if ( false === $result ) {
                 return false;
             }
+        } elseif ( isset( $data['questions'] ) ) {
+            $wpdb->update(
+                self::polls_table(),
+                [
+                    'modified_by' => get_current_user_id(),
+                    'modified_at' => current_time( 'mysql' ),
+                ],
+                [ 'id' => $poll_id ],
+                [ '%d', '%s' ],
+                [ '%d' ]
+            );
         }
 
         if ( isset( $data['questions'] ) ) {

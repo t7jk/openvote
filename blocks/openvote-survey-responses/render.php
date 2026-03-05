@@ -16,6 +16,26 @@ $per_page = isset( $attributes['per_page'] ) ? max( 1, min( 100, (int) $attribut
 $survey_id = isset( $attributes['survey_id'] ) ? absint( $attributes['survey_id'] ) : 0;
 $page = 1;
 
+if ( ! is_user_logged_in() ) {
+    $submissions_url = get_permalink();
+    ?>
+    <div class="openvote-survey-responses-block openvote-survey-responses-block--login-required">
+        <p class="openvote-survey-responses-block__login-notice">
+            <?php
+            printf(
+                /* translators: %1$s: login link, %2$s: lost password link, %3$s: register link */
+                esc_html__( 'Aby zobaczyć zgłoszenia, %1$s. %2$s. %3$s', 'openvote' ),
+                '<a href="' . esc_url( wp_login_url( $submissions_url ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>',
+                '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'Nie pamiętam hasła', 'openvote' ) . '</a>',
+                '<a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'zarejestruj się', 'openvote' ) . '</a>'
+            );
+            ?>
+        </p>
+    </div>
+    <?php
+    return;
+}
+
 $responses = Openvote_Survey::get_responses_not_spam( $survey_id, $page, $per_page );
 $pending   = Openvote_Survey::get_responses_pending( $survey_id, $page, $per_page );
 $questions_cache = [];

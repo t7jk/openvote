@@ -37,8 +37,16 @@ class Openvote_Admin_Surveys {
         $submit_action = sanitize_text_field( $_POST['openvote_submit_action'] ?? 'draft' );
         $data['status'] = ( 'start_now' === $submit_action ) ? 'open' : 'draft';
 
+        $actor_id  = get_current_user_id();
+        $title_log = isset( $data['title'] ) ? $data['title'] : '';
+
         if ( $survey_id ) {
             Openvote_Survey::update( $survey_id, $data );
+            if ( 'start_now' === $submit_action && $title_log !== '' ) {
+                openvote_surveys_audit_log_append( $actor_id, sprintf( __( 'wystartował ankietę %s', 'openvote' ), $title_log ) );
+            } elseif ( $title_log !== '' ) {
+                openvote_surveys_audit_log_append( $actor_id, sprintf( __( 'edytował ankietę %s', 'openvote' ), $title_log ) );
+            }
             $redirect = add_query_arg( 'updated', 1, admin_url( 'admin.php?page=openvote-surveys' ) );
         } else {
             $new_id = Openvote_Survey::create( $data );
@@ -46,6 +54,12 @@ class Openvote_Admin_Surveys {
                 set_transient( 'openvote_survey_admin_error', __( 'Błąd zapisu ankiety.', 'openvote' ), 30 );
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&action=new' ) );
                 exit;
+            }
+            if ( $title_log !== '' ) {
+                openvote_surveys_audit_log_append( $actor_id, sprintf( __( 'utworzył ankietę %s', 'openvote' ), $title_log ) );
+            }
+            if ( 'start_now' === $submit_action && $title_log !== '' ) {
+                openvote_surveys_audit_log_append( $actor_id, sprintf( __( 'wystartował ankietę %s', 'openvote' ), $title_log ) );
             }
             $redirect = admin_url( 'admin.php?page=openvote-surveys&created=1' );
         }

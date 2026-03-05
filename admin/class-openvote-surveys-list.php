@@ -26,6 +26,7 @@ class Openvote_Surveys_List extends WP_List_Table {
             'cb'         => '<input type="checkbox">',
             'title'      => __( 'Tytuł', 'openvote' ),
             'status'     => __( 'Status', 'openvote' ),
+            'author'     => __( 'Autor', 'openvote' ),
             'date_start' => __( 'Rozpoczęcie', 'openvote' ),
             'date_end'   => __( 'Zakończenie', 'openvote' ),
         ];
@@ -246,6 +247,11 @@ class Openvote_Surveys_List extends WP_List_Table {
             esc_attr( $item->status ),
             esc_html( $labels[ $item->status ] ?? $item->status )
         );
+    }
+
+    protected function column_author( $item ): string {
+        $author_id = ! empty( $item->modified_by ) ? (int) $item->modified_by : (int) ( $item->created_by ?? 0 );
+        return esc_html( openvote_get_user_nickname( $author_id ) );
     }
 
     protected function column_date_start( $item ): string {

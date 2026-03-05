@@ -93,8 +93,16 @@ class Openvote_Admin_Polls {
             $was_open       = false;
         }
 
+        $actor_id = get_current_user_id();
+        $title_log = isset( $data['title'] ) ? $data['title'] : '';
+
         if ( $poll_id ) {
             Openvote_Poll::update( $poll_id, $data );
+            if ( 'start_now' === $submit_action && $title_log !== '' ) {
+                openvote_polls_audit_log_append( $actor_id, sprintf( __( 'wystartował głosowanie %s', 'openvote' ), $title_log ) );
+            } elseif ( $title_log !== '' ) {
+                openvote_polls_audit_log_append( $actor_id, sprintf( __( 'edytował głosowanie %s', 'openvote' ), $title_log ) );
+            }
             $redirect = add_query_arg( 'updated', 1, admin_url( 'admin.php?page=openvote' ) );
             if ( 'start_now' === $submit_action ) {
                 $redirect = add_query_arg( 'started', 1, $redirect );
@@ -107,6 +115,12 @@ class Openvote_Admin_Polls {
                 exit;
             }
             $poll_id  = $new_id;
+            if ( $title_log !== '' ) {
+                openvote_polls_audit_log_append( $actor_id, sprintf( __( 'utworzył głosowanie %s', 'openvote' ), $title_log ) );
+            }
+            if ( 'start_now' === $submit_action && $title_log !== '' ) {
+                openvote_polls_audit_log_append( $actor_id, sprintf( __( 'wystartował głosowanie %s', 'openvote' ), $title_log ) );
+            }
             $redirect = ( 'start_now' === $submit_action )
                 ? add_query_arg( 'started', 1, admin_url( 'admin.php?page=openvote' ) )
                 : admin_url( 'admin.php?page=openvote&created=1' );

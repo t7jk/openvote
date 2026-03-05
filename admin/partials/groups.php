@@ -23,7 +23,7 @@ if ( isset( $_GET['updated'] ) && sanitize_key( $_GET['updated'] ?? '' ) === '1'
     }
 }
 
-// Obsługa formularza (usuń sejmik, dodaj, członkowie) jest w Openvote_Admin::handle_groups_form_early() (admin_init, priorytet 1),
+// Obsługa formularza (usuń grupę, dodaj, członkowie) jest w Openvote_Admin::handle_groups_form_early() (admin_init, priorytet 1),
 // żeby przekierowanie odbywało się przed jakimkolwiek outputem (unika błędu "headers already sent" z motywem Blocksy).
 
 // Lista użytkowników do ręcznego dodawania do grup — limit 1000 ze względu na wydajność przy dużej bazie (np. 10k+).
@@ -34,8 +34,8 @@ $all_users_for_groups = get_users( [
     'number'  => $openvote_users_list_limit,
 ] );
 
-// Aktualizuj liczniki i pobierz grupy (dla koordynatora z ograniczeniem „własne” tylko jego sejmiki).
-$groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
+// Aktualizuj liczniki i pobierz grupy. Test pierwsza (is_test_group DESC), potem alfabetycznie.
+$groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY is_test_group DESC, name ASC" );
 foreach ( $groups as $group ) {
     $count = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*) FROM {$gm_table} WHERE group_id = %d", $group->id )
@@ -47,10 +47,29 @@ foreach ( $groups as $group ) {
 }
 if ( openvote_is_coordinator_restricted_to_own_groups() ) {
     $my_group_ids = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
-    $groups       = array_filter( $groups, function ( $g ) use ( $my_group_ids ) {
+    if ( openvote_create_test_group_enabled() ) {
+        $test_gid = openvote_get_test_group_id();
+        if ( $test_gid ) {
+            $my_group_ids[ $test_gid ] = 0;
+        }
+    }
+    $groups = array_filter( $groups, function ( $g ) use ( $my_group_ids ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
+// Grupa Test zawsze pierwsza (w listach i selectach). Identyfikacja po is_test_group lub po nazwie "Test".
+$test_group_name = defined( 'OPENVOTE_PLUGIN_DIR' ) && class_exists( 'Openvote_Activator' ) ? Openvote_Activator::TEST_GROUP_NAME : 'Test';
+usort( $groups, function ( $a, $b ) use ( $test_group_name ) {
+    $a_test = ( ! empty( $a->is_test_group ) ) || ( isset( $a->name ) && $a->name === $test_group_name );
+    $b_test = ( ! empty( $b->is_test_group ) ) || ( isset( $b->name ) && $b->name === $test_group_name );
+    if ( $a_test && ! $b_test ) {
+        return -1;
+    }
+    if ( ! $a_test && $b_test ) {
+        return 1;
+    }
+    return strcasecmp( $a->name ?? '', $b->name ?? '' );
+} );
 
 // Parametry AJAX przekazane do JS.
 wp_enqueue_script(
@@ -67,7 +86,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
 ] );
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Członkowie i Sejmiki', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Członkowie i grupy', 'openvote' ); ?></h1>
 
     <?php if ( $message ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
@@ -80,17 +99,18 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
     <table class="wp-list-table widefat fixed striped" style="max-width:900px;margin-bottom:30px;">
         <thead>
             <tr>
-                <th style="width:250px;"><?php esc_html_e( 'Nazwa sejmiku', 'openvote' ); ?></th>
+                <th style="width:250px;"><?php esc_html_e( 'Nazwa grupy', 'openvote' ); ?></th>
                 <th style="width:100px;"><?php esc_html_e( 'Członkowie', 'openvote' ); ?></th>
                 <th style="width:120px;"><?php esc_html_e( 'Akcja', 'openvote' ); ?></th>
             </tr>
         </thead>
         <tbody>
             <?php if ( empty( $groups ) ) : ?>
-                <tr><td colspan="3"><?php esc_html_e( 'Brak sejmików.', 'openvote' ); ?></td></tr>
+                <tr><td colspan="3"><?php esc_html_e( 'Brak grup.', 'openvote' ); ?></td></tr>
             <?php else : ?>
                 <?php foreach ( $groups as $group ) : ?>
-                    <tr>
+                    <?php $is_test = ! empty( $group->is_test_group ); ?>
+                    <tr<?php echo $is_test ? ' class="openvote-group-test"' : ''; ?>>
                         <td><strong><?php echo esc_html( $group->name ); ?></strong></td>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $group->id ) ); ?>">
@@ -98,15 +118,17 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                             </a>
                         </td>
                         <td>
+                            <?php if ( ! $is_test ) : ?>
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
                                 <input type="hidden" name="openvote_groups_action" value="delete">
                                 <input type="hidden" name="group_id" value="<?php echo esc_attr( $group->id ); ?>">
                                 <button type="submit" class="button button-small button-link-delete"
-                                        onclick="return confirm('<?php echo esc_js( __( 'Usunąć ten sejmik? Zostaną usunięci wszyscy jego członkowie (przypisania).', 'openvote' ) ); ?>');">
-                                    <?php esc_html_e( 'Usuń sejmik', 'openvote' ); ?>
+                                        onclick="return confirm('<?php echo esc_js( __( 'Usunąć tę grupę? Zostaną usunięci wszyscy jej członkowie (przypisania).', 'openvote' ) ); ?>');">
+                                    <?php esc_html_e( 'Usuń grupę', 'openvote' ); ?>
                                 </button>
                             </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -140,7 +162,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
             );
         ?>
         <hr>
-        <h2><?php printf( esc_html__( 'Członkowie sejmiku: %s', 'openvote' ), esc_html( $group->name ) ); ?>
+        <h2><?php printf( esc_html__( 'Członkowie grupy: %s', 'openvote' ), esc_html( $group->name ) ); ?>
             <span class="openvote-badge openvote-badge--meta"><?php echo esc_html( $total_members ); ?></span>
         </h2>
 
@@ -212,8 +234,8 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
     <?php if ( 'members' !== $view_action && ! empty( $groups ) ) : ?>
         <?php // ─── Dodaj użytkownika do grup (ręcznie, np. do testów) ───────── ?>
         <hr>
-        <h2><?php esc_html_e( 'Dodaj członków do Sejmików', 'openvote' ); ?></h2>
-        <p class="description" style="margin:4px 0 12px;"><?php esc_html_e( 'Ręczne przypisanie użytkownika do jednego lub wielu sejmików (niezależnie od automatycznego przyporządkowania). Przydatne przy testach.', 'openvote' ); ?></p>
+        <h2><?php esc_html_e( 'Dodaj członków do grup', 'openvote' ); ?></h2>
+        <p class="description" style="margin:4px 0 12px;"><?php esc_html_e( 'Ręczne przypisanie użytkownika do jednej lub wielu grup (niezależnie od automatycznego przyporządkowania). Przydatne przy testach.', 'openvote' ); ?></p>
         <form method="post" action="">
             <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
             <input type="hidden" name="openvote_groups_action" value="add_user_to_groups">
@@ -237,8 +259,8 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                     <button type="submit" class="button" style="margin-top:24px;"><?php esc_html_e( 'Dodaj', 'openvote' ); ?></button>
                 </div>
                 <div>
-                    <label for="openvote_user_groups"><?php esc_html_e( 'Sejmiki:', 'openvote' ); ?></label>
-                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele sejmików. Przewiń listę.', 'openvote' ); ?></p>
+                    <label for="openvote_user_groups"><?php esc_html_e( 'Grupy:', 'openvote' ); ?></label>
+                    <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Ctrl+klik: wiele grup. Przewiń listę.', 'openvote' ); ?></p>
                     <select name="openvote_user_groups[]" id="openvote_user_groups" multiple size="15" style="min-width:200px; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
@@ -249,12 +271,12 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         </form>
     <?php endif; ?>
 
-    <?php // ─── Dodaj członka po adresie e-mail (nad „Dodaj sejmik”) ───────── ?>
+    <?php // ─── Dodaj członka po adresie e-mail (nad „Dodaj grupę”) ───────── ?>
     <?php if ( ! empty( $groups ) ) : ?>
     <hr>
     <section class="openvote-groups-add-by-email" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
         <h2 class="openvote-section-title" style="margin:0 0 16px; font-size:1.1em; font-weight:600; padding-bottom:8px; border-bottom:1px solid #eee;"><?php esc_html_e( 'Dodaj członka po adresie e-mail', 'openvote' ); ?></h2>
-        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i sejmiki, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
+        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i grupy, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
         <form method="post" action="" id="openvote-add-member-by-email-form">
             <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
             <input type="hidden" name="openvote_groups_action" value="add_user_to_groups">
@@ -278,8 +300,8 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 </div>
 
                 <div style="flex:1; min-width:200px;">
-                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></h3>
-                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele sejmików.', 'openvote' ); ?></p>
+                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele grup.', 'openvote' ); ?></p>
                     <select name="openvote_user_groups[]" id="openvote_member_email_user_groups" multiple size="12" style="min-width:100%; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
@@ -293,7 +315,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
 
     <?php // ─── Dodaj grupę ─────────────────────────────────────────────────── ?>
     <hr>
-    <h2><?php esc_html_e( 'Dodaj sejmik', 'openvote' ); ?></h2>
+    <h2><?php esc_html_e( 'Dodaj grupę', 'openvote' ); ?></h2>
     <form method="post" action="" style="max-width:500px;">
         <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
         <input type="hidden" name="openvote_groups_action" value="add">
@@ -303,29 +325,74 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 <td><input type="text" id="group_name" name="group_name" class="regular-text" required maxlength="255"></td>
             </tr>
         </table>
-        <?php submit_button( __( 'Dodaj sejmik', 'openvote' ), 'primary', 'submit', false ); ?>
+        <?php submit_button( __( 'Dodaj grupę', 'openvote' ), 'primary', 'submit', false ); ?>
     </form>
 
     <?php // ─── Synchronizacja grup-miast (na dole strony) ───────────────────── ?>
     <hr>
     <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-        <strong><?php esc_html_e( 'Synchronizacja sejmików-miast (ver.2.14)', 'openvote' ); ?></strong>
+        <strong><?php esc_html_e( 'Synchronizacja grup-miast (ver.2.14)', 'openvote' ); ?></strong>
         <p class="description" style="margin:4px 0 8px;">
-            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące sejmiki i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo.', 'openvote' ); ?>
+            <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora.', 'openvote' ); ?>
         </p>
         <p style="margin:0 0 8px;">
             <button type="button" id="openvote-sync-all-btn" class="button button-primary">
-                <?php esc_html_e( 'Synchronizuj wszystkie sejmiki-miasta', 'openvote' ); ?>
+                <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'openvote' ); ?>
             </button>
             <button type="button" id="openvote-sync-all-reset-btn" class="button openvote-btn-sync-reset" style="margin-left:8px;background:#b32d2e;border-color:#b32d2e;color:#fff;">
-                <?php esc_html_e( 'Synchronizuj od początku wszystkie sejmiki-miasta (Nie zalecane)', 'openvote' ); ?>
+                <?php esc_html_e( 'Synchronizuj od początku wszystkie grupy-miasta (Nie zalecane)', 'openvote' ); ?>
             </button>
         </p>
         <button type="button" id="openvote-sync-all-stop-btn" class="button" style="display:none;">
-            <?php esc_html_e( 'Zatrzymaj synchronizację sejmików-miast', 'openvote' ); ?>
+            <?php esc_html_e( 'Zatrzymaj synchronizację grup-miast', 'openvote' ); ?>
         </button>
         <div id="openvote-sync-all-progress" style="margin-top:10px;"></div>
     </div>
+
+    <?php
+    $groups_audit_all   = openvote_groups_audit_log_get();
+    $groups_audit_per   = 20;
+    $groups_audit_total = count( $groups_audit_all );
+    $groups_audit_pages = $groups_audit_total > 0 ? (int) ceil( $groups_audit_total / $groups_audit_per ) : 1;
+    $groups_audit_page  = isset( $_GET['audit_page'] ) ? max( 1, absint( $_GET['audit_page'] ) ) : 1;
+    $groups_audit_page  = min( $groups_audit_page, $groups_audit_pages );
+    $groups_audit_offset = ( $groups_audit_page - 1 ) * $groups_audit_per;
+    $groups_audit_entries = array_slice( $groups_audit_all, $groups_audit_offset, $groups_audit_per );
+    $groups_audit_base_url = add_query_arg( [ 'page' => 'openvote-groups' ], admin_url( 'admin.php' ) );
+    ?>
+    <section class="openvote-groups-audit-log" style="margin-top:32px; max-width:900px;">
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log zmian grup i członków', 'openvote' ); ?></h2>
+        <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy utworzył lub usunął grupę, dodał lub usunął członka, uruchomił synchronizację. Lista niekasowalna, w celach bezpieczeństwa.', 'openvote' ); ?></p>
+        <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
+            <?php
+            if ( empty( $groups_audit_entries ) ) {
+                echo '<p style="margin:0; color:#a7aaad;">' . esc_html__( 'Brak wpisów.', 'openvote' ) . '</p>';
+            } else {
+                foreach ( $groups_audit_entries as $e ) {
+                    $t     = isset( $e['t'] ) ? $e['t'] : '';
+                    $actor = isset( $e['actor'] ) ? $e['actor'] : '—';
+                    $line  = isset( $e['line'] ) ? $e['line'] : '';
+                    echo '<div style="margin:2px 0;">' . esc_html( $t . ' ' . $actor . ' ' . $line ) . '</div>';
+                }
+            }
+            ?>
+        </div>
+        <?php if ( $groups_audit_pages > 1 ) : ?>
+        <p class="openvote-audit-log-nav" style="margin:8px 0 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span class="displaying-num" style="color:#646970; font-size:13px;">
+                <?php
+                echo esc_html( sprintf( __( 'Strona %1$d z %2$d (%3$d wpisów)', 'openvote' ), $groups_audit_page, $groups_audit_pages, $groups_audit_total ) );
+                ?>
+            </span>
+            <?php if ( $groups_audit_page > 1 ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $groups_audit_page - 1, $groups_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+            <?php endif; ?>
+            <?php if ( $groups_audit_page < $groups_audit_pages ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $groups_audit_page + 1, $groups_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+            <?php endif; ?>
+        </p>
+        <?php endif; ?>
+    </section>
 </div>
 
 <?php if ( ! empty( $groups ) ) : ?>

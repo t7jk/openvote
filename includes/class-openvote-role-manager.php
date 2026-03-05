@@ -5,20 +5,18 @@ defined( 'ABSPATH' ) || exit;
  * Zarządzanie rolami wtyczki e-głosowania.
  *
  * Role są przechowywane w wp_usermeta:
- *   openvote_role   → 'poll_admin' | 'poll_editor'
- *   openvote_groups → JSON array ID grup (tylko dla poll_editor)
+ *   openvote_role   → 'poll_admin' (wyświetlana nazwa: Koordynator)
+ *   openvote_groups → JSON array ID grup (opcjonalnie; gdy puste = pełny dostęp)
  *
  * Limity:
  *   Administrator WordPress : min 1, maks. 2  (rola WP 'administrator')
- *   Koordynator             : maks. 3          (openvote_role = poll_admin)
- *   Lokalny Koordynator Grup: maks. 3 na grupę (openvote_role = poll_editor)
+ *   Koordynator (poll_admin): maks. 3
  *
  * Administrator WordPress: tylko użytkownicy z grupy "Administratorzy" (wp_openvote_groups).
  */
 class Openvote_Role_Manager {
 
-    const ROLE_POLL_ADMIN  = 'poll_admin';
-    const ROLE_POLL_EDITOR = 'poll_editor';
+    const ROLE_POLL_ADMIN = 'poll_admin';
 
     const META_ROLE   = 'openvote_role';
     const META_GROUPS = 'openvote_groups';
@@ -28,13 +26,12 @@ class Openvote_Role_Manager {
 
     const LIMIT_WP_ADMINS   = 2;
     const LIMIT_POLL_ADMINS = 3;
-    const LIMIT_EDITORS_PER_GROUP = 3;
 
     // ─── Odczyt ─────────────────────────────────────────────────────────────
 
     /**
      * Pobierz rolę openvote danego użytkownika.
-     * Zwraca 'poll_admin', 'poll_editor' lub '' gdy brak roli.
+     * Zwraca 'poll_admin' (Koordynator) lub '' gdy brak roli.
      */
     public static function get_user_role( int $user_id ): string {
         return (string) get_user_meta( $user_id, self::META_ROLE, true );
@@ -132,10 +129,10 @@ class Openvote_Role_Manager {
     public static function add_wp_admin( int $user_id ): true|\WP_Error {
         $group_id = self::get_administrators_group_id();
         if ( ! $group_id ) {
-            return new \WP_Error( 'no_group', __( 'Sejmik „Administratorzy” nie istnieje. Utwórz go w sekcji Sejmiki.', 'openvote' ) );
+            return new \WP_Error( 'no_group', __( 'Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy.', 'openvote' ) );
         }
         if ( ! self::is_user_in_administrators_group( $user_id ) ) {
-            return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z sejmiku „Administratorzy” mogą zostać administratorami WordPress.', 'openvote' ) );
+            return new \WP_Error( 'not_in_group', __( 'Tylko użytkownicy z grupy „Administratorzy” mogą zostać administratorami WordPress.', 'openvote' ) );
         }
         $lock = 'openvote_wp_admin_lock';
         if ( get_transient( $lock ) ) {
@@ -215,7 +212,7 @@ class Openvote_Role_Manager {
             $previous_role = 'subscriber';
         }
         $user->set_role( $previous_role );
-        set_transient( 'openvote_roles_error', __( 'Administratorem WordPress może zostać tylko użytkownik z sejmiku „Administratorzy”. Rola została cofnięta.', 'openvote' ), 30 );
+        set_transient( 'openvote_roles_error', __( 'Administratorem WordPress może zostać tylko użytkownik z grupy „Administratorzy”. Rola została cofnięta.', 'openvote' ), 30 );
     }
 
     /**
@@ -250,15 +247,12 @@ class Openvote_Role_Manager {
     }
 
     /**
-     * Pobierz wszystkich Lokalnych Koordynatorów Grup.
+     * Pobierz wszystkich Koordynatorów (alias get_poll_admins dla kompatybilności).
      *
-     * @return WP_User[]
+     * @return \WP_User[]
      */
     public static function get_poll_editors(): array {
-        return get_users( [
-            'meta_key'   => self::META_ROLE,
-            'meta_value' => self::ROLE_POLL_EDITOR,
-        ] );
+        return self::get_poll_admins();
     }
 
     /**
@@ -280,20 +274,33 @@ class Openvote_Role_Manager {
         $like2 = '%,' . $group_id . ',%';
         $like3 = '%,' . $group_id . ']';
         $exact = '[' . $group_id . ']';
-        return (int) $wpdb->get_var( $wpdb->prepare( $sql, self::META_GROUPS, $like1, $like2, $like3, $exact, self::META_ROLE, self::ROLE_POLL_EDITOR ) );
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, self::META_GROUPS, $like1, $like2, $like3, $exact, self::META_ROLE, self::ROLE_POLL_ADMIN ) );
     }
 
     // ─── Nadawanie ról ───────────────────────────────────────────────────────
 
     /**
-     * Nadaj rolę Koordynatora.
+     * Nadaj rolę Koordynatora (poll_admin). Opcjonalnie z przypisaniem do grup.
      *
+     * @param int   $user_id   ID użytkownika.
+     * @param int[] $group_ids Opcjonalnie lista ID grup; pusta = pełny dostęp (bez ograniczenia do grup).
      * @return true|\WP_Error
      */
-    public static function add_poll_admin( int $user_id ): true|\WP_Error {
+    public static function add_poll_admin( int $user_id, array $group_ids = [] ): true|\WP_Error {
         $current_admins = self::get_poll_admins();
-
-        if ( count( $current_admins ) >= self::LIMIT_POLL_ADMINS ) {
+        $test_gid       = function_exists( 'openvote_get_test_group_id' ) ? openvote_get_test_group_id() : 0;
+        $current_admins = array_values( array_filter( $current_admins, function ( $u ) use ( $test_gid ) {
+            $g = self::get_user_groups( (int) $u->ID );
+            if ( empty( $g ) ) {
+                return true;
+            }
+            if ( $test_gid && count( $g ) === 1 && (int) $g[0] === $test_gid ) {
+                return false;
+            }
+            return true;
+        } ) );
+        $already_counted = in_array( $user_id, array_map( fn( $u ) => (int) $u->ID, $current_admins ), true );
+        if ( ! $already_counted && count( $current_admins ) >= self::LIMIT_POLL_ADMINS ) {
             $names = implode( ', ', array_map( fn( $u ) => $u->display_name, $current_admins ) );
             return new \WP_Error(
                 'limit_reached',
@@ -307,26 +314,23 @@ class Openvote_Role_Manager {
         }
 
         update_user_meta( $user_id, self::META_ROLE, self::ROLE_POLL_ADMIN );
-        delete_user_meta( $user_id, self::META_GROUPS );
+        if ( empty( $group_ids ) ) {
+            delete_user_meta( $user_id, self::META_GROUPS );
+        } else {
+            update_user_meta( $user_id, self::META_GROUPS, wp_json_encode( array_values( array_map( 'absint', $group_ids ) ) ) );
+        }
 
         return true;
     }
 
     /**
-     * Nadaj rolę Koordynatora z przypisaniem do grup.
+     * Nadaj rolę Koordynatora z przypisaniem do grup (kompatybilność wsteczna).
      *
      * @param int[] $group_ids
      * @return true|\WP_Error
      */
     public static function add_poll_editor( int $user_id, array $group_ids ): true|\WP_Error {
-        if ( empty( $group_ids ) ) {
-            return new \WP_Error( 'no_groups', __( 'Koordynator musi mieć przypisany co najmniej jeden sejmik.', 'openvote' ) );
-        }
-
-        update_user_meta( $user_id, self::META_ROLE, self::ROLE_POLL_EDITOR );
-        update_user_meta( $user_id, self::META_GROUPS, wp_json_encode( array_values( array_map( 'absint', $group_ids ) ) ) );
-
-        return true;
+        return self::add_poll_admin( $user_id, $group_ids );
     }
 
     // ─── Usuwanie ról ────────────────────────────────────────────────────────
@@ -386,7 +390,7 @@ class Openvote_Role_Manager {
         }
 
         if ( $remover_is_poll_admin ) {
-            return in_array( $target_role, [ self::ROLE_POLL_ADMIN, self::ROLE_POLL_EDITOR ], true );
+            return $target_role === self::ROLE_POLL_ADMIN;
         }
 
         return false;
@@ -405,8 +409,8 @@ class Openvote_Role_Manager {
         if ( ! self::can_remove( $remover_id, $user_id ) ) {
             return new \WP_Error( 'cannot_remove', __( 'Nie masz uprawnień do tej operacji.', 'openvote' ) );
         }
-        if ( self::ROLE_POLL_EDITOR !== self::get_user_role( $user_id ) ) {
-            return new \WP_Error( 'not_editor', __( 'Ten użytkownik nie jest koordynatorem.', 'openvote' ) );
+        if ( self::ROLE_POLL_ADMIN !== self::get_user_role( $user_id ) ) {
+            return new \WP_Error( 'not_coordinator', __( 'Ten użytkownik nie jest koordynatorem.', 'openvote' ) );
         }
 
         $current = self::get_user_groups( $user_id );

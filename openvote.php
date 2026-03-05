@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.1.0
+ * Version:           1.1.2
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.1.0' );
+define( 'OPENVOTE_VERSION', '1.1.2' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -76,6 +76,262 @@ function openvote_plugin_action_links( array $links ): array {
 	return $links;
 }
 add_filter( 'plugin_action_links_' . OPENVOTE_PLUGIN_BASENAME, 'openvote_plugin_action_links' );
+
+/**
+ * Zwraca nickname użytkownika (wg mapowania pól: np. user_nicename).
+ * Używane w kolumnie Autor na listach głosowań i ankiet.
+ *
+ * @param int $user_id ID użytkownika WordPress.
+ * @return string Nickname lub '—' gdy użytkownik nie istnieje; fallback na user_nicename/display_name gdy pole puste.
+ */
+function openvote_get_user_nickname( int $user_id ): string {
+	if ( $user_id <= 0 ) {
+		return '—';
+	}
+	$user = get_userdata( $user_id );
+	if ( ! $user instanceof WP_User ) {
+		return '—';
+	}
+	$nick = Openvote_Field_Map::get_user_value( $user, 'nickname' );
+	if ( $nick !== '' ) {
+		return $nick;
+	}
+	if ( ! empty( $user->user_nicename ) ) {
+		return $user->user_nicename;
+	}
+	if ( ! empty( $user->display_name ) ) {
+		return $user->display_name;
+	}
+	return '—';
+}
+
+/** Maks. liczba wpisów w logu audytu koordynatorów (niekasowalna lista). */
+const OPENVOTE_COORDINATOR_AUDIT_LOG_MAX = 200;
+
+/** Wpisów w logu koordynatorów nie przechowujemy dłużej niż 365 dni. */
+const OPENVOTE_COORDINATOR_AUDIT_LOG_MAX_DAYS = 365;
+
+/**
+ * Dopisuje wpis do logu audytu koordynatorów (kto kogo promował / komu odebrał).
+ * Automatycznie usuwa wpisy starsze niż OPENVOTE_COORDINATOR_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @param int    $actor_id  ID użytkownika wykonującego akcję.
+ * @param string $action    'promoted' lub 'removed'.
+ * @param int    $target_id ID użytkownika (promowanego lub odbieranego).
+ * @param string $groups    Nazwy grup (np. "Gdańsk, Wrocław") lub pusty przy pełnym usunięciu.
+ */
+function openvote_coordinator_audit_log_append( int $actor_id, string $action, int $target_id, string $groups = '' ): void {
+	$log = get_option( 'openvote_coordinator_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_COORDINATOR_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$log       = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	$entry = [
+		't'      => current_time( 'Y-m-d H:i:s' ),
+		'actor'  => openvote_get_user_nickname( $actor_id ),
+		'action' => $action === 'removed' ? 'removed' : 'promoted',
+		'target' => openvote_get_user_nickname( $target_id ),
+		'groups' => is_string( $groups ) ? $groups : '',
+	];
+	array_unshift( $log, $entry );
+	$log = array_slice( $log, 0, OPENVOTE_COORDINATOR_AUDIT_LOG_MAX );
+	update_option( 'openvote_coordinator_audit_log', $log, false );
+}
+
+/**
+ * Zwraca wpisy logu audytu koordynatorów (najnowsze pierwsze).
+ * Przy odczycie usuwa wpisy starsze niż OPENVOTE_COORDINATOR_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @return array<int, array{t: string, actor: string, action: string, target: string, groups: string}>
+ */
+function openvote_coordinator_audit_log_get(): array {
+	$log = get_option( 'openvote_coordinator_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		return [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_COORDINATOR_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$original  = $log;
+	$log        = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	if ( count( $log ) !== count( $original ) ) {
+		update_option( 'openvote_coordinator_audit_log', $log, false );
+	}
+	return $log;
+}
+
+/** Maks. liczba wpisów w logu audytu grup (Członkowie i grupy). */
+const OPENVOTE_GROUPS_AUDIT_LOG_MAX = 200;
+
+/** Wpisów w logu grup nie przechowujemy dłużej niż 365 dni. */
+const OPENVOTE_GROUPS_AUDIT_LOG_MAX_DAYS = 365;
+
+/**
+ * Dopisuje wpis do logu audytu grup (utworzenie/usunięcie grupy, dodanie/usunięcie członka, synchronizacja).
+ * Automatycznie usuwa wpisy starsze niż OPENVOTE_GROUPS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @param int    $actor_id ID użytkownika wykonującego akcję.
+ * @param string $line     Treść wpisu po nicku (np. "utworzył grupę Kraków", "dodał jan do Wrocław").
+ */
+function openvote_groups_audit_log_append( int $actor_id, string $line ): void {
+	$log = get_option( 'openvote_groups_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_GROUPS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$log       = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	$entry = [
+		't'     => current_time( 'Y-m-d H:i:s' ),
+		'actor' => openvote_get_user_nickname( $actor_id ),
+		'line'  => is_string( $line ) ? $line : '',
+	];
+	array_unshift( $log, $entry );
+	$log = array_slice( $log, 0, OPENVOTE_GROUPS_AUDIT_LOG_MAX );
+	update_option( 'openvote_groups_audit_log', $log, false );
+}
+
+/**
+ * Zwraca wpisy logu audytu grup (najnowsze pierwsze).
+ * Przy odczycie usuwa wpisy starsze niż OPENVOTE_GROUPS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @return array<int, array{t: string, actor: string, line: string}>
+ */
+function openvote_groups_audit_log_get(): array {
+	$log = get_option( 'openvote_groups_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		return [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_GROUPS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$original  = $log;
+	$log        = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	if ( count( $log ) !== count( $original ) ) {
+		update_option( 'openvote_groups_audit_log', $log, false );
+	}
+	return $log;
+}
+
+/** Maks. wpisów w logu audytu głosowań. */
+const OPENVOTE_POLLS_AUDIT_LOG_MAX = 200;
+
+/** Wpisów w logu głosowań nie przechowujemy dłużej niż 365 dni. */
+const OPENVOTE_POLLS_AUDIT_LOG_MAX_DAYS = 365;
+
+/**
+ * Dopisuje wpis do logu audytu głosowań (utworzenie, start, zakończenie, zaproszenia).
+ * Automatycznie usuwa wpisy starsze niż OPENVOTE_POLLS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @param int    $actor_id ID użytkownika wykonującego akcję.
+ * @param string $line     Treść wpisu (np. "utworzył głosowanie Tytuł").
+ */
+function openvote_polls_audit_log_append( int $actor_id, string $line ): void {
+	$log = get_option( 'openvote_polls_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_POLLS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$log       = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	$entry = [
+		't'     => current_time( 'Y-m-d H:i:s' ),
+		'actor' => openvote_get_user_nickname( $actor_id ),
+		'line'  => is_string( $line ) ? $line : '',
+	];
+	array_unshift( $log, $entry );
+	$log = array_slice( $log, 0, OPENVOTE_POLLS_AUDIT_LOG_MAX );
+	update_option( 'openvote_polls_audit_log', $log, false );
+}
+
+/**
+ * Zwraca wpisy logu audytu głosowań (najnowsze pierwsze).
+ * Przy odczycie usuwa wpisy starsze niż OPENVOTE_POLLS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @return array<int, array{t: string, actor: string, line: string}>
+ */
+function openvote_polls_audit_log_get(): array {
+	$log = get_option( 'openvote_polls_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		return [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_POLLS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$original  = $log;
+	$log        = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	if ( count( $log ) !== count( $original ) ) {
+		update_option( 'openvote_polls_audit_log', $log, false );
+	}
+	return $log;
+}
+
+/** Maks. wpisów w logu audytu ankiet. */
+const OPENVOTE_SURVEYS_AUDIT_LOG_MAX = 200;
+
+/** Wpisów w logu ankiet nie przechowujemy dłużej niż 365 dni. */
+const OPENVOTE_SURVEYS_AUDIT_LOG_MAX_DAYS = 365;
+
+/**
+ * Dopisuje wpis do logu audytu ankiet (utworzenie, start, zakończenie).
+ * Automatycznie usuwa wpisy starsze niż OPENVOTE_SURVEYS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @param int    $actor_id ID użytkownika wykonującego akcję.
+ * @param string $line     Treść wpisu (np. "utworzył ankietę Tytuł").
+ */
+function openvote_surveys_audit_log_append( int $actor_id, string $line ): void {
+	$log = get_option( 'openvote_surveys_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_SURVEYS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$log       = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	$entry = [
+		't'     => current_time( 'Y-m-d H:i:s' ),
+		'actor' => openvote_get_user_nickname( $actor_id ),
+		'line'  => is_string( $line ) ? $line : '',
+	];
+	array_unshift( $log, $entry );
+	$log = array_slice( $log, 0, OPENVOTE_SURVEYS_AUDIT_LOG_MAX );
+	update_option( 'openvote_surveys_audit_log', $log, false );
+}
+
+/**
+ * Zwraca wpisy logu audytu ankiet (najnowsze pierwsze).
+ * Przy odczycie usuwa wpisy starsze niż OPENVOTE_SURVEYS_AUDIT_LOG_MAX_DAYS dni.
+ *
+ * @return array<int, array{t: string, actor: string, line: string}>
+ */
+function openvote_surveys_audit_log_get(): array {
+	$log = get_option( 'openvote_surveys_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		return [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_SURVEYS_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$original  = $log;
+	$log        = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	if ( count( $log ) !== count( $original ) ) {
+		update_option( 'openvote_surveys_audit_log', $log, false );
+	}
+	return $log;
+}
 
 // Administrator WordPress tylko z grupy "Administratorzy".
 add_action( 'profile_update', [ 'Openvote_Role_Manager', 'enforce_wp_admin_group' ], 99, 2 );
@@ -205,7 +461,7 @@ function openvote_user_can_access_screen( int $user_id, string $screen_slug ): b
 }
 
 /**
- * Zakres dostępu koordynatora: 'all' = wszystkie sejmiki, 'own' = tylko przypisane.
+ * Zakres dostępu koordynatora: 'all' = wszystkie grupy, 'own' = tylko przypisane.
  */
 function openvote_coordinator_poll_access_scope(): string {
 	$v = get_option( 'openvote_coordinator_poll_access', 'all' );
@@ -213,7 +469,7 @@ function openvote_coordinator_poll_access_scope(): string {
 }
 
 /**
- * Czy bieżący użytkownik jest koordynatorem z ograniczeniem do własnych sejmików?
+ * Czy bieżący użytkownik jest koordynatorem z ograniczeniem do własnych grup?
  * (Nie administrator/edytor/autor WP — tylko rola koordynatora i opcja „own”.)
  */
 function openvote_is_coordinator_restricted_to_own_groups(): bool {
@@ -224,6 +480,52 @@ function openvote_is_coordinator_restricted_to_own_groups(): bool {
 		return false;
 	}
 	return Openvote_Role_Map::user_is_coordinator( get_current_user_id() );
+}
+
+/**
+ * Czy w Ustawieniach włączona jest grupa testowa „Test”?
+ *
+ * @return bool
+ */
+function openvote_create_test_group_enabled(): bool {
+	return (int) get_option( 'openvote_create_test_group', 1 ) === 1;
+}
+
+/**
+ * ID grupy Test (jeśli opcja włączona i grupa istnieje). 0 gdy brak.
+ *
+ * @return int
+ */
+function openvote_get_test_group_id(): int {
+	if ( ! openvote_create_test_group_enabled() ) {
+		return 0;
+	}
+	global $wpdb;
+	$table = $wpdb->prefix . 'openvote_groups';
+	$id    = $wpdb->get_var( $wpdb->prepare(
+		"SELECT id FROM {$table} WHERE name = %s AND is_test_group = 1",
+		Openvote_Activator::TEST_GROUP_NAME
+	) );
+	return $id ? (int) $id : 0;
+}
+
+/**
+ * Czy grupa o podanym ID to grupa Test (is_test_group)?
+ *
+ * @param int $group_id
+ * @return bool
+ */
+function openvote_is_test_group( int $group_id ): bool {
+	if ( ! $group_id ) {
+		return false;
+	}
+	global $wpdb;
+	$table = $wpdb->prefix . 'openvote_groups';
+	$val   = $wpdb->get_var( $wpdb->prepare(
+		"SELECT is_test_group FROM {$table} WHERE id = %d",
+		$group_id
+	) );
+	return (int) $val === 1;
 }
 
 // ── Szablon e-maila zapraszającego ───────────────────────────────────────
@@ -721,12 +1023,6 @@ add_action( 'wp_enqueue_scripts',  [ 'Openvote_Vote_Page', 'enqueue_assets' ] );
 add_filter( 'body_class',          [ 'Openvote_Vote_Page', 'add_body_class' ] );
 add_filter( 'pre_get_document_title', [ 'Openvote_Vote_Page', 'filter_document_title' ] );
 add_filter( 'the_title',              [ 'Openvote_Vote_Page', 'suppress_page_title' ], 10, 2 );
-
-// Strona przepisów prawnych (np. /przepisy/) — dostępna dla wszystkich.
-add_filter( 'query_vars',    [ 'Openvote_Law_Page', 'register_query_var' ] );
-add_action( 'init',          [ 'Openvote_Law_Page', 'add_rewrite_rule' ] );
-add_filter( 'template_include', [ 'Openvote_Law_Page', 'filter_template' ] );
-add_filter( 'body_class',    [ 'Openvote_Law_Page', 'add_body_class' ] );
 
 // Tytuł strony zgłoszeń (np. /zgloszenia/) — zawsze w tłumaczeniu (PL: Zgłoszenia, EN: Submissions).
 add_filter( 'the_title', 'openvote_submissions_page_title', 10, 2 );

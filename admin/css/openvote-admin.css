@@ -534,6 +534,17 @@ input.evoting-date-readonly {
     padding: 10px 12px;
 }
 
+/* Kolumna Konfiguracja w tabeli Mapowanie roli — wyróżnienie ostrzegawcze */
+.openvote-role-map-table th.openvote-col-config,
+.openvote-role-map-table td.openvote-col-config {
+    background-color: #fff8e1;
+    border-left: 3px solid #dba617;
+    font-weight: 600;
+}
+.openvote-role-map-table td.openvote-col-config {
+    font-weight: normal;
+}
+
 .openvote-badge,
 .evoting-badge {
     display: inline-block;
@@ -850,4 +861,28 @@ input.evoting-date-readonly {
     background: #8a2424 !important;
     border-color: #8a2424 !important;
     color: #fff !important;
+}
+
+/* Grupa Test na liście sejmików — wyróżniony wiersz */
+.wp-list-table.openvote-group-test tr.openvote-group-test,
+.wp-list-table tr.openvote-group-test {
+    background-color: #fff8e6 !important;
+    border-left: 3px solid #dba617;
+}
+.wp-list-table.striped tr.openvote-group-test:nth-child(odd) {
+    background-color: #fffbf0 !important;
+}
+.wp-list-table.striped tr.openvote-group-test:nth-child(even) {
+    background-color: #fff8e6 !important;
+}
+
+/* Opcja „Utwórz grupę do testowania : Test” w Konfiguracji — wyróżnienie wizualne */
+.openvote-settings-test-group-option {
+    max-width: 700px;
+    padding: 12px 14px;
+    background-color: #fffbf0;
+    border: 1px solid #e8d9a0;
+    border-left: 4px solid #dba617;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 }

@@ -92,6 +92,24 @@ async function openvoteRunBatchJob( jobId, onProgress, onComplete, onError, dela
 				throw lastErr || new Error( 'HTTP 503. Serwer lub WAF może limitować żądań — odczekaj chwilę i spróbuj ponownie.' );
 			}
 
+			// Odczytaj odpowiedź POST — jeśli status done/cancelled, zakończ od razu (strona odświeży się)
+			const nextJob = await nextRes.json().catch( () => ( {} ) );
+			if ( nextJob && ( nextJob.status === 'done' || nextJob.status === 'cancelled' ) ) {
+				stopProgressPoll();
+				onProgress( nextJob.processed, nextJob.total, nextJob.pct || 0, nextJob );
+				onComplete( nextJob );
+				return;
+			}
+			if ( nextJob && nextJob.status === 'limit_exceeded' ) {
+				stopProgressPoll();
+				if ( typeof onLimitExceeded === 'function' ) {
+					onLimitExceeded( nextJob );
+				} else if ( typeof onError === 'function' ) {
+					onError( new Error( nextJob.limit_message || 'Limit wysyłki przekroczony.' ) );
+				}
+				return;
+			}
+
 			// 3. Odczekaj emailDelay ms, powtórz (throttle)
 			setTimeout( poll, emailDelay );
 

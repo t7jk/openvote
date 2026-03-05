@@ -29,7 +29,8 @@ class Openvote_Polls_List extends WP_List_Table {
             'cb'         => '<input type="checkbox">',
             'title'      => __( 'Tytuł', 'openvote' ),
             'status'     => __( 'Status', 'openvote' ),
-            'groups'     => __( 'Sejmiki', 'openvote' ),
+            'groups'     => __( 'Grupy', 'openvote' ),
+            'author'     => __( 'Autor', 'openvote' ),
             'date_start' => __( 'Rozpoczęcie', 'openvote' ),
             'date_end'   => __( 'Zakończenie', 'openvote' ),
         ];
@@ -113,6 +114,12 @@ class Openvote_Polls_List extends WP_List_Table {
 
         if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             $args['coordinator_group_ids'] = Openvote_Role_Manager::get_user_groups( get_current_user_id() );
+            if ( openvote_create_test_group_enabled() ) {
+                $test_gid = openvote_get_test_group_id();
+                if ( $test_gid ) {
+                    $args['coordinator_group_ids'][] = $test_gid;
+                }
+            }
         }
 
         $this->items = self::get_polls_with_search( $args );
@@ -292,6 +299,11 @@ class Openvote_Polls_List extends WP_List_Table {
     protected function column_groups( $item ): string {
         $names = $item->group_names ?? [];
         return esc_html( implode( ', ', $names ) );
+    }
+
+    protected function column_author( $item ): string {
+        $author_id = ! empty( $item->modified_by ) ? (int) $item->modified_by : (int) ( $item->created_by ?? 0 );
+        return esc_html( openvote_get_user_nickname( $author_id ) );
     }
 
     protected function column_date_start( $item ): string {

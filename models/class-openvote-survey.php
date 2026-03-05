@@ -152,6 +152,10 @@ class Openvote_Survey {
         }
 
         if ( ! empty( $update ) ) {
+            $update['modified_by'] = get_current_user_id();
+            $update['modified_at'] = current_time( 'mysql' );
+            $format[]              = '%d';
+            $format[]              = '%s';
             $result = $wpdb->update(
                 self::surveys_table(),
                 $update,
@@ -162,6 +166,17 @@ class Openvote_Survey {
             if ( false === $result ) {
                 return false;
             }
+        } elseif ( isset( $data['questions'] ) ) {
+            $wpdb->update(
+                self::surveys_table(),
+                [
+                    'modified_by' => get_current_user_id(),
+                    'modified_at' => current_time( 'mysql' ),
+                ],
+                [ 'id' => $survey_id ],
+                [ '%d', '%s' ],
+                [ '%d' ]
+            );
         }
 
         if ( isset( $data['questions'] ) ) {

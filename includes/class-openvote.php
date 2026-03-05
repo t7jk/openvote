@@ -69,7 +69,6 @@ class Openvote {
     private function define_public_hooks(): void {
         require_once OPENVOTE_PLUGIN_DIR . 'public/class-openvote-public.php';
         require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-vote-page.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-law-page.php';
         require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-survey-page.php';
 
         $public = new Openvote_Public();

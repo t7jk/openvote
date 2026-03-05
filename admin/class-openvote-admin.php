@@ -32,8 +32,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Ankiety wyborcze', 'openvote' ),
-            __( 'Ankiety wyborcze', 'openvote' ),
+            __( 'Ankiety', 'openvote' ),
+            __( 'Ankiety', 'openvote' ),
             'read',
             'openvote-surveys',
             [ $this, 'render_surveys_page' ]
@@ -41,8 +41,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Członkowie i Sejmiki', 'openvote' ),
-            __( 'Członkowie i Sejmiki', 'openvote' ),
+            __( 'Członkowie i grupy', 'openvote' ),
+            __( 'Członkowie i grupy', 'openvote' ),
             'read',
             'openvote-groups',
             [ $this, 'render_groups_page' ]
@@ -50,8 +50,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Koordynatorzy i Sejmiki', 'openvote' ),
-            __( 'Koordynatorzy i Sejmiki', 'openvote' ),
+            __( 'Koordynatorzy i grupy', 'openvote' ),
+            __( 'Koordynatorzy i grupy', 'openvote' ),
             'read',
             'openvote-roles',
             [ $this, 'render_roles_page' ]
@@ -59,8 +59,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Konfiguracja OpenVote', 'openvote' ),
-            __( 'Konfiguracja OpenVote', 'openvote' ),
+            __( 'Konfiguracja', 'openvote' ),
+            __( 'Konfiguracja', 'openvote' ),
             'read',
             'openvote-settings',
             [ $this, 'render_settings_page' ]
@@ -73,15 +73,6 @@ class Openvote_Admin {
             'read',
             'openvote-manual',
             [ $this, 'render_manual_page' ]
-        );
-
-        add_submenu_page(
-            'openvote',
-            __( 'Przepisy prawne', 'openvote' ),
-            __( 'Przepisy', 'openvote' ),
-            'read',
-            'openvote-law',
-            [ $this, 'render_law_page' ]
         );
 
         add_submenu_page(
@@ -106,14 +97,7 @@ class Openvote_Admin {
         if ( array_intersect( $allowed_wp_roles, (array) $user->roles ) ) {
             return true;
         }
-        $openvote_role = Openvote_Role_Manager::get_user_role( $user->ID );
-        if ( Openvote_Role_Manager::ROLE_POLL_ADMIN === $openvote_role ) {
-            return true;
-        }
-        if ( Openvote_Role_Manager::ROLE_POLL_EDITOR === $openvote_role && ! empty( Openvote_Role_Manager::get_user_groups( $user->ID ) ) ) {
-            return true;
-        }
-        return false;
+        return Openvote_Role_Manager::get_user_role( $user->ID ) === Openvote_Role_Manager::ROLE_POLL_ADMIN;
     }
 
     /**
@@ -165,8 +149,8 @@ class Openvote_Admin {
         }
     }
 
-    /** Slugi pięciu ekranów objętych mapowaniem roli (menu + dostęp). */
-    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings' ];
+    /** Slugi ekranów objętych mapowaniem roli (menu + dostęp). */
+    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings', 'openvote-manual' ];
 
     /**
      * Slugi podstron, które mają być wyłączone (kursywa, brak kliku) według mapy roli.
@@ -198,7 +182,7 @@ class Openvote_Admin {
     }
 
     /**
-     * Obsługa formularza sejmików (dodaj, usuń, członkowie) — przed jakimkolwiek outputem,
+     * Obsługa formularza grup (dodaj, usuń, członkowie) — przed jakimkolwiek outputem,
      * żeby przekierowanie nie powodowało "headers already sent" (np. z motywem Blocksy).
      */
     public function handle_groups_form_early(): void {
@@ -223,7 +207,7 @@ class Openvote_Admin {
         if ( 'add' === $action ) {
             $name = sanitize_text_field( $_POST['group_name'] ?? '' );
             if ( '' === $name ) {
-                $error = __( 'Nazwa sejmiku jest wymagana.', 'openvote' );
+                $error = __( 'Nazwa grupy jest wymagana.', 'openvote' );
             } else {
                 $inserted = $wpdb->insert(
                     $groups_table,
@@ -231,32 +215,38 @@ class Openvote_Admin {
                     [ '%s', '%s', '%s' ]
                 );
                 if ( $inserted ) {
-                    $message = __( 'Sejmik został dodany.', 'openvote' );
+                    $message = __( 'Grupa została dodana.', 'openvote' );
+                    openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'utworzył grupę %s', 'openvote' ), $name ) );
                 } else {
-                    $error = __( 'Błąd zapisu — nazwa sejmiku może być już zajęta.', 'openvote' );
+                    $error = __( 'Błąd zapisu — nazwa grupy może być już zajęta.', 'openvote' );
                 }
             }
         } elseif ( 'delete' === $action ) {
             $group_id = absint( $_POST['group_id'] ?? 0 );
             if ( ! $group_id ) {
-                $error = __( 'Nie wybrano sejmiku do usunięcia.', 'openvote' );
+                $error = __( 'Nie wybrano grupy do usunięcia.', 'openvote' );
+            } elseif ( openvote_is_test_group( $group_id ) ) {
+                $error = __( 'Grupy Test nie można usunąć. Wyłącz ją w Konfiguracja → Utwórz grupę do testowania.', 'openvote' );
             } else {
-                $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE id = %d", $group_id ) );
-                if ( ! $exists ) {
-                    $error = __( 'Wybrany sejmik nie istnieje.', 'openvote' );
+                $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT id, name FROM {$groups_table} WHERE id = %d", $group_id ) );
+                if ( ! $group_row ) {
+                    $error = __( 'Wybrana grupa nie istnieje.', 'openvote' );
                 } else {
+                    $group_name = $group_row->name;
                     $wpdb->delete( $gm_table, [ 'group_id' => $group_id ], [ '%d' ] );
                     $wpdb->delete( $groups_table, [ 'id' => $group_id ], [ '%d' ] );
                     Openvote_Poll::remove_group_from_all_polls( $group_id );
-                    $message = __( 'Sejmik został usunięty.', 'openvote' );
+                    $message = __( 'Grupa została usunięta.', 'openvote' );
+                    openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'usunął grupę %s', 'openvote' ), $group_name ) );
                 }
             }
         } elseif ( 'add_member' === $action ) {
             $group_id = absint( $_POST['group_id'] ?? 0 );
             $user_id  = absint( $_POST['member_user_id'] ?? 0 );
             if ( ! $group_id || ! $user_id ) {
-                $error = __( 'Wybierz sejmik i użytkownika.', 'openvote' );
+                $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
             } else {
+                $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_id ) );
                 $wpdb->query(
                     $wpdb->prepare(
                         "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
@@ -266,15 +256,23 @@ class Openvote_Admin {
                     )
                 );
                 $message = __( 'Członek dodany.', 'openvote' );
+                if ( $group_row ) {
+                    openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'dodał %s do %s', 'openvote' ), openvote_get_user_nickname( $user_id ), $group_row->name ) );
+                }
             }
         } elseif ( 'remove_member' === $action ) {
             $group_id = absint( $_POST['group_id'] ?? 0 );
             $user_id  = absint( $_POST['member_user_id'] ?? 0 );
             if ( ! $group_id || ! $user_id ) {
-                $error = __( 'Wybierz sejmik i użytkownika.', 'openvote' );
+                $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
             } else {
+                $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_id ) );
+                $member_nick = openvote_get_user_nickname( $user_id );
                 $wpdb->delete( $gm_table, [ 'group_id' => $group_id, 'user_id' => $user_id ], [ '%d', '%d' ] );
                 $message = __( 'Członek usunięty.', 'openvote' );
+                if ( $group_row ) {
+                    openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'usunął %s z %s', 'openvote' ), $member_nick, $group_row->name ) );
+                }
             }
         } elseif ( 'add_user_to_groups' === $action ) {
             $user_id   = absint( $_POST['openvote_add_user_id'] ?? 0 );
@@ -283,7 +281,7 @@ class Openvote_Admin {
             if ( ! $user_id ) {
                 $error = __( 'Wybierz użytkownika z listy.', 'openvote' );
             } elseif ( empty( $group_ids ) ) {
-                $error = __( 'Wybierz co najmniej jeden sejmik.', 'openvote' );
+                $error = __( 'Wybierz co najmniej jedną grupę.', 'openvote' );
             }
             if ( $user_id && ! empty( $group_ids ) ) {
                 $added = 0;
@@ -306,6 +304,12 @@ class Openvote_Admin {
                         _n( 'Użytkownik dodany do %d grupy.', 'Użytkownik dodany do %d grup.', $added, 'openvote' ),
                         $added
                     );
+                    $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+                    $group_names = $wpdb->get_col( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id IN ($placeholders) ORDER BY name ASC", ...$group_ids ) );
+                    $group_names_str = is_array( $group_names ) ? implode( ', ', array_map( 'trim', $group_names ) ) : '';
+                    if ( $group_names_str !== '' ) {
+                        openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'dodał %s do %s', 'openvote' ), openvote_get_user_nickname( $user_id ), $group_names_str ) );
+                    }
                 }
                 if ( count( $group_ids ) === 1 ) {
                     $user = get_userdata( $user_id );
@@ -426,7 +430,12 @@ class Openvote_Admin {
                 return;
             }
             check_admin_referer( 'openvote_delete_poll_' . $poll_id );
+            $poll = Openvote_Poll::get( $poll_id );
+            $title = $poll && isset( $poll->title ) ? $poll->title : '';
             Openvote_Poll::delete( $poll_id );
+            if ( $title !== '' ) {
+                openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'usunął głosowanie %s', 'openvote' ), $title ) );
+            }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote&deleted=1' ) );
             exit;
         }
@@ -439,6 +448,10 @@ class Openvote_Admin {
                     'status'   => 'closed',
                     'date_end' => current_time( 'Y-m-d H:i:s' ),
                 ] );
+                $title = isset( $poll->title ) ? $poll->title : '';
+                if ( $title !== '' ) {
+                    openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył głosowanie %s', 'openvote' ), $title ) );
+                }
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote&poll_ended=1' ) );
                 exit;
             }
@@ -455,6 +468,10 @@ class Openvote_Admin {
                     'date_start' => $now,
                     'date_end'   => $date_end,
                 ] );
+                $title = isset( $poll->title ) ? $poll->title : '';
+                if ( $title !== '' ) {
+                    openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'wystartował głosowanie %s', 'openvote' ), $title ) );
+                }
                 wp_safe_redirect( add_query_arg( 'started', 1, admin_url( 'admin.php?page=openvote' ) ) );
                 exit;
             }
@@ -462,8 +479,13 @@ class Openvote_Admin {
 
         if ( 'duplicate' === $action && ( current_user_can( self::CAP ) || self::user_can_access_coordinators() ) ) {
             check_admin_referer( 'openvote_duplicate_poll_' . $poll_id );
+            $poll = Openvote_Poll::get( $poll_id );
+            $title = $poll && isset( $poll->title ) ? $poll->title : '';
             $new_id = Openvote_Poll::duplicate( $poll_id );
             if ( false !== $new_id ) {
+                if ( $title !== '' ) {
+                    openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'skopiował głosowanie %s', 'openvote' ), $title ) );
+                }
                 wp_safe_redirect( add_query_arg( [ 'action' => 'edit', 'poll_id' => $new_id, 'duplicated' => 1 ], admin_url( 'admin.php?page=openvote' ) ) );
                 exit;
             }
@@ -492,6 +514,10 @@ class Openvote_Admin {
             $s = Openvote_Survey::get( $survey_id );
             if ( $s && 'open' === $s->status ) {
                 Openvote_Survey::update( $survey_id, [ 'status' => 'closed', 'date_end' => current_time( 'Y-m-d H:i:s' ) ] );
+                $title = isset( $s->title ) ? $s->title : '';
+                if ( $title !== '' ) {
+                    openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył ankietę %s', 'openvote' ), $title ) );
+                }
             }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&closed=1' ) );
             exit;
@@ -502,7 +528,12 @@ class Openvote_Admin {
                 return;
             }
             check_admin_referer( 'openvote_delete_survey_' . $survey_id );
+            $s = Openvote_Survey::get( $survey_id );
+            $title = $s && isset( $s->title ) ? $s->title : '';
             Openvote_Survey::delete( $survey_id );
+            if ( $title !== '' ) {
+                openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'usunął ankietę %s', 'openvote' ), $title ) );
+            }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&deleted=1' ) );
             exit;
         }
@@ -512,8 +543,13 @@ class Openvote_Admin {
                 return;
             }
             check_admin_referer( 'openvote_duplicate_survey_' . $survey_id );
+            $s = Openvote_Survey::get( $survey_id );
+            $title = $s && isset( $s->title ) ? $s->title : '';
             $new_id = Openvote_Survey::duplicate( $survey_id );
             if ( $new_id ) {
+                if ( $title !== '' ) {
+                    openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'zduplikował ankietę %s', 'openvote' ), $title ) );
+                }
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&action=edit&survey_id=' . $new_id . '&duplicated=1' ) );
             } else {
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&duplicate_error=1' ) );
@@ -755,6 +791,51 @@ class Openvote_Admin {
                 $list_table->display();
                 ?>
             </form>
+
+            <?php
+            $polls_audit_all    = openvote_polls_audit_log_get();
+            $polls_audit_per    = 20;
+            $polls_audit_total  = count( $polls_audit_all );
+            $polls_audit_pages  = $polls_audit_total > 0 ? (int) ceil( $polls_audit_total / $polls_audit_per ) : 1;
+            $polls_audit_page   = isset( $_GET['audit_page'] ) ? max( 1, absint( $_GET['audit_page'] ) ) : 1;
+            $polls_audit_page   = min( $polls_audit_page, $polls_audit_pages );
+            $polls_audit_offset = ( $polls_audit_page - 1 ) * $polls_audit_per;
+            $polls_audit_entries = array_slice( $polls_audit_all, $polls_audit_offset, $polls_audit_per );
+            $polls_audit_base_url = add_query_arg( [ 'page' => 'openvote' ], admin_url( 'admin.php' ) );
+            ?>
+            <section class="openvote-polls-audit-log" style="margin-top:32px; max-width:900px;">
+                <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log czynności głosowań', 'openvote' ); ?></h2>
+                <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy utworzył, edytował, wystartował, zakończył, skopiował lub usunął głosowanie albo wysłał zaproszenia. Lista niekasowalna, w celach bezpieczeństwa.', 'openvote' ); ?></p>
+                <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
+                    <?php
+                    if ( empty( $polls_audit_entries ) ) {
+                        echo '<p style="margin:0; color:#a7aaad;">' . esc_html__( 'Brak wpisów.', 'openvote' ) . '</p>';
+                    } else {
+                        foreach ( $polls_audit_entries as $e ) {
+                            $t     = isset( $e['t'] ) ? $e['t'] : '';
+                            $actor = isset( $e['actor'] ) ? $e['actor'] : '—';
+                            $line  = isset( $e['line'] ) ? $e['line'] : '';
+                            echo '<div style="margin:2px 0;">' . esc_html( $t . ' ' . $actor . ' ' . $line ) . '</div>';
+                        }
+                    }
+                    ?>
+                </div>
+                <?php if ( $polls_audit_pages > 1 ) : ?>
+                <p class="openvote-audit-log-nav" style="margin:8px 0 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <span class="displaying-num" style="color:#646970; font-size:13px;">
+                        <?php
+                        echo esc_html( sprintf( __( 'Strona %1$d z %2$d (%3$d wpisów)', 'openvote' ), $polls_audit_page, $polls_audit_pages, $polls_audit_total ) );
+                        ?>
+                    </span>
+                    <?php if ( $polls_audit_page > 1 ) : ?>
+                        <a href="<?php echo esc_url( add_query_arg( 'audit_page', $polls_audit_page - 1, $polls_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+                    <?php endif; ?>
+                    <?php if ( $polls_audit_page < $polls_audit_pages ) : ?>
+                        <a href="<?php echo esc_url( add_query_arg( 'audit_page', $polls_audit_page + 1, $polls_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+                    <?php endif; ?>
+                </p>
+                <?php endif; ?>
+            </section>
         </div>
         <?php
     }
@@ -793,11 +874,10 @@ class Openvote_Admin {
     }
 
     public function render_manual_page(): void {
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-manual' ) && ! current_user_can( self::CAP_MGR ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
+        }
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/manual.php';
-    }
-
-    public function render_law_page(): void {
-        include OPENVOTE_PLUGIN_DIR . 'admin/partials/law.php';
     }
 
     public function render_about_page(): void {

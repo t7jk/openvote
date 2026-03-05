@@ -3,13 +3,20 @@ defined( 'ABSPATH' ) || exit;
 
 class Openvote_Activator {
 
-    const DB_VERSION = '4.2.0';
+    const DB_VERSION = '4.7.0';
+
+    /** Nazwa grupy testowej (nie można jej usunąć z UI, tylko wyłączyć w Ustawieniach). */
+    const TEST_GROUP_NAME = 'Test';
 
     public static function activate(): void {
         self::create_tables();
         self::run_migrations();
         update_option( 'openvote_version', OPENVOTE_VERSION );
         update_option( 'openvote_db_version', self::DB_VERSION );
+        if ( get_option( 'openvote_create_test_group', null ) === null ) {
+            update_option( 'openvote_create_test_group', 1, false );
+        }
+        self::ensure_test_group_exists();
         require_once __DIR__ . '/class-openvote-vote-page.php';
         Openvote_Vote_Page::add_rewrite_rule();
 
@@ -116,15 +123,17 @@ class Openvote_Activator {
         ) {$charset_collate};
 
         CREATE TABLE {$groups} (
-            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            name         VARCHAR(255) NOT NULL,
-            type         ENUM('city','custom') NOT NULL DEFAULT 'city',
-            description  TEXT,
-            member_count INT UNSIGNED NOT NULL DEFAULT 0,
-            created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name          VARCHAR(255) NOT NULL,
+            type          ENUM('city','custom') NOT NULL DEFAULT 'city',
+            description   TEXT,
+            member_count  INT UNSIGNED NOT NULL DEFAULT 0,
+            is_test_group TINYINT(1) NOT NULL DEFAULT 0,
+            created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY name (name),
-            KEY type (type)
+            KEY type (type),
+            KEY is_test_group (is_test_group)
         ) {$charset_collate};
 
         CREATE TABLE {$group_members} (
@@ -398,6 +407,76 @@ class Openvote_Activator {
             if ( ! empty( $cols ) && ! in_array( 'profile_field', $cols, true ) ) {
                 $wpdb->query( "ALTER TABLE {$sq} ADD COLUMN profile_field VARCHAR(64) NOT NULL DEFAULT '' AFTER sort_order" );
             }
+        }
+
+        // ── 4.2.0 → 4.3.0 : modified_by, modified_at (twórca / ostatni modyfikator) ─────
+        if ( version_compare( $installed, '4.3.0', '<' ) ) {
+            $polls_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}openvote_polls" );
+            if ( is_array( $polls_cols ) && ! in_array( 'modified_by', $polls_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$wpdb->prefix}openvote_polls ADD COLUMN modified_by BIGINT UNSIGNED NULL AFTER created_at, ADD COLUMN modified_at DATETIME NULL AFTER modified_by" );
+            }
+            $surveys_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}openvote_surveys" );
+            if ( is_array( $surveys_cols ) && ! in_array( 'modified_by', $surveys_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$wpdb->prefix}openvote_surveys ADD COLUMN modified_by BIGINT UNSIGNED NULL AFTER created_at, ADD COLUMN modified_at DATETIME NULL AFTER modified_by" );
+            }
+        }
+
+        // ── 4.4.0 → 4.5.0 : ponowne dodanie modified_by, modified_at (autor = ostatni modyfikator) ─────
+        if ( version_compare( $installed, '4.5.0', '<' ) ) {
+            $polls_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}openvote_polls" );
+            if ( is_array( $polls_cols ) && ! in_array( 'modified_by', $polls_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$wpdb->prefix}openvote_polls ADD COLUMN modified_by BIGINT UNSIGNED NULL AFTER created_at, ADD COLUMN modified_at DATETIME NULL AFTER modified_by" );
+            }
+            $surveys_cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}openvote_surveys" );
+            if ( is_array( $surveys_cols ) && ! in_array( 'modified_by', $surveys_cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$wpdb->prefix}openvote_surveys ADD COLUMN modified_by BIGINT UNSIGNED NULL AFTER created_at, ADD COLUMN modified_at DATETIME NULL AFTER modified_by" );
+            }
+        }
+
+        // ── 4.5.0 → 4.6.0 : scalenie ról poll_editor i poll_admin w jedną rolę poll_admin (Koordynator) ─
+        if ( version_compare( $installed, '4.6.0', '<' ) ) {
+            $wpdb->update(
+                $wpdb->usermeta,
+                [ 'meta_value' => 'poll_admin' ],
+                [ 'meta_key' => 'openvote_role', 'meta_value' => 'poll_editor' ],
+                [ '%s' ],
+                [ '%s', '%s' ]
+            );
+        }
+
+        // ── 4.6.0 → 4.7.0 : grupa Test (is_test_group), opcja openvote_create_test_group ─
+        if ( version_compare( $installed, '4.7.0', '<' ) ) {
+            $groups_table = $wpdb->prefix . 'openvote_groups';
+            $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$groups_table}" );
+            if ( is_array( $cols ) && ! in_array( 'is_test_group', $cols, true ) ) {
+                $wpdb->query( "ALTER TABLE {$groups_table} ADD COLUMN is_test_group TINYINT(1) NOT NULL DEFAULT 0 AFTER member_count" );
+            }
+            if ( get_option( 'openvote_create_test_group', null ) === null ) {
+                update_option( 'openvote_create_test_group', 1, false );
+            }
+        }
+    }
+
+    /**
+     * Tworzy grupę Test (is_test_group=1) jeśli opcja jest włączona i grupa nie istnieje.
+     * Wywoływane przy aktywacji i przy zapisie ustawień (checkbox włączony).
+     */
+    public static function ensure_test_group_exists(): void {
+        if ( (int) get_option( 'openvote_create_test_group', 1 ) !== 1 ) {
+            return;
+        }
+        global $wpdb;
+        $table = $wpdb->prefix . 'openvote_groups';
+        $name  = self::TEST_GROUP_NAME;
+        $id    = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE name = %s", $name ) );
+        if ( ! $id ) {
+            $wpdb->insert(
+                $table,
+                [ 'name' => $name, 'type' => 'custom', 'description' => null, 'member_count' => 0, 'is_test_group' => 1 ],
+                [ '%s', '%s', '%s', '%d', '%d' ]
+            );
+        } else {
+            $wpdb->update( $table, [ 'is_test_group' => 1 ], [ 'id' => (int) $id ], [ '%d' ], [ '%d' ] );
         }
     }
 }

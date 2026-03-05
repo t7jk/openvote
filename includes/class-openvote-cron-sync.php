@@ -2,7 +2,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Automatyczna synchronizacja sejmików-miast przez wp-cron.
+ * Automatyczna synchronizacja grup-miast przez wp-cron.
  *
  * Harmonogram: openvote_auto_sync_schedule (manual | first_sunday | second_sunday | weekly | daily).
  * Cron uruchamia się codziennie o 00:00 w strefie WordPress; callback sprawdza harmonogram i startuje job.

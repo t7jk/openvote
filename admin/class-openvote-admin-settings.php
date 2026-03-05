@@ -21,7 +21,7 @@ class Openvote_Admin_Settings {
             }
         }
 
-        // Jednorazowa akcja GET: dodaj pole user_group do bazy, zmapuj Sejmik/Grupa/Obszar i ustaw jako wymagane do głosowania.
+        // Jednorazowa akcja GET: dodaj pole user_group do bazy, zmapuj Grupa i ustaw jako wymagane do głosowania.
         if ( current_user_can( self::CAP ) && isset( $_GET['openvote_add_city_field'] ) && $_GET['openvote_add_city_field'] === '1' ) {
             if ( isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'openvote_add_city_field' ) ) {
                 $user_id = get_current_user_id();
@@ -109,6 +109,24 @@ class Openvote_Admin_Settings {
         $coordinator_access = sanitize_key( (string) ( $_POST['openvote_coordinator_poll_access'] ?? 'all' ) );
         $coordinator_access = ( $coordinator_access === 'own' ) ? 'own' : 'all';
         update_option( 'openvote_coordinator_poll_access', $coordinator_access, false );
+
+        // Grupa Test: checkbox włączony = utrzymaj/utwórz grupę; wyłączony = usuń grupę.
+        $create_test_group = isset( $_POST['openvote_create_test_group'] ) && ( $_POST['openvote_create_test_group'] === '1' || $_POST['openvote_create_test_group'] === 1 );
+        if ( $create_test_group ) {
+            update_option( 'openvote_create_test_group', 1, false );
+            Openvote_Activator::ensure_test_group_exists();
+        } else {
+            $test_id = openvote_get_test_group_id();
+            if ( $test_id ) {
+                global $wpdb;
+                $gm_table      = $wpdb->prefix . 'openvote_group_members';
+                $groups_table  = $wpdb->prefix . 'openvote_groups';
+                $wpdb->delete( $gm_table, [ 'group_id' => $test_id ], [ '%d' ] );
+                $wpdb->delete( $groups_table, [ 'id' => $test_id ], [ '%d' ] );
+                Openvote_Poll::remove_group_from_all_polls( $test_id );
+            }
+            update_option( 'openvote_create_test_group', 0, false );
+        }
 
         if ( Openvote_Field_Map::is_city_disabled() ) {
             self::ensure_wszyscy_group_exists();

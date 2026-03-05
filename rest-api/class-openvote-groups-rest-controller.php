@@ -22,7 +22,7 @@ class Openvote_Groups_Rest_Controller {
             return true;
         }
         $role = Openvote_Role_Manager::get_user_role( get_current_user_id() );
-        return in_array( $role, [ Openvote_Role_Manager::ROLE_POLL_ADMIN, Openvote_Role_Manager::ROLE_POLL_EDITOR ], true );
+        return $role === Openvote_Role_Manager::ROLE_POLL_ADMIN;
     }
 
     public function register_routes(): void {
@@ -178,11 +178,17 @@ class Openvote_Groups_Rest_Controller {
         global $wpdb;
 
         $groups_table = $wpdb->prefix . 'openvote_groups';
-        $groups       = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
+        $groups       = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY is_test_group DESC, name ASC" );
 
         if ( openvote_is_coordinator_restricted_to_own_groups() ) {
-            $my_ids  = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
-            $groups  = array_filter( $groups, function ( $g ) use ( $my_ids ) {
+            $my_ids = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+            if ( openvote_create_test_group_enabled() ) {
+                $test_gid = openvote_get_test_group_id();
+                if ( $test_gid ) {
+                    $my_ids[ $test_gid ] = 0;
+                }
+            }
+            $groups = array_filter( $groups, function ( $g ) use ( $my_ids ) {
                 return isset( $my_ids[ (int) $g->id ] );
             } );
         }
@@ -290,6 +296,12 @@ class Openvote_Groups_Rest_Controller {
         $reset = ! empty( $body['reset'] );
         if ( $reset ) {
             delete_option( Openvote_Batch_Processor::OPTION_SYNC_ALL_CHECKPOINT );
+        }
+
+        $actor_id = get_current_user_id();
+        if ( $actor_id ) {
+            $line = $reset ? __( 'synchronizacja od początku grupy', 'openvote' ) : __( 'synchronizacja wszystkie grupy', 'openvote' );
+            openvote_groups_audit_log_append( $actor_id, $line );
         }
 
         $job_id = Openvote_Batch_Processor::start_job( 'sync_all_city_groups', [] );

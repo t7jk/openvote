@@ -12,10 +12,10 @@ class Openvote_Role_Map {
     /** Dozwolone slugi ról (wiersze tabeli). */
     const ROLES = [ 'subscriber', 'author', 'editor', 'administrator', 'openvote_coordinator' ];
 
-    /** Dozwolone slugi ekranów (kolumny tabeli). */
-    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings' ];
+    /** Dozwolone slugi ekranów (kolumny tabeli). Konfiguracja jako ostatnia. */
+    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-settings' ];
 
-    /** Domyślna mapa: rola => [ ekran => 1|0 ]. */
+    /** Domyślna mapa: rola => [ ekran => 1|0 ]. Podręcznik standardowo włączony dla wszystkich oprócz Subskrybenta. */
     const DEFAULT_MAP = [
         'administrator'       => [
             'openvote'          => 1,
@@ -23,20 +23,23 @@ class Openvote_Role_Map {
             'openvote-groups'   => 1,
             'openvote-roles'    => 1,
             'openvote-settings' => 1,
+            'openvote-manual'   => 1,
         ],
         'editor'              => [
-            'openvote'          => 1,
-            'openvote-surveys'  => 1,
-            'openvote-groups'   => 1,
-            'openvote-roles'    => 1,
+            'openvote'          => 0,
+            'openvote-surveys'  => 0,
+            'openvote-groups'   => 0,
+            'openvote-roles'    => 0,
             'openvote-settings' => 0,
+            'openvote-manual'   => 1,
         ],
         'author'              => [
-            'openvote'          => 1,
-            'openvote-surveys'  => 1,
-            'openvote-groups'   => 1,
-            'openvote-roles'    => 1,
+            'openvote'          => 0,
+            'openvote-surveys'  => 0,
+            'openvote-groups'   => 0,
+            'openvote-roles'    => 0,
             'openvote-settings' => 0,
+            'openvote-manual'   => 1,
         ],
         'subscriber'          => [
             'openvote'          => 0,
@@ -44,6 +47,7 @@ class Openvote_Role_Map {
             'openvote-groups'   => 0,
             'openvote-roles'    => 0,
             'openvote-settings' => 0,
+            'openvote-manual'   => 0,
         ],
         'openvote_coordinator' => [
             'openvote'          => 1,
@@ -51,6 +55,7 @@ class Openvote_Role_Map {
             'openvote-groups'   => 1,
             'openvote-roles'    => 1,
             'openvote-settings' => 0,
+            'openvote-manual'   => 1,
         ],
     ];
 
@@ -79,17 +84,10 @@ class Openvote_Role_Map {
     }
 
     /**
-     * Czy użytkownik ma rolę Koordynatora (openvote_role + grupy)?
+     * Czy użytkownik ma rolę Koordynatora (poll_admin, wyświetlana jako Koordynator).
      */
     public static function user_is_coordinator( int $user_id ): bool {
-        $role = Openvote_Role_Manager::get_user_role( $user_id );
-        if ( Openvote_Role_Manager::ROLE_POLL_ADMIN === $role ) {
-            return true;
-        }
-        if ( Openvote_Role_Manager::ROLE_POLL_EDITOR === $role && ! empty( Openvote_Role_Manager::get_user_groups( $user_id ) ) ) {
-            return true;
-        }
-        return false;
+        return Openvote_Role_Manager::get_user_role( $user_id ) === Openvote_Role_Manager::ROLE_POLL_ADMIN;
     }
 
     /**

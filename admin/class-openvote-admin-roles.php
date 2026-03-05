@@ -25,30 +25,34 @@ class Openvote_Admin_Roles {
         $current_user_id = get_current_user_id();
 
         $result = null;
+        $log_group_ids = [];
 
         switch ( $action ) {
             case 'remove_group':
                 if ( $user_id && $group_id ) {
                     $result = Openvote_Role_Manager::remove_group_from_editor( $user_id, $group_id, $current_user_id );
+                    $log_group_ids = [ $group_id ];
                 }
                 break;
             case 'add_poll_editor':
+            case 'add_poll_admin':
                 if ( ! $user_id ) {
                     return;
                 }
                 $group_ids = array_map( 'absint', (array) ( $_POST['openvote_editor_groups'] ?? [] ) );
                 $group_ids = array_filter( $group_ids );
-                // Jeśli użytkownik jest już koordynatorem, dołącz nowe grupy do istniejących (można go dopisać do kolejnych grup).
-                if ( Openvote_Role_Manager::ROLE_POLL_EDITOR === Openvote_Role_Manager::get_user_role( $user_id ) ) {
+                if ( Openvote_Role_Manager::ROLE_POLL_ADMIN === Openvote_Role_Manager::get_user_role( $user_id ) ) {
                     $existing = Openvote_Role_Manager::get_user_groups( $user_id );
                     $group_ids = array_values( array_unique( array_merge( $existing, $group_ids ) ) );
                 }
-                $result = Openvote_Role_Manager::add_poll_editor( $user_id, $group_ids );
+                $result = Openvote_Role_Manager::add_poll_admin( $user_id, $group_ids );
+                $log_group_ids = $group_ids;
                 break;
             case 'remove_role':
                 if ( ! $user_id ) {
                     return;
                 }
+                $log_group_ids = Openvote_Role_Manager::get_user_groups( $user_id );
                 $result = Openvote_Role_Manager::remove_role( $user_id, $current_user_id );
                 break;
         }
@@ -60,6 +64,16 @@ class Openvote_Admin_Roles {
         }
 
         if ( true === $result ) {
+            if ( $action === 'add_poll_editor' || $action === 'add_poll_admin' ) {
+                $group_names = self::get_group_names( $log_group_ids );
+                openvote_coordinator_audit_log_append( $current_user_id, 'promoted', $user_id, $group_names );
+            } elseif ( $action === 'remove_role' ) {
+                $group_names = self::get_group_names( $log_group_ids );
+                openvote_coordinator_audit_log_append( $current_user_id, 'removed', $user_id, $group_names );
+            } elseif ( $action === 'remove_group' && $user_id && $group_id ) {
+                $group_names = self::get_group_names( [ $group_id ] );
+                openvote_coordinator_audit_log_append( $current_user_id, 'removed', $user_id, $group_names );
+            }
             wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles', 'saved' => '1' ], admin_url( 'admin.php' ) ) );
             exit;
         }
@@ -68,5 +82,30 @@ class Openvote_Admin_Roles {
         set_transient( 'openvote_roles_error', $message, 30 );
         wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) );
         exit;
+    }
+
+    /**
+     * Zwraca nazwy grup po ID, oddzielone przecinkiem.
+     *
+     * @param int[] $group_ids
+     * @return string
+     */
+    private static function get_group_names( array $group_ids ): string {
+        if ( empty( $group_ids ) ) {
+            return '';
+        }
+        global $wpdb;
+        $table = $wpdb->prefix . 'openvote_groups';
+        $ids   = array_map( 'absint', $group_ids );
+        $ids   = array_filter( $ids );
+        if ( empty( $ids ) ) {
+            return '';
+        }
+        $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+        $names = $wpdb->get_col( $wpdb->prepare(
+            "SELECT name FROM {$table} WHERE id IN ({$placeholders}) ORDER BY name ASC",
+            ...$ids
+        ) );
+        return is_array( $names ) ? implode( ', ', array_map( 'trim', $names ) ) : '';
     }
 }

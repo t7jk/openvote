@@ -2,3 +2,5 @@ node_modules/
 .claude/
 user_base.csv
 openvote.zip
+wp-tests-config.php
+ftp-upgrade/

@@ -4,9 +4,8 @@ defined( 'ABSPATH' ) || exit;
 global $wpdb;
 $groups_table = $wpdb->prefix . 'openvote_groups';
 
-$poll_admins = Openvote_Role_Manager::get_poll_admins();
-$editors     = Openvote_Role_Manager::get_poll_editors();
-$current_uid = get_current_user_id();
+$coordinators = Openvote_Role_Manager::get_poll_admins();
+$current_uid  = get_current_user_id();
 
 // Lista do wyboru koordynatora — limit 1000 ze względu na wydajność przy dużej bazie (np. 10k+).
 $openvote_roles_list_limit = 1000;
@@ -14,10 +13,23 @@ $all_users_for_role = get_users( [
     'orderby' => 'display_name',
     'order'   => 'ASC',
     'number'  => $openvote_roles_list_limit,
-    'exclude' => array_map( fn( $u ) => $u->ID, $poll_admins ),
+    'exclude' => array_map( fn( $u ) => $u->ID, $coordinators ),
 ] );
 
-$groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY name ASC" );
+$groups = $wpdb->get_results( "SELECT * FROM {$groups_table} ORDER BY is_test_group DESC, name ASC" );
+// Grupa Test zawsze pierwsza (identyfikacja po is_test_group lub po nazwie "Test").
+$test_group_name = class_exists( 'Openvote_Activator' ) ? Openvote_Activator::TEST_GROUP_NAME : 'Test';
+usort( $groups, function ( $a, $b ) use ( $test_group_name ) {
+    $a_test = ( ! empty( $a->is_test_group ) ) || ( isset( $a->name ) && $a->name === $test_group_name );
+    $b_test = ( ! empty( $b->is_test_group ) ) || ( isset( $b->name ) && $b->name === $test_group_name );
+    if ( $a_test && ! $b_test ) {
+        return -1;
+    }
+    if ( ! $a_test && $b_test ) {
+        return 1;
+    }
+    return strcasecmp( $a->name ?? '', $b->name ?? '' );
+} );
 
 /**
  * Format: Imię Nazwisko - login (Miasto). Bez (Miasto) gdy miasto nieużywane lub puste.
@@ -45,9 +57,9 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
 }
 ?>
 <div class="wrap openvote-roles-page">
-    <h1><?php esc_html_e( 'Koordynatorzy i Sejmiki', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Koordynatorzy i grupy', 'openvote' ); ?></h1>
     <p class="description" style="max-width:720px; margin:8px 0 24px;">
-        <?php esc_html_e( 'Dodanie użytkownika do sejmiku powoduje, że staje się koordynatorem tego sejmiku (jednego lub wielu) i może uruchamiać dla tych sejmików głosowania dla członków sejmiku. Jeden koordynator może być przypisany do jednego lub wielu sejmików.', 'openvote' ); ?>
+        <?php esc_html_e( 'Dodanie użytkownika do grupy powoduje, że staje się koordynatorem tej grupy (jednej lub wielu) i może uruchamiać dla tych grup głosowania dla członków grupy. Jeden koordynator może być przypisany do jednej lub wielu grup.', 'openvote' ); ?>
     </p>
 
     <?php if ( isset( $_GET['saved'] ) ) : ?>
@@ -73,15 +85,15 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'Koordynator', 'openvote' ); ?></th>
-                    <th><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></th>
+                    <th><?php esc_html_e( 'Grupy', 'openvote' ); ?></th>
                     <th style="width:120px;"><?php esc_html_e( 'Akcja', 'openvote' ); ?></th>
                 </tr>
             </thead>
             <tbody>
-                <?php if ( empty( $editors ) ) : ?>
+                <?php if ( empty( $coordinators ) ) : ?>
                     <tr><td colspan="3"><?php esc_html_e( 'Brak Koordynatorów.', 'openvote' ); ?></td></tr>
                 <?php else : ?>
-                    <?php foreach ( $editors as $u ) :
+                    <?php foreach ( $coordinators as $u ) :
                         $group_ids = Openvote_Role_Manager::get_user_groups( $u->ID );
                         $user_groups = [];
                         foreach ( $groups as $g ) {
@@ -151,8 +163,8 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                 </div>
 
                 <div style="flex:1; min-width:200px;">
-                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></h3>
-                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele sejmików.', 'openvote' ); ?></p>
+                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele grup.', 'openvote' ); ?></p>
                     <select name="openvote_editor_groups[]" id="openvote_editor_groups" multiple size="12" style="min-width:100%; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
@@ -166,7 +178,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
     <!-- 3. Dodaj koordynatora po e-mailu (wyszukiwarka, bazy 10k+) -->
     <section class="openvote-roles-add-by-email" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
         <h2 class="openvote-section-title" style="margin:0 0 16px; font-size:1.1em; font-weight:600; padding-bottom:8px; border-bottom:1px solid #eee;"><?php esc_html_e( 'Dodaj koordynatora po adresie e-mail', 'openvote' ); ?></h2>
-        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i sejmiki, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
+        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i grupy, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
         <form method="post" action="" id="openvote-add-coordinator-by-email-form">
             <?php wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce' ); ?>
             <input type="hidden" name="openvote_roles_action" value="add_poll_editor">
@@ -190,8 +202,8 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                 </div>
 
                 <div style="flex:1; min-width:200px;">
-                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></h3>
-                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele sejmików.', 'openvote' ); ?></p>
+                    <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele grup.', 'openvote' ); ?></p>
                     <select name="openvote_editor_groups[]" id="openvote_editor_groups_by_email" multiple size="12" style="min-width:100%; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
@@ -202,8 +214,64 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
         </form>
     </section>
     <?php else : ?>
-        <p class="description"><?php esc_html_e( 'Najpierw dodaj sejmiki w sekcji Sejmiki, aby móc przypisywać Koordynatorów.', 'openvote' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Koordynatorów.', 'openvote' ); ?></p>
     <?php endif; ?>
+
+    <!-- Log audytu: kto kogo promował / komu odebrał koordynatora (niekasowalny, w celach bezpieczeństwa). Paginacja po 20 linii. -->
+    <?php
+    $audit_entries_all = openvote_coordinator_audit_log_get();
+    $audit_per_page   = 20;
+    $audit_total      = count( $audit_entries_all );
+    $audit_total_pages = $audit_total > 0 ? (int) ceil( $audit_total / $audit_per_page ) : 1;
+    $audit_page       = isset( $_GET['audit_page'] ) ? max( 1, absint( $_GET['audit_page'] ) ) : 1;
+    $audit_page       = min( $audit_page, $audit_total_pages );
+    $audit_offset     = ( $audit_page - 1 ) * $audit_per_page;
+    $audit_entries    = array_slice( $audit_entries_all, $audit_offset, $audit_per_page );
+    $audit_base_url   = add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) );
+    ?>
+    <section class="openvote-roles-audit-log" style="margin-top:32px; max-width:900px;">
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log zmian koordynatorów', 'openvote' ); ?></h2>
+        <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy promował lub odbierał koordynatora której grupy. Lista niekasowalna, widoczna w celach bezpieczeństwa.', 'openvote' ); ?></p>
+        <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
+            <?php
+            if ( empty( $audit_entries ) ) {
+                echo '<p style="margin:0; color:#a7aaad;">' . esc_html__( 'Brak wpisów.', 'openvote' ) . '</p>';
+            } else {
+                foreach ( $audit_entries as $e ) {
+                    $t = isset( $e['t'] ) ? $e['t'] : '';
+                    $actor = isset( $e['actor'] ) ? $e['actor'] : '—';
+                    $target = isset( $e['target'] ) ? $e['target'] : '—';
+                    $act = isset( $e['action'] ) && $e['action'] === 'removed' ? 'removed' : 'promoted';
+                    $groups = isset( $e['groups'] ) ? trim( (string) $e['groups'] ) : '';
+                    $lbl_add = __( 'dodanie', 'openvote' );
+                    $lbl_rem = __( 'usunięcie', 'openvote' );
+                    if ( $act === 'promoted' ) {
+                        $line = $groups !== '' ? sprintf( '%s %s %s %s do %s', $t, $actor, $lbl_add, $target, $groups ) : sprintf( '%s %s %s %s', $t, $actor, $lbl_add, $target );
+                    } else {
+                        $line = $groups !== '' ? sprintf( '%s %s %s %s z %s', $t, $actor, $lbl_rem, $target, $groups ) : sprintf( '%s %s %s %s', $t, $actor, $lbl_rem, $target );
+                    }
+                    echo '<div style="margin:2px 0;">' . esc_html( $line ) . '</div>';
+                }
+            }
+            ?>
+        </div>
+        <?php if ( $audit_total_pages > 1 ) : ?>
+        <p class="openvote-audit-log-nav" style="margin:8px 0 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span class="displaying-num" style="color:#646970; font-size:13px;">
+                <?php
+                /* translators: 1: current page, 2: total pages, 3: total items */
+                echo esc_html( sprintf( __( 'Strona %1$d z %2$d (%3$d wpisów)', 'openvote' ), $audit_page, $audit_total_pages, $audit_total ) );
+                ?>
+            </span>
+            <?php if ( $audit_page > 1 ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page - 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+            <?php endif; ?>
+            <?php if ( $audit_page < $audit_total_pages ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page + 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+            <?php endif; ?>
+        </p>
+        <?php endif; ?>
+    </section>
 </div>
 
 <?php if ( ! empty( $groups ) ) : ?>

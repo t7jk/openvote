@@ -123,6 +123,8 @@ class Openvote_Vote {
 
         $answers_table = $wpdb->prefix . 'openvote_answers';
 
+        // Validate all answers before opening the transaction.
+        $validated = [];
         foreach ( $answers as $question_id => $answer_id ) {
             $question_id = (int) $question_id;
             $answer_id   = (int) $answer_id;
@@ -145,13 +147,18 @@ class Openvote_Vote {
                 return new \WP_Error( 'invalid_answer', __( 'Nieprawidłowa odpowiedź.', 'openvote' ), [ 'status' => 400 ] );
             }
 
+            $validated[] = [ 'question_id' => $question_id, 'answer_id' => $answer_id ];
+        }
+
+        $wpdb->query( 'START TRANSACTION' );
+        foreach ( $validated as $item ) {
             $inserted = $wpdb->insert(
                 self::table(),
                 [
                     'poll_id'      => $poll_id,
-                    'question_id'  => $question_id,
+                    'question_id'  => $item['question_id'],
                     'user_id'      => $user_id,
-                    'answer_id'    => $answer_id,
+                    'answer_id'    => $item['answer_id'],
                     'is_anonymous' => $is_anonymous ? 1 : 0,
                     'voted_at'     => current_time( 'mysql' ),
                 ],
@@ -159,12 +166,14 @@ class Openvote_Vote {
             );
 
             if ( $inserted === false ) {
+                $wpdb->query( 'ROLLBACK' );
                 if ( $wpdb->last_error && strpos( $wpdb->last_error, 'Duplicate' ) !== false ) {
                     return new \WP_Error( 'already_voted', __( 'Już oddałeś głos w tym głosowaniu.', 'openvote' ), [ 'status' => 403 ] );
                 }
                 return new \WP_Error( 'vote_failed', __( 'Nie udało się zapisać głosu. Spróbuj ponownie.', 'openvote' ), [ 'status' => 500 ] );
             }
         }
+        $wpdb->query( 'COMMIT' );
 
         return true;
     }

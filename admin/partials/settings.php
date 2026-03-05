@@ -64,7 +64,7 @@ function openvote_settings_select( string $logical, string $current, array $core
 }
 ?>
 <div class="wrap">
-    <h1><?php esc_html_e( 'Konfiguracja OpenVote', 'openvote' ); ?></h1>
+    <h1><?php esc_html_e( 'Konfiguracja', 'openvote' ); ?></h1>
 
     <?php if ( isset( $_GET['saved'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
@@ -78,7 +78,7 @@ function openvote_settings_select( string $logical, string $current, array $core
     <?php endif; ?>
     <?php if ( isset( $_GET['openvote_city_field_added'] ) ) : ?>
         <div class="notice notice-success is-dismissible">
-            <p><?php esc_html_e( 'Dodano pole „user_group” do profilu, zmapowano na Sejmik / Grupa / Obszar i ustawiono jako wymagane do głosowania. Użytkownicy mogą uzupełnić grupę w swoim profilu; następnie uruchom synchronizację grup.', 'openvote' ); ?></p>
+            <p><?php esc_html_e( 'Dodano pole „user_group” do profilu, zmapowano na Grupa i ustawiono jako wymagane do głosowania. Użytkownicy mogą uzupełnić grupę w swoim profilu; następnie uruchom synchronizację grup.', 'openvote' ); ?></p>
         </div>
     <?php endif; ?>
     <?php
@@ -1039,7 +1039,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
 
         <div class="openvote-settings-url-section openvote-settings-cron-sync-section" style="margin-top:28px;">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Automatyczna synchronizacja sejmików-miast (wp-cron)', 'openvote' ); ?></h2>
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Automatyczna synchronizacja grup-miast (wp-cron)', 'openvote' ); ?></h2>
         <p class="description openvote-settings-url-section__desc">
             <?php esc_html_e( 'Cron uruchamia proces synchronizacji o 00:00 w strefie czasu WordPress (w niedziele według wybranego harmonogramu).', 'openvote' ); ?>
         </p>
@@ -1093,8 +1093,9 @@ function openvote_settings_select( string $logical, string $current, array $core
         $screen_labels = [
             'openvote'          => __( 'Głosowania', 'openvote' ),
             'openvote-surveys'  => __( 'Ankiety', 'openvote' ),
-            'openvote-groups'   => __( 'Członkowie i Sejmiki', 'openvote' ),
-            'openvote-roles'    => __( 'Koordynatorzy i Sejmiki', 'openvote' ),
+            'openvote-groups'   => __( 'Członkowie i grupy', 'openvote' ),
+            'openvote-roles'    => __( 'Koordynatorzy i grupy', 'openvote' ),
+            'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
             'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
         ];
         ?>
@@ -1102,23 +1103,24 @@ function openvote_settings_select( string $logical, string $current, array $core
         <p class="description" style="max-width:700px;margin:8px 0 16px;">
             <?php esc_html_e( 'Zaznaczenie decyduje o tym, które role mogą wyświetlać dane menu i mieć dostęp do danego ekranu. Odznaczenie blokuje widoczność pozycji w menu oraz dostęp do strony.', 'openvote' ); ?>
         </p>
-        <table class="widefat fixed openvote-settings-table" style="max-width:900px;">
+        <table class="widefat fixed openvote-settings-table openvote-role-map-table" style="max-width:900px;">
             <thead>
                 <tr>
                     <th scope="col"><?php esc_html_e( 'Rola', 'openvote' ); ?></th>
                     <?php foreach ( $screen_labels as $screen_slug => $label ) : ?>
-                        <th scope="col"><?php echo esc_html( $label ); ?></th>
+                        <th scope="col"<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-col-config"' : ''; ?>><?php echo esc_html( $label ); ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ( array_keys( $role_labels ) as $role_slug ) :
-                    $is_admin = ( $role_slug === 'administrator' );
+                    $is_admin      = ( $role_slug === 'administrator' );
+                    $is_subscriber = ( $role_slug === 'subscriber' );
                 ?>
                 <tr>
                     <td><?php echo esc_html( $role_labels[ $role_slug ] ); ?></td>
                     <?php foreach ( array_keys( $screen_labels ) as $screen_slug ) : ?>
-                        <td>
+                        <td<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-col-config"' : ''; ?>>
                             <?php if ( $is_admin ) : ?>
                                 <?php // Administrator ma zawsze dostęp; checkbox tylko do odczytu, wartość wysyłana hidden. ?>
                                 <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="1">
@@ -1127,7 +1129,15 @@ function openvote_settings_select( string $logical, string $current, array $core
                                        checked
                                        disabled
                                        aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?>">
+                            <?php elseif ( $is_subscriber ) : ?>
+                                <?php // Subskrybent: brak dostępu; wiersz tylko do odczytu. ?>
+                                <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="0">
+                                <input type="checkbox"
+                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
+                                       disabled
+                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?>">
                             <?php else : ?>
+                                <?php // Autor, Edytor, Koordynator: wszystkie kolumny edytowalne; domyślnie Konfiguracja wyłączona (0) w DEFAULT_MAP. ?>
                                 <label class="screen-reader-text" for="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"><?php echo esc_html( $role_labels[ $role_slug ] . ' — ' . $screen_labels[ $screen_slug ] ); ?></label>
                                 <input type="checkbox"
                                        id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
@@ -1146,7 +1156,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             <strong><?php esc_html_e( 'Dostęp Koordynatatora do głosowań', 'openvote' ); ?></strong>
         </p>
         <p class="description" style="max-width:700px;margin:4px 0 8px;">
-            <?php esc_html_e( 'Gdy wybrano „Do tylko własnych Sejmików”, koordynator widzi na liście tylko głosowania i ankiety dotyczące swoich sejmików oraz na stronie Członkowie i Sejmiki tylko swoje sejmiki. Może organizować głosowania wyłącznie w przypisanych sejmikach. Domyślnie koordynator ma dostęp do wszystkich sejmików.', 'openvote' ); ?>
+            <?php esc_html_e( 'Gdy wybrano „Do tylko własnych grup”, koordynator widzi na liście tylko głosowania i ankiety dotyczące swoich grup oraz na stronie Członkowie i grupy tylko swoje grupy. Może organizować głosowania wyłącznie w przypisanych grupach. Domyślnie koordynator ma dostęp do wszystkich grup.', 'openvote' ); ?>
         </p>
         <?php
         $coordinator_access = get_option( 'openvote_coordinator_poll_access', 'all' );
@@ -1155,10 +1165,25 @@ function openvote_settings_select( string $logical, string $current, array $core
         <p>
             <label for="openvote_coordinator_poll_access"><?php esc_html_e( 'Zakres dostępu koordynatora:', 'openvote' ); ?></label>
             <select name="openvote_coordinator_poll_access" id="openvote_coordinator_poll_access">
-                <option value="all" <?php selected( $coordinator_access, 'all' ); ?>><?php esc_html_e( 'Do wszystkich Sejmików (Grup/Miast)', 'openvote' ); ?></option>
-                <option value="own" <?php selected( $coordinator_access, 'own' ); ?>><?php esc_html_e( 'Do tylko własnych Sejmików (Grup/Miast)', 'openvote' ); ?></option>
+                <option value="all" <?php selected( $coordinator_access, 'all' ); ?>><?php esc_html_e( 'Do wszystkich grup (Miast)', 'openvote' ); ?></option>
+                <option value="own" <?php selected( $coordinator_access, 'own' ); ?>><?php esc_html_e( 'Do tylko własnych grup (Miast)', 'openvote' ); ?></option>
             </select>
         </p>
+
+        <?php
+        $create_test_group = (int) get_option( 'openvote_create_test_group', 1 ) === 1;
+        ?>
+        <div class="openvote-settings-test-group-option" style="margin-top:12px;">
+            <p style="margin:0 0 6px 0;">
+                <label for="openvote_create_test_group">
+                    <input type="checkbox" name="openvote_create_test_group" id="openvote_create_test_group" value="1" <?php checked( $create_test_group ); ?> />
+                    <?php esc_html_e( 'Utwórz grupę do testowania : Test', 'openvote' ); ?>
+                </label>
+            </p>
+            <p class="description" style="max-width:700px;margin:0;">
+                <?php esc_html_e( 'Grupa Test jest tworzona przy instalacji, nie można jej usunąć z listy grup (tylko wyłączyć tutaj). Każdy koordynator ma do niej dostęp; nie obowiązują na niej limity koordynatorów.', 'openvote' ); ?>
+            </p>
+        </div>
 
         <!-- ── Szablon e-maila zapraszającego ─────────────────────────────── -->
 
@@ -1376,11 +1401,11 @@ function openvote_settings_select( string $logical, string $current, array $core
         var labelError = <?php echo wp_json_encode( __( 'Błąd połączenia.', 'openvote' ) ); ?>;
         var repair1Title = <?php echo wp_json_encode( __( 'Naprawa: Nie używaj miast / grup (ograniczone możliwości)', 'openvote' ) ); ?>;
         var repair1Desc1 = <?php echo wp_json_encode( __( 'automatycznie dodaj grupę „Wszyscy”', 'openvote' ) ); ?>;
-        var repair1Desc2 = <?php echo wp_json_encode( __( 'automatycznie ustaw Sejmik na „Nie używaj miast”', 'openvote' ) ); ?>;
-        var repair1Desc3 = <?php echo wp_json_encode( __( 'wyłącz checkbox „Wymagane” dla Sejmika', 'openvote' ) ); ?>;
+        var repair1Desc2 = <?php echo wp_json_encode( __( 'automatycznie ustaw Grupę na „Nie używaj miast”', 'openvote' ) ); ?>;
+        var repair1Desc3 = <?php echo wp_json_encode( __( 'wyłącz checkbox „Wymagane” dla Grupy', 'openvote' ) ); ?>;
         var repair1Btn = <?php echo wp_json_encode( __( 'Zastosuj tę naprawę', 'openvote' ) ); ?>;
         var repair2Title = <?php echo wp_json_encode( __( 'Używaj miast / grup', 'openvote' ) ); ?>;
-        var repair2Message = <?php echo wp_json_encode( __( 'Należy zainstalować wtyczkę do rozszerzonych pól profilu (np. User Registration) i dodać pole do rejestracji lub profilu, zapisujące wartość w wp_usermeta pod kluczem np. user_registration_miejsce_spotkania (lub podobnym). Następnie w Konfiguracji → Mapowanie pól ustaw pole „Sejmik / Grupa / Obszar” na ten klucz.', 'openvote' ) ); ?>;
+        var repair2Message = <?php echo wp_json_encode( __( 'Należy zainstalować wtyczkę do rozszerzonych pól profilu (np. User Registration) i dodać pole do rejestracji lub profilu, zapisujące wartość w wp_usermeta pod kluczem np. user_registration_miejsce_spotkania (lub podobnym). Następnie w Konfiguracji → Mapowanie pól ustaw pole „Grupa” na ten klucz.', 'openvote' ) ); ?>;
         function renderConfig( data ) {
             var html = '';
             function section( title, obj ) {
@@ -1389,7 +1414,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                 html += '<div class="openvote-check-config-block"><p class="openvote-check-config-item ' + cls + '"><strong>' + title + '</strong> ' + ( obj.message || '' ).replace( /</g, '&lt;' ) + '</p></div>';
             }
             section( '<?php echo esc_js( __( 'Pola obowiązkowe (wbudowane): Imię, Nazwisko, E-mail', 'openvote' ) ); ?>:', data.mandatory_fields );
-            section( '<?php echo esc_js( __( 'Sejmik / Grupa / Obszar', 'openvote' ) ); ?>:', data.city_field );
+            section( '<?php echo esc_js( __( 'Grupa', 'openvote' ) ); ?>:', data.city_field );
             section( '<?php echo esc_js( __( 'Telefon', 'openvote' ) ); ?>:', data.phone_field );
             if ( data.city_field && ! data.city_field.ok ) {
                 html += '<div class="openvote-check-config-block openvote-check-repair">';
@@ -1446,7 +1471,7 @@ function openvote_settings_select( string $logical, string $current, array $core
     <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'openvote' ); ?></h2>
     <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
         <li><?php esc_html_e( 'Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie pola oznaczone jako "Wymagane" są wypełnione.', 'openvote' ); ?></li>
-        <li><?php esc_html_e( 'Pole "Sejmik / Grupa / Obszar" służy do definiowania grup docelowych głosowania.', 'openvote' ); ?></li>
+        <li><?php esc_html_e( 'Pole "Grupa" służy do definiowania grup docelowych głosowania.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają nowych kluczy.', 'openvote' ); ?></li>
@@ -1465,8 +1490,8 @@ function openvote_settings_select( string $logical, string $current, array $core
     $openvote_clean_tables = [
         $wpdb->prefix . 'openvote_polls'            => __( 'Głosowania', 'openvote' ),
         $wpdb->prefix . 'openvote_votes'            => __( 'Oddane głosy', 'openvote' ),
-        $wpdb->prefix . 'openvote_groups'           => __( 'Sejmiki', 'openvote' ),
-        $wpdb->prefix . 'openvote_group_members'    => __( 'Członkowie sejmików', 'openvote' ),
+        $wpdb->prefix . 'openvote_groups'           => __( 'Grupy', 'openvote' ),
+        $wpdb->prefix . 'openvote_group_members'    => __( 'Członkowie grup', 'openvote' ),
         $wpdb->prefix . 'openvote_surveys'          => __( 'Ankiety', 'openvote' ),
         $wpdb->prefix . 'openvote_survey_responses' => __( 'Odpowiedzi ankiet', 'openvote' ),
         $wpdb->prefix . 'openvote_email_queue'      => __( 'Kolejka e-mail', 'openvote' ),

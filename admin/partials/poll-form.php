@@ -54,13 +54,19 @@ if ( $is_edit && ! empty( $poll->target_groups ) ) {
     }
 }
 
-// Get all groups for multiselect (dla koordynatora z ograniczeniem „własne” tylko jego sejmiki).
+// Get all groups for multiselect (dla koordynatora z ograniczeniem „własne” tylko jego grupy).
 global $wpdb;
 $groups_table = $wpdb->prefix . 'openvote_groups';
-$all_groups   = $wpdb->get_results( "SELECT id, name, member_count FROM {$groups_table} ORDER BY name ASC" );
+$all_groups   = $wpdb->get_results( "SELECT id, name, member_count, is_test_group FROM {$groups_table} ORDER BY is_test_group DESC, name ASC" );
 if ( openvote_is_coordinator_restricted_to_own_groups() ) {
     $my_group_ids = array_flip( Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
-    $all_groups   = array_filter( $all_groups, function ( $g ) use ( $my_group_ids ) {
+    if ( openvote_create_test_group_enabled() ) {
+        $test_gid = openvote_get_test_group_id();
+        if ( $test_gid ) {
+            $my_group_ids[ $test_gid ] = 0;
+        }
+    }
+    $all_groups = array_filter( $all_groups, function ( $g ) use ( $my_group_ids ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
@@ -151,7 +157,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e( 'Sejmiki docelowe', 'openvote' ); ?></th>
+                <th scope="row"><?php esc_html_e( 'Grupy docelowe', 'openvote' ); ?></th>
                 <td>
                     <?php if ( ! empty( $all_groups ) ) : ?>
                         <select name="target_groups[]" id="openvote-target-groups" multiple size="6" style="min-width:280px;" <?php echo $is_read_only ? 'disabled' : ''; ?>>
@@ -164,10 +170,10 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                             <?php endforeach; ?>
                         </select>
                         <?php if ( ! $is_read_only ) : ?>
-                            <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele sejmików. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'openvote' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele grup. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'openvote' ); ?></p>
                         <?php endif; ?>
                     <?php else : ?>
-                        <p class="description"><?php esc_html_e( 'Brak sejmików. Dodaj sejmiki w sekcji Sejmiki, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>
+                        <p class="description"><?php esc_html_e( 'Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -326,4 +332,52 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             <?php endif; ?>
         <?php endif; ?>
     </form>
+
+    <?php
+    $polls_audit_all    = openvote_polls_audit_log_get();
+    $polls_audit_per    = 20;
+    $polls_audit_total  = count( $polls_audit_all );
+    $polls_audit_pages  = $polls_audit_total > 0 ? (int) ceil( $polls_audit_total / $polls_audit_per ) : 1;
+    $polls_audit_page   = isset( $_GET['audit_page'] ) ? max( 1, absint( $_GET['audit_page'] ) ) : 1;
+    $polls_audit_page   = min( $polls_audit_page, $polls_audit_pages );
+    $polls_audit_offset = ( $polls_audit_page - 1 ) * $polls_audit_per;
+    $polls_audit_entries = array_slice( $polls_audit_all, $polls_audit_offset, $polls_audit_per );
+    $polls_audit_base_url = add_query_arg( [ 'page' => 'openvote' ], admin_url( 'admin.php' ) );
+    if ( ! empty( $_GET['action'] ) && ! empty( $_GET['poll_id'] ) ) {
+        $polls_audit_base_url = add_query_arg( [ 'action' => sanitize_text_field( $_GET['action'] ), 'poll_id' => absint( $_GET['poll_id'] ) ], $polls_audit_base_url );
+    }
+    ?>
+    <section class="openvote-polls-audit-log" style="margin-top:32px; max-width:900px;">
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log czynności głosowań', 'openvote' ); ?></h2>
+        <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy utworzył, edytował, wystartował, zakończył, skopiował lub usunął głosowanie albo wysłał zaproszenia. Lista niekasowalna, w celach bezpieczeństwa.', 'openvote' ); ?></p>
+        <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
+            <?php
+            if ( empty( $polls_audit_entries ) ) {
+                echo '<p style="margin:0; color:#a7aaad;">' . esc_html__( 'Brak wpisów.', 'openvote' ) . '</p>';
+            } else {
+                foreach ( $polls_audit_entries as $e ) {
+                    $t     = isset( $e['t'] ) ? $e['t'] : '';
+                    $actor = isset( $e['actor'] ) ? $e['actor'] : '—';
+                    $line  = isset( $e['line'] ) ? $e['line'] : '';
+                    echo '<div style="margin:2px 0;">' . esc_html( $t . ' ' . $actor . ' ' . $line ) . '</div>';
+                }
+            }
+            ?>
+        </div>
+        <?php if ( $polls_audit_pages > 1 ) : ?>
+        <p class="openvote-audit-log-nav" style="margin:8px 0 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span class="displaying-num" style="color:#646970; font-size:13px;">
+                <?php
+                echo esc_html( sprintf( __( 'Strona %1$d z %2$d (%3$d wpisów)', 'openvote' ), $polls_audit_page, $polls_audit_pages, $polls_audit_total ) );
+                ?>
+            </span>
+            <?php if ( $polls_audit_page > 1 ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $polls_audit_page - 1, $polls_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+            <?php endif; ?>
+            <?php if ( $polls_audit_page < $polls_audit_pages ) : ?>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $polls_audit_page + 1, $polls_audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+            <?php endif; ?>
+        </p>
+        <?php endif; ?>
+    </section>
 </div>

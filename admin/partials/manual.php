@@ -34,8 +34,8 @@ $brand = openvote_get_brand_short_name();
     <strong><?php esc_html_e( 'Spis treści', 'openvote' ); ?></strong>
     <ol>
         <li><a href="#manual-intro"><?php esc_html_e( 'Czym jest wtyczka i jak działa', 'openvote' ); ?></a></li>
-        <li><a href="#manual-roles"><?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></a></li>
-        <li><a href="#manual-groups"><?php esc_html_e( 'Sejmiki użytkowników', 'openvote' ); ?></a></li>
+        <li><a href="#manual-roles"><?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></a> — <a href="#manual-roles-legend"><?php esc_html_e( 'Legenda i tabela uprawnień', 'openvote' ); ?></a></li>
+        <li><a href="#manual-groups"><?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></a></li>
         <li><a href="#manual-coordinators"><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></a></li>
         <li><a href="#manual-polls"><?php esc_html_e( 'Głosowania — tworzenie i zarządzanie', 'openvote' ); ?></a></li>
         <li><a href="#manual-vote"><?php esc_html_e( 'Jak odbywa się głosowanie (widok uczestnika)', 'openvote' ); ?></a></li>
@@ -61,8 +61,8 @@ $brand = openvote_get_brand_short_name();
 <ul>
     <li><strong><?php esc_html_e( 'Głosowania', 'openvote' ); ?></strong> — <?php esc_html_e( 'zestaw pytań z określonym czasem trwania i grupą docelową.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Pytania i odpowiedzi', 'openvote' ); ?></strong> — <?php esc_html_e( 'każde głosowanie zawiera 1–24 pytania, każde pytanie ma 3–12 odpowiedzi. Ostatnia odpowiedź to zawsze "Wstrzymuję się".', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Sejmiki', 'openvote' ); ?></strong> — <?php esc_html_e( 'zbiory użytkowników (np. według miasta). Głosowanie może być skierowane do jednego lub wielu sejmików.', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></strong> — <?php esc_html_e( 'użytkownicy z uprawnieniami do zarządzania głosowaniami przypisanymi do konkretnych sejmików.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Grupy', 'openvote' ); ?></strong> — <?php esc_html_e( 'zbiory użytkowników (np. według miasta). Głosowanie może być skierowane do jednej lub wielu grup.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></strong> — <?php esc_html_e( 'użytkownicy z uprawnieniami do zarządzania głosowaniami przypisanymi do konkretnych grup.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Strona głosowania', 'openvote' ); ?></strong> — <?php esc_html_e( 'publiczna strona WordPress z blokiem głosowania, dostępna pod adresem skonfigurowanym w Konfiguracji.', 'openvote' ); ?></li>
 </ul>
 
@@ -81,6 +81,77 @@ $brand = openvote_get_brand_short_name();
 <div class="openvote-manual__section" id="manual-roles">
 <h2>2. <?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Wtyczka rozróżnia role WordPress i własne role wtyczki.', 'openvote' ); ?></p>
+
+<h3 id="manual-roles-legend"><?php esc_html_e( 'Legenda: nazewnictwo i uprawnienia', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'W dokumentach i na ekranie rola wtyczki zapisana w systemie jako poll_admin nazywana jest „Koordynator”.', 'openvote' ); ?></p>
+
+<table class="openvote-manual__table">
+    <caption class="screen-reader-text"><?php esc_html_e( 'Oznaczenia ról', 'openvote' ); ?></caption>
+    <thead><tr>
+        <th><?php esc_html_e( 'Oznaczenie', 'openvote' ); ?></th>
+        <th><?php esc_html_e( 'Znaczenie', 'openvote' ); ?></th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td><strong><?php esc_html_e( 'Administrator', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Rola WordPress: administrator. Pełny dostęp do wszystkiego, w tym Konfiguracja i nadawanie roli Koordynatora.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'Koordynator', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Rola wtyczki (poll_admin). Nadawana ręcznie przez Administratora lub innego Koordynatora. Dostęp do listy głosowań, ankiet, grup i koordynatorów; bez dostępu do Konfiguracji. Może dodawać i usuwać koordynatorów oraz grupy.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'Author / Editor', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Role WordPress. Nie mają automatycznie roli Koordynatora; aby mogli zarządzać głosowaniami, należy nadać im rolę Koordynatora.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'Subskrybent', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Domyślna rola nowego użytkownika. Nie ma uprawnień Koordynatora; może tylko oddawać głosy, jeśli jest uprawniony.', 'openvote' ); ?></td>
+    </tr>
+    </tbody>
+</table>
+
+<table class="openvote-manual__table">
+    <caption><?php esc_html_e( 'Tabela uprawnień', 'openvote' ); ?></caption>
+    <thead><tr>
+        <th><?php esc_html_e( 'Uprawnienie', 'openvote' ); ?></th>
+        <th><?php esc_html_e( 'Administrator', 'openvote' ); ?></th>
+        <th><?php esc_html_e( 'Koordynator', 'openvote' ); ?></th>
+        <th><?php esc_html_e( 'Pozostali (bez Koordynatora)', 'openvote' ); ?></th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td><?php esc_html_e( 'Lista głosowań, Ankiety, Grupy, Koordynatorzy', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><?php esc_html_e( 'Konfiguracja (mapowanie pól, e-mail itd.)', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><?php esc_html_e( 'Nadawanie i usuwanie roli Koordynatora', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><?php esc_html_e( 'Dodawanie i usuwanie grup', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><?php esc_html_e( 'Start / Zakończ głosowanie, Zaproszenia', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Tak', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'Nie', 'openvote' ); ?></td>
+    </tr>
+    </tbody>
+</table>
 
 <table class="openvote-manual__table">
     <thead><tr>
@@ -114,7 +185,7 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Jak nadać rolę Koordynatora', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Koordynatorzy i Sejmiki.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Koordynatorzy i grupy.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W lewej kolumnie znajdź użytkownika (wpisz imię lub nazwisko).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W prawej kolumnie wybierz grupę (lub kilka grup).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Dodaj". Użytkownik stanie się Koordynatorem wybranych grup.', 'openvote' ); ?></li>
@@ -122,31 +193,31 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 3. Sejmiki -->
+<!-- 3. Grupy -->
 <div class="openvote-manual__section" id="manual-groups">
-<h2>3. <?php esc_html_e( 'Sejmiki użytkowników', 'openvote' ); ?></h2>
-<p><?php esc_html_e( 'Sejmiki służą do definiowania kto ma prawo głosować w danym głosowaniu. Użytkownik musi należeć do co najmniej jednego sejmiku docelowego głosowania, aby móc oddać głos.', 'openvote' ); ?></p>
+<h2>3. <?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></h2>
+<p><?php esc_html_e( 'Grupy służą do definiowania kto ma prawo głosować w danym głosowaniu. Użytkownik musi należeć do co najmniej jednej grupy docelowej głosowania, aby móc oddać głos.', 'openvote' ); ?></p>
 
-<h3><?php esc_html_e( 'Tworzenie sejmiku', 'openvote' ); ?></h3>
+<h3><?php esc_html_e( 'Tworzenie grupy', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Członkowie i Sejmiki.', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'Kliknij "Dodaj sejmik", wpisz nazwę (np. nazwę miasta lub oddziału).', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'Zapisz. Sejmik pojawi się na liście.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Członkowie i grupy.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Kliknij "Dodaj grupę", wpisz nazwę (np. nazwę miasta lub oddziału).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zapisz. Grupa pojawi się na liście.', 'openvote' ); ?></li>
 </ol>
 
-<h3><?php esc_html_e( 'Dodawanie użytkowników do sejmiku', 'openvote' ); ?></h3>
+<h3><?php esc_html_e( 'Dodawanie użytkowników do grupy', 'openvote' ); ?></h3>
 <p><?php esc_html_e( 'Są trzy sposoby:', 'openvote' ); ?></p>
 <ul>
-    <li><strong><?php esc_html_e( 'Ręcznie', 'openvote' ); ?></strong> — <?php esc_html_e( 'na ekranie Sejmiki wyszukaj użytkownika, wybierz sejmik (lub kilka) i kliknij "Dodaj".', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Automatycznie (przycisk "Auto")', 'openvote' ); ?></strong> — <?php esc_html_e( 'system przeszukuje wszystkich użytkowników z wypełnionym polem "Miasto" i przypisuje ich do sejmiku o tej samej nazwie. Sejmiki, które nie istnieją, zostaną automatycznie utworzone.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Ręcznie', 'openvote' ); ?></strong> — <?php esc_html_e( 'na ekranie Grupy wyszukaj użytkownika, wybierz grupę (lub kilka) i kliknij "Dodaj".', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Automatycznie (przycisk "Auto")', 'openvote' ); ?></strong> — <?php esc_html_e( 'system przeszukuje wszystkich użytkowników z wypełnionym polem "Miasto" i przypisuje ich do grupy o tej samej nazwie. Grupy, które nie istnieją, zostaną automatycznie utworzone.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Przez rejestrację', 'openvote' ); ?></strong> — <?php esc_html_e( 'gdy nowy użytkownik się rejestruje lub uzupełnia profil, wtyczka automatycznie sprawdza czy pasuje do aktywnych głosowań z trybem dołączania "Otwarte" i dodaje go do odpowiedniej grupy.', 'openvote' ); ?></li>
 </ul>
 
-<h3><?php esc_html_e( 'Synchronizacja wszystkich sejmików-miast', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Na stronie Członkowie i Sejmiki w sekcji „Synchronizacja sejmików-miast” dostępne są dwa przyciski:', 'openvote' ); ?></p>
+<h3><?php esc_html_e( 'Synchronizacja wszystkich grup-miast', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Na stronie Członkowie i grupy w sekcji „Synchronizacja grup-miast” dostępne są dwa przyciski:', 'openvote' ); ?></p>
 <ul>
-    <li><strong><?php esc_html_e( 'Synchronizuj wszystkie sejmiki-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'odkrywa unikalne wartości pola „miasto” w bazie użytkowników, tworzy brakujące sejmiki i przypisuje do nich użytkowników. Można wznawiać od ostatniego stanu (checkpoint) — przydatne przy bardzo dużej liczbie użytkowników.', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Synchronizuj od początku wszystkie sejmiki-miasta (Nie zalecane)', 'openvote' ); ?></strong> — <?php esc_html_e( 'robi to samo, ale resetuje zapisany stan i zaczyna synchronizację od zera. Użyj tylko wtedy, gdy np. zmieniła się struktura bazy użytkowników, lista miast lub chcesz wymusić pełne przeliczenie. Na co dzień korzystaj z pierwszego przycisku.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'odkrywa unikalne wartości pola „miasto” w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników. Można wznawiać od ostatniego stanu (checkpoint) — przydatne przy bardzo dużej liczbie użytkowników.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Synchronizuj od początku wszystkie grupy-miasta (Nie zalecane)', 'openvote' ); ?></strong> — <?php esc_html_e( 'robi to samo, ale resetuje zapisany stan i zaczyna synchronizację od zera. Użyj tylko wtedy, gdy np. zmieniła się struktura bazy użytkowników, lista miast lub chcesz wymusić pełne przeliczenie. Na co dzień korzystaj z pierwszego przycisku.', 'openvote' ); ?></li>
 </ul>
 <p><?php esc_html_e( 'Proces może trwać bardzo długo przy dużej liczbie użytkowników. W logu widać postęp (partie miast, liczbę przetworzonych użytkowników).', 'openvote' ); ?></p>
 
@@ -217,7 +288,7 @@ $brand = openvote_get_brand_short_name();
         <td><?php esc_html_e( '"Jawne" — w wynikach widać (częściowo zanonimizowane) dane głosujących. "Anonimowe" — w wynikach widać tylko liczby, zero danych osobowych. Uwaga: nie można zmienić po starcie.', 'openvote' ); ?></td>
     </tr>
     <tr>
-        <td><strong><?php esc_html_e( 'Sejmiki docelowe', 'openvote' ); ?></strong></td>
+        <td><strong><?php esc_html_e( 'Grupy docelowe', 'openvote' ); ?></strong></td>
         <td><?php esc_html_e( 'Wybierz jedną lub więcej grup, których członkowie będą uprawnieni do głosowania. Wymagane.', 'openvote' ); ?></td>
     </tr>
     <tr>
@@ -430,7 +501,7 @@ $brand = openvote_get_brand_short_name();
     <tr><td><?php esc_html_e( 'Nazwisko', 'openvote' ); ?></td><td><code>last_name</code></td><td><?php esc_html_e( 'Nazwisko użytkownika (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Nickname', 'openvote' ); ?></td><td><code>user_nicename</code></td><td><?php esc_html_e( 'Domyślnie: wbudowane pole „Przyjazna dla URL wersja nazwy” (user_nicename) z wp_users. Pseudonim w anonimowych wynikach. Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'E-mail', 'openvote' ); ?></td><td><code>user_email</code></td><td><?php esc_html_e( 'Adres e-mail (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Sejmik / Grupa / Obszar', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy).', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Grupa', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy).', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Numer telefonu', 'openvote' ); ?></td><td><code>user_gsm</code></td><td><?php esc_html_e( 'Opcjonalne. Ustaw na klucz z Twojej wtyczki lub zostaw "nie określone".', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Dane własne', 'openvote' ); ?></td><td><code>user_id</code></td><td><?php esc_html_e( 'Opcjonalne. Dowolne pole z profilu (np. numer dowodu). Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
     </tbody>
@@ -440,7 +511,7 @@ $brand = openvote_get_brand_short_name();
 <p><?php esc_html_e( 'Checkbox przy każdym polu oznacza, że użytkownik MUSI mieć wypełnione to pole, aby móc oddać głos. Pola "zawsze" (Imię, Nazwisko, Nickname, E-mail) nie mogą zostać odznaczone.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Dane wrażliwe na stronie zgłoszeń', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Na publicznej stronie zgłoszeń (/zgloszenia lub inny skonfigurowany slug) wtyczka nie wyświetla wartości pól uznanych za wrażliwe. Są to pola z listy mapowania: E-mail, Sejmik / Grupa / Obszar, Numer telefonu, Dane własne. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta (pokazywane jest „—"), przy tworzeniu lub edycji ankiety zaznacz checkbox „Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie" przy tym pytaniu.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Na publicznej stronie zgłoszeń (/zgloszenia lub inny skonfigurowany slug) wtyczka nie wyświetla wartości pól uznanych za wrażliwe. Są to pola z listy mapowania: E-mail, Grupa, Numer telefonu, Dane własne. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta (pokazywane jest „—"), przy tworzeniu lub edycji ankiety zaznacz checkbox „Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie" przy tym pytaniu.', 'openvote' ); ?></p>
 
 <div class="openvote-manual__tip">
     <?php esc_html_e( 'Przykład: jeśli zaznaczysz pole opcjonalne (np. Telefon) jako wymagane do głosowania, ale klucz pozostanie "nie określone", żaden użytkownik nie będzie mógł głosować (pole zawsze puste). Najpierw ustaw poprawny klucz meta, dopiero potem zaznacz jako wymagane.', 'openvote' ); ?>

@@ -132,9 +132,9 @@ class Openvote_Admin_Uninstall {
             'openvote_email_body_html',
             'openvote_required_fields',
             'openvote_survey_required_fields',
-            'openvote_law_slug',
             'openvote_role_screen_map',
             'openvote_coordinator_poll_access',
+            'openvote_create_test_group',
         ];
     }
 }

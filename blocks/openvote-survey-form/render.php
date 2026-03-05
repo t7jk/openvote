@@ -63,6 +63,12 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                 <a href="<?php echo esc_url( wp_login_url( Openvote_Survey_Page::get_url() ) ); ?>">
                     <?php esc_html_e( 'Zaloguj się', 'openvote' ); ?>
                 </a>
+                . <a href="<?php echo esc_url( wp_lostpassword_url() ); ?>">
+                    <?php esc_html_e( 'Nie pamiętam hasła', 'openvote' ); ?>
+                </a>
+                . <a href="<?php echo esc_url( wp_registration_url() ); ?>">
+                    <?php esc_html_e( 'zarejestruj się', 'openvote' ); ?>
+                </a>
             </p>
         </div>
     <?php endif; ?>

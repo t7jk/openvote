@@ -95,7 +95,13 @@ class Openvote_Rest_Controller {
 
         if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             $my_ids = Openvote_Role_Manager::get_user_groups( get_current_user_id() );
-            $polls  = array_filter( $polls, function ( $p ) use ( $my_ids ) {
+            if ( openvote_create_test_group_enabled() ) {
+                $test_gid = openvote_get_test_group_id();
+                if ( $test_gid ) {
+                    $my_ids[] = $test_gid;
+                }
+            }
+            $polls = array_filter( $polls, function ( $p ) use ( $my_ids ) {
                 $target = Openvote_Poll::get_target_group_ids( $p );
                 return ! empty( array_intersect( $target, $my_ids ) );
             } );
@@ -276,6 +282,10 @@ class Openvote_Rest_Controller {
 
         try {
             $job_id = Openvote_Batch_Processor::start_job( 'send_invitations', [ 'poll_id' => $poll_id ] );
+            $actor_id = get_current_user_id();
+            if ( $actor_id && isset( $poll->title ) && $poll->title !== '' ) {
+                openvote_polls_audit_log_append( $actor_id, sprintf( __( 'zaprosił na głosowanie %s', 'openvote' ), $poll->title ) );
+            }
         } catch ( \Throwable $e ) {
             $wpdb->suppress_errors( $suppress );
             if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -324,7 +334,7 @@ class Openvote_Rest_Controller {
 
     /**
      * GET /check-config
-     * Zwraca wynik walidacji konfiguracji: pola obowiązkowe, pola dodatkowe (Sejmik, Telefon), notę o synchronizacji.
+     * Zwraca wynik walidacji konfiguracji: pola obowiązkowe, pola dodatkowe (Grupa, Telefon), notę o synchronizacji.
      */
     public function check_config( WP_REST_Request $request ): WP_REST_Response {
         $result = [
@@ -343,7 +353,7 @@ class Openvote_Rest_Controller {
 
     /**
      * POST /repair-city-no-groups
-     * Naprawa błędu braku miast: ustawia „Nie używaj miast”, tworzy grupę Wszyscy, wyłącza wymaganie Sejmika.
+     * Naprawa błędu braku miast: ustawia „Nie używaj miast”, tworzy grupę Wszyscy, wyłącza wymaganie Grupy.
      */
     public function repair_city_no_groups( WP_REST_Request $request ): WP_REST_Response {
         $map = (array) get_option( Openvote_Field_Map::OPTION_KEY, [] );
@@ -362,7 +372,7 @@ class Openvote_Rest_Controller {
 
         return new WP_REST_Response( [
             'success' => true,
-            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast”, utworzono grupę „Wszyscy”, wyłączono wymaganie pola Sejmik. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
+            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast”, utworzono grupę „Wszyscy”, wyłączono wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
         ], 200 );
     }
 
@@ -396,7 +406,7 @@ class Openvote_Rest_Controller {
     }
 
     /**
-     * Sprawdza pole Sejmik / Grupa / Obszar (city).
+     * Sprawdza pole Grupa (city).
      *
      * @return array{ok: bool, message: string}
      */
@@ -408,12 +418,12 @@ class Openvote_Rest_Controller {
         if ( $city_val === $not_set || $city_val === '' ) {
             return [
                 'ok'      => false,
-                'message' => __( 'Pole nie jest zmapowane. Jest ono konieczne do przypisywania użytkowników do grup (sejmików) i do targetowania głosowań. Możesz przełączyć na opcję „Nie używaj miast (wszyscy w grupie Wszyscy)” w tabeli Mapowanie pól poniżej — wtedy wszyscy użytkownicy trafią do jednej grupy „Wszyscy”, a grupa zostanie utworzona automatycznie.', 'openvote' ),
+                'message' => __( 'Pole nie jest zmapowane. Jest ono konieczne do przypisywania użytkowników do grup i do targetowania głosowań. Możesz przełączyć na opcję „Nie używaj miast (wszyscy w grupie Wszyscy)” w tabeli Mapowanie pól poniżej — wtedy wszyscy użytkownicy trafią do jednej grupy „Wszyscy”, a grupa zostanie utworzona automatycznie.', 'openvote' ),
             ];
         }
         if ( $city_val === $no_city ) {
             $msg = __(
-                'Nie jest zmapowane pole Sejmik / Grupa / Obszar. Bez posiadania takiego pola w bazie danych z nazwą Sejmiku dla danego użytkownika, wszystkie głosowania są organizowane w jednej grupie Wszyscy. Synchronizacja użytkowników będzie przypisywać użytkowników do jednej grupy. To ogranicza możliwości. ZALECENIE. Dodaj pole linkiem niżej, a następnie wymuś wymaganie tego pola dla głosowania oraz ankiety. Utwórz ręcznie nazwy grup w systemie. Zorganizuj głosowanie dla wszystkich użytkowników, to spowoduje, że każdy będzie musiał wypełnić pole grupy. W ten sposób użytkownicy samodzielnie wypełnią pole, dokonaj synchronizacji co doda wszystkich do właściwych grup.',
+                'Nie jest zmapowane pole Grupa. Bez posiadania takiego pola w bazie danych z nazwą grupy dla danego użytkownika, wszystkie głosowania są organizowane w jednej grupie Wszyscy. Synchronizacja użytkowników będzie przypisywać użytkowników do jednej grupy. To ogranicza możliwości. ZALECENIE. Dodaj pole linkiem niżej, a następnie wymuś wymaganie tego pola dla głosowania oraz ankiety. Utwórz ręcznie nazwy grup w systemie. Zorganizuj głosowanie dla wszystkich użytkowników, to spowoduje, że każdy będzie musiał wypełnić pole grupy. W ten sposób użytkownicy samodzielnie wypełnią pole, dokonaj synchronizacji co doda wszystkich do właściwych grup.',
                 'openvote'
             );
             return [
@@ -424,7 +434,7 @@ class Openvote_Rest_Controller {
         }
         return [
             'ok'      => true,
-            'message' => __( 'Pole jest zmapowane. Wartości z profilu użytkownika służą do przypisywania do grup (sejmików) i targetowania głosowań. Mapowanie zmieniasz w tabeli Mapowanie pól.', 'openvote' ),
+            'message' => __( 'Pole jest zmapowane. Wartości z profilu użytkownika służą do przypisywania do grup i targetowania głosowań. Mapowanie zmieniasz w tabeli Mapowanie pól.', 'openvote' ),
         ];
     }
 

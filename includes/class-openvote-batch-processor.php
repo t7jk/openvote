@@ -96,6 +96,32 @@ class Openvote_Batch_Processor {
                     )
                 ),
             ];
+        } elseif ( 'send_invitations' === $type ) {
+            $job_data['logs'] = [
+                gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %d: total to process */
+                    __( 'Zadanie uruchomione. Łącznie do przetworzenia: %d', 'openvote' ),
+                    $total
+                ),
+            ];
+            if ( class_exists( 'Openvote_Mailer', false ) ) {
+                $job_data['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %s: method label e.g. Brevo API, SendGrid API */
+                    __( 'Metoda wysyłki: %s.', 'openvote' ),
+                    Openvote_Mailer::get_method_label()
+                );
+                $job_data['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Sprawdzanie połączenia z dostawcą e-mail…', 'openvote' );
+                $test = Openvote_Mailer::test_connection();
+                $job_data['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . (
+                    $test['ok']
+                    ? $test['message']
+                    : sprintf(
+                        /* translators: %s: error message from provider */
+                        __( 'Błąd połączenia z dostawcą: %s', 'openvote' ),
+                        $test['message']
+                    )
+                );
+            }
         } else {
             $job_data['logs'] = [
                 gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
@@ -179,6 +205,13 @@ class Openvote_Batch_Processor {
             __( 'Przetworzono: %d rekordów', 'openvote' ),
             count( $result['items'] )
         );
+        if ( 'send_invitations' === $job['type'] && ! empty( $result['items'] ) ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: %d: number of emails sent in this batch */
+                __( 'Wysłano %d e-maili (partia).', 'openvote' ),
+                count( $result['items'] )
+            );
+        }
         // Dla sync_all_city_groups — lista przetworzonych miast (widoczny postęp).
         if ( 'sync_all_city_groups' === $job['type'] && ! empty( $result['items'] ) ) {
             $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Miasta:', 'openvote' ) . ' ' . implode( ', ', array_map( 'esc_html', $result['items'] ) );
@@ -187,6 +220,9 @@ class Openvote_Batch_Processor {
         // Sprawdź czy zadanie zakończone.
         if ( $job['offset'] >= $job['total'] || empty( $result['items'] ) ) {
             $job['status'] = 'done';
+            if ( 'send_invitations' === $job['type'] ) {
+                $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Wysyłka zakończona.', 'openvote' );
+            }
             if ( 'sync_all_city_groups' === $job['type'] && function_exists( 'openvote_current_time_for_voting' ) ) {
                 update_option( 'openvote_last_cron_sync_date', openvote_current_time_for_voting( 'Y-m-d' ), false );
             }
@@ -334,7 +370,13 @@ class Openvote_Batch_Processor {
                         return [ 'job' => $job, 'items' => [] ];
                     }
                 }
-                $items = self::batch_send_invitations( $params );
+                $inv_result = self::batch_send_invitations( $params );
+                $items      = isset( $inv_result['items'] ) ? $inv_result['items'] : $inv_result;
+                if ( ! empty( $inv_result['extra_logs'] ) && is_array( $inv_result['extra_logs'] ) ) {
+                    foreach ( $inv_result['extra_logs'] as $line ) {
+                        $job['logs'][] = $line;
+                    }
+                }
                 if ( ! empty( $items ) && class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
                     Openvote_Email_Rate_Limits::increment( count( $items ) );
                 }
@@ -935,8 +977,9 @@ class Openvote_Batch_Processor {
         $email_type = openvote_get_email_template_type();
         $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
 
-        $sent   = [];
-        $failed = [];
+        $sent      = [];
+        $failed    = [];
+        $extra_logs = [];
 
         if ( 'sendgrid' === $method ) {
             $recipients = [];
@@ -945,12 +988,20 @@ class Openvote_Batch_Processor {
             }
             $content_type_sendgrid = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
             $result = Openvote_Mailer::send_via_sendgrid( $recipients, $subject, $message, '', $content_type_sendgrid );
+            $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
-                if ( $result['sent'] > 0 ) {
+                if ( $all_sent ) {
                     $sent[] = $row->email;
                 } else {
                     $failed[ $row->id ] = $result['error'];
                 }
+            }
+            if ( ! empty( $result['error'] ) ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %s: error message from email provider */
+                    __( 'Błąd dostawcy e-mail: %s', 'openvote' ),
+                    $result['error']
+                );
             }
         } elseif ( 'brevo' === $method || 'brevo_paid' === $method ) {
             $recipients = [];
@@ -959,12 +1010,20 @@ class Openvote_Batch_Processor {
             }
             $content_type_brevo = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
             $result = Openvote_Mailer::send_via_brevo( $recipients, $subject, $message, '', $content_type_brevo );
+            $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
-                if ( $result['sent'] > 0 ) {
+                if ( $all_sent ) {
                     $sent[] = $row->email;
                 } else {
                     $failed[ $row->id ] = $result['error'];
                 }
+            }
+            if ( ! empty( $result['error'] ) ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %s: error message from email provider */
+                    __( 'Błąd dostawcy e-mail: %s', 'openvote' ),
+                    $result['error']
+                );
             }
         } elseif ( 'freshmail' === $method ) {
             $recipients = [];
@@ -981,6 +1040,13 @@ class Openvote_Batch_Processor {
                     $failed[ $row->id ] = $result['error'];
                 }
             }
+            if ( ! empty( $result['error'] ) ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %s: error message from email provider */
+                    __( 'Błąd dostawcy e-mail: %s', 'openvote' ),
+                    $result['error']
+                );
+            }
         } elseif ( 'getresponse' === $method ) {
             $recipients = [];
             foreach ( $rows as $row ) {
@@ -995,6 +1061,13 @@ class Openvote_Batch_Processor {
                 } else {
                     $failed[ $row->id ] = $result['error'];
                 }
+            }
+            if ( ! empty( $result['error'] ) ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                    /* translators: %s: error message from email provider */
+                    __( 'Błąd dostawcy e-mail: %s', 'openvote' ),
+                    $result['error']
+                );
             }
         } else {
             $from_email   = openvote_get_from_email();
@@ -1011,6 +1084,9 @@ class Openvote_Batch_Processor {
                 } else {
                     $failed[ $row->id ] = 'wp_mail error';
                 }
+            }
+            if ( ! empty( $failed ) ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację.', 'openvote' );
             }
         }
 
@@ -1043,7 +1119,10 @@ class Openvote_Batch_Processor {
             );
         }
 
-        return $sent;
+        return [
+            'items'      => $sent,
+            'extra_logs' => $extra_logs,
+        ];
     }
 
     // ─── Pomocnicze ─────────────────────────────────────────────────────────

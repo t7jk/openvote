@@ -49,14 +49,25 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
 
         <?php elseif ( $is_active && $eligible_error ) : ?>
             <div class="openvote-poll__questions-readonly">
-                <?php foreach ( $poll->questions as $i => $question ) : ?>
+                <?php
+                $abstain_label_readonly = __( 'Wstrzymuję się', 'openvote' );
+                foreach ( $poll->questions as $i => $question ) : ?>
                     <div class="openvote-poll__question-readonly">
                         <p class="openvote-poll__question-text">
                             <strong><?php echo esc_html( ( $i + 1 ) . '. ' . $question->body ); ?></strong>
                         </p>
                         <ul class="openvote-poll__answers-list">
-                            <?php foreach ( $question->answers as $answer ) : ?>
-                                <li><?php echo ! empty( $answer->is_abstain ) ? esc_html( __( 'Wstrzymało się', 'openvote' ) ) : esc_html( $answer->body ); ?></li>
+                            <?php foreach ( $question->answers as $answer ) :
+                                $body_trim = trim( (string) $answer->body );
+                                if ( ! empty( $answer->is_abstain ) ) {
+                                    $display_text = $abstain_label_readonly;
+                                } elseif ( $body_trim === $abstain_label_readonly ) {
+                                    continue;
+                                } else {
+                                    $display_text = $answer->body;
+                                }
+                                ?>
+                                <li><?php echo esc_html( $display_text ); ?></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
@@ -70,16 +81,27 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                     <?php esc_html_e( 'Pozostało: ', 'openvote' ); ?>
                     <span class="openvote-countdown" data-end="<?php echo esc_attr( gmdate( 'c', $end_ts ) ); ?>"></span>
                 </div>
-                <?php foreach ( $poll->questions as $i => $question ) : ?>
+                <?php
+                $abstain_label_form = __( 'Wstrzymuję się', 'openvote' );
+                foreach ( $poll->questions as $i => $question ) : ?>
                     <fieldset class="openvote-poll__question">
                         <legend><?php echo esc_html( ( $i + 1 ) . '. ' . $question->body ); ?></legend>
-                        <?php foreach ( $question->answers as $answer ) : ?>
+                        <?php foreach ( $question->answers as $answer ) :
+                            $body_trim = trim( (string) $answer->body );
+                            if ( ! empty( $answer->is_abstain ) ) {
+                                $display_text = $abstain_label_form;
+                            } elseif ( $body_trim === $abstain_label_form ) {
+                                continue;
+                            } else {
+                                $display_text = $answer->body;
+                            }
+                            ?>
                             <label class="openvote-poll__option">
                                 <input type="radio"
                                        name="question_<?php echo esc_attr( $question->id ); ?>"
                                        value="<?php echo esc_attr( $answer->id ); ?>"
                                        required>
-                                <?php echo ! empty( $answer->is_abstain ) ? esc_html( __( 'Wstrzymało się', 'openvote' ) ) : esc_html( $answer->body ); ?>
+                                <?php echo esc_html( $display_text ); ?>
                             </label>
                         <?php endforeach; ?>
                     </fieldset>

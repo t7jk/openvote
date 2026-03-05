@@ -52,16 +52,45 @@ class Openvote_Email_Rate_Limits {
 		}
 		$slots = self::get_current_slots();
 
-		foreach ( [ '15' => [ self::OPT_SLOT_15, self::OPT_COUNT_15, $slots['slot_15'] ], 'hour' => [ self::OPT_SLOT_H, self::OPT_COUNT_H, $slots['slot_hour'] ], 'day' => [ self::OPT_SLOT_D, self::OPT_COUNT_D, $slots['slot_day'] ] ] as $key => $opt_pair ) {
+		global $wpdb;
+		$opt_pairs = [
+			'15'   => [ self::OPT_SLOT_15, self::OPT_COUNT_15, $slots['slot_15'] ],
+			'hour' => [ self::OPT_SLOT_H,  self::OPT_COUNT_H,  $slots['slot_hour'] ],
+			'day'  => [ self::OPT_SLOT_D,  self::OPT_COUNT_D,  $slots['slot_day'] ],
+		];
+
+		$wpdb->query( 'START TRANSACTION' );
+		foreach ( $opt_pairs as $opt_pair ) {
 			list( $opt_slot, $opt_count, $current_slot ) = $opt_pair;
-			$stored_slot = get_option( $opt_slot, '' );
-			$count       = (int) get_option( $opt_count, 0 );
-			if ( $stored_slot !== $current_slot ) {
-				$count = 0;
-			}
-			$count += $n;
-			update_option( $opt_slot, $current_slot, false );
-			update_option( $opt_count, $count, false );
+
+			$stored_slot = $wpdb->get_var( $wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s FOR UPDATE",
+				$opt_slot
+			) );
+			$count = (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s FOR UPDATE",
+				$opt_count
+			) );
+
+			$new_count = ( $stored_slot === $current_slot ) ? ( $count + $n ) : $n;
+
+			$wpdb->query( $wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s",
+				(string) $current_slot,
+				$opt_slot
+			) );
+			$wpdb->query( $wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %d WHERE option_name = %s",
+				$new_count,
+				$opt_count
+			) );
+		}
+		$wpdb->query( 'COMMIT' );
+
+		// Invalidate object cache so subsequent reads see the updated counts.
+		foreach ( $opt_pairs as $opt_pair ) {
+			wp_cache_delete( $opt_pair[0], 'options' );
+			wp_cache_delete( $opt_pair[1], 'options' );
 		}
 	}
 

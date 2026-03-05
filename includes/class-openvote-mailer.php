@@ -226,6 +226,90 @@ class Openvote_Mailer {
     }
 
     /**
+     * Zwraca etykietę bieżącej metody wysyłki (do logów).
+     *
+     * @return string
+     */
+    public static function get_method_label(): string {
+        $method = openvote_get_mail_method();
+        $labels = [
+            'wordpress'   => 'WordPress (wp_mail)',
+            'smtp'        => 'SMTP zewnętrzny',
+            'sendgrid'    => 'SendGrid API',
+            'brevo'       => 'Brevo API',
+            'brevo_paid'  => 'Brevo API (płatny)',
+            'freshmail'   => 'Freshmail API',
+            'getresponse' => 'GetResponse API',
+        ];
+        return $labels[ $method ] ?? $method;
+    }
+
+    /**
+     * Sprawdza połączenie z dostawcą e-mail (Brevo/SendGrid: jedno żądanie GET do API).
+     * Dla pozostałych metod zwraca komunikat, że weryfikacja nastąpi przy pierwszej wysyłce.
+     *
+     * @return array{ ok: bool, message: string, method_label: string }
+     */
+    public static function test_connection(): array {
+        $method = openvote_get_mail_method();
+        $label  = self::get_method_label();
+        $msg_ok_generic = __( 'Połączenie z dostawcą e-mail OK.', 'openvote' );
+        $msg_not_tested = __( 'Połączenie zostanie zweryfikowane przy pierwszej wysyłce.', 'openvote' );
+
+        if ( 'brevo' === $method || 'brevo_paid' === $method ) {
+            $api_key = openvote_get_brevo_api_key();
+            if ( $api_key === '' ) {
+                return [ 'ok' => false, 'message' => __( 'Brak klucza API.', 'openvote' ), 'method_label' => $label ];
+            }
+            $response = wp_remote_get(
+                'https://api.brevo.com/v3/account',
+                [
+                    'timeout' => 15,
+                    'headers' => [ 'api-key' => $api_key, 'accept' => 'application/json' ],
+                ]
+            );
+            if ( is_wp_error( $response ) ) {
+                return [ 'ok' => false, 'message' => $response->get_error_message(), 'method_label' => $label ];
+            }
+            $code = wp_remote_retrieve_response_code( $response );
+            if ( $code >= 200 && $code < 300 ) {
+                return [ 'ok' => true, 'message' => $msg_ok_generic, 'method_label' => $label ];
+            }
+            $body  = wp_remote_retrieve_body( $response );
+            $data  = json_decode( $body, true );
+            $error = isset( $data['message'] ) ? $data['message'] : "HTTP {$code}";
+            return [ 'ok' => false, 'message' => $error, 'method_label' => $label ];
+        }
+
+        if ( 'sendgrid' === $method ) {
+            $api_key = openvote_get_sendgrid_api_key();
+            if ( $api_key === '' ) {
+                return [ 'ok' => false, 'message' => __( 'Brak klucza API.', 'openvote' ), 'method_label' => $label ];
+            }
+            $response = wp_remote_get(
+                'https://api.sendgrid.com/v3/user/account',
+                [
+                    'timeout' => 15,
+                    'headers' => [ 'Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json' ],
+                ]
+            );
+            if ( is_wp_error( $response ) ) {
+                return [ 'ok' => false, 'message' => $response->get_error_message(), 'method_label' => $label ];
+            }
+            $code = wp_remote_retrieve_response_code( $response );
+            if ( $code >= 200 && $code < 300 ) {
+                return [ 'ok' => true, 'message' => $msg_ok_generic, 'method_label' => $label ];
+            }
+            $body  = wp_remote_retrieve_body( $response );
+            $data  = json_decode( $body, true );
+            $error = isset( $data['errors'][0]['message'] ) ? $data['errors'][0]['message'] : "HTTP {$code}";
+            return [ 'ok' => false, 'message' => $error, 'method_label' => $label ];
+        }
+
+        return [ 'ok' => true, 'message' => $msg_not_tested, 'method_label' => $label ];
+    }
+
+    /**
      * Wyślij e-maile przez Freshmail REST API (jedno żądanie na odbiorcę).
      *
      * @param array<array{email: string, name?: string}> $recipients
@@ -480,10 +564,10 @@ class Openvote_Mailer {
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
 
-        $sent = wp_mail( $to, $subject, $message, $headers );
-
-        if ( $test_method === 'smtp' ) {
-            if ( isset( $current ) ) {
+        try {
+            $sent = wp_mail( $to, $subject, $message, $headers );
+        } finally {
+            if ( $test_method === 'smtp' && isset( $current ) ) {
                 update_option( 'openvote_mail_method', $current, false );
             }
         }

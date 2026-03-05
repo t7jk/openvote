@@ -36,6 +36,12 @@ defined( 'ABSPATH' ) || exit;
                     </td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">
+                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Darowizna', 'openvote' ); ?></td>
+                    <td style="padding:12px 0;font-size:14px;">
+                        <a href="https://ko-fi.com/tomas3man" target="_blank" rel="noopener noreferrer">https://ko-fi.com/tomas3man</a>
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f0f0f1;">
                     <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Wersja', 'openvote' ); ?></td>
                     <td style="padding:12px 0;font-size:14px;">
                         <strong><?php echo esc_html( OPENVOTE_VERSION ); ?></strong>
