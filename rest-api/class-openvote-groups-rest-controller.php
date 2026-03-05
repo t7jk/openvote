@@ -69,7 +69,7 @@ class Openvote_Groups_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/progress', [
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => [ $this, 'get_job_progress' ],
-            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'job_id' => [ 'sanitize_callback' => 'sanitize_text_field' ],
             ],
@@ -79,7 +79,7 @@ class Openvote_Groups_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/next', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'process_next_batch' ],
-            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'job_id' => [ 'sanitize_callback' => 'sanitize_text_field' ],
             ],
@@ -89,7 +89,7 @@ class Openvote_Groups_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/stop', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'stop_job' ],
-            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'job_id' => [ 'sanitize_callback' => 'sanitize_text_field' ],
             ],

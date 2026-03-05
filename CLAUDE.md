@@ -40,7 +40,7 @@ Controllers: polls, votes, groups, surveys.
 Six providers selectable per-installation: WP native mail, SMTP, SendGrid (up to 1000 recipients/request), Brevo, Freshmail, GetResponse. Config stored in `wp_options`.
 
 ### Database
-Schema managed by `Openvote_Activator` (current schema version: 4.2.0, 11 custom tables). Migrations run on plugin activation/update.
+Schema managed by `Openvote_Activator` (current schema version: 4.7.0, 11 custom tables). Migrations run on plugin activation/update.
 
 ## Conventions
 

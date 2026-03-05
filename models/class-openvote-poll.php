@@ -462,12 +462,13 @@ class Openvote_Poll {
         $city_key = Openvote_Field_Map::get_field( 'city' );
 
         if ( Openvote_Field_Map::is_core_field( $city_key ) ) {
-            $safe_col = '`' . esc_sql( $city_key ) . '`';
-            $rows     = $wpdb->get_col(
-                "SELECT DISTINCT {$safe_col}
-                 FROM {$wpdb->users}
-                 WHERE {$safe_col} != ''
-                 ORDER BY {$safe_col} ASC"
+            $rows = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT DISTINCT %i FROM {$wpdb->users} WHERE %i != '' ORDER BY %i ASC",
+                    $city_key,
+                    $city_key,
+                    $city_key
+                )
             );
         } else {
             $rows = $wpdb->get_col(

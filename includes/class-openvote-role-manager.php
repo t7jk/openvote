@@ -300,7 +300,9 @@ class Openvote_Role_Manager {
             return true;
         } ) );
         $already_counted = in_array( $user_id, array_map( fn( $u ) => (int) $u->ID, $current_admins ), true );
-        if ( ! $already_counted && count( $current_admins ) >= self::LIMIT_POLL_ADMINS ) {
+        $assigned_gids   = array_values( array_unique( array_map( 'absint', $group_ids ) ) );
+        $only_test_group = $test_gid > 0 && count( $assigned_gids ) === 1 && $assigned_gids[0] === $test_gid;
+        if ( ! $only_test_group && ! $already_counted && count( $current_admins ) >= self::LIMIT_POLL_ADMINS ) {
             $names = implode( ', ', array_map( fn( $u ) => $u->display_name, $current_admins ) );
             return new \WP_Error(
                 'limit_reached',
