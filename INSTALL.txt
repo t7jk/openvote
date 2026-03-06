@@ -1,0 +1,46 @@
+================================================================================
+OpenVote — instalacja i aktualizacja
+================================================================================
+
+ZALECANY SPOSÓB BUDOWANIA PACZKI
+--------------------------------
+Użyj skryptu w katalogu źródłowym wtyczki:
+
+  ./make-install-zip.sh
+
+Powstanie plik openvote-install.zip zawierający tylko pliki produkcyjne
+(bez testów, narzędzi deweloperskich i zbędnych katalogów). Ten plik wgraj
+w panelu: Wtyczki → Dodaj nową → Wgraj wtyczkę.
+
+NIE pakuj ręcznie całego katalogu — unikniesz błędów i zbędnych plików.
+
+
+OSTRZEŻENIE: chmod(): Operation not permitted
+---------------------------------------------
+Jeśli przy instalacji lub aktualizacji wtyczki pojawiają się setki ostrzeżeń
+„chmod(): Operation not permitted” (plik class-wp-filesystem-direct.php)
+i WordPress zgłasza, że „niektórych plików nie można było skopiować”:
+
+  • To ograniczenie po stronie SERWERA (PHP / hosting), nie wtyczki.
+  • Na wielu hostach PHP nie ma uprawnień do zmiany uprawnień (chmod) plików.
+
+CO ZROBIĆ:
+  1. Zainstaluj paczkę utworzoną przez make-install-zip.sh (mniej plików).
+  2. Jeśli nadal błąd — instalacja ręczna:
+     a) Zdezaktywuj i usuń starą wersję wtyczki w panelu WP.
+     b) Przez SSH (lub FTP) rozpakuj openvote-install.zip do:
+        wp-content/plugins/
+        (powinien powstać katalog: wp-content/plugins/openvote/).
+     c) Ustaw właściciela plików na użytkownika serwera WWW, np.:
+        chown -R www-data:www-data wp-content/plugins/openvote
+     d) W panelu WP: Wtyczki → włącz „OpenVote”.
+
+
+WYMAGANIA SERWERA
+-----------------
+  • PHP 8.1+
+  • WordPress 6.4+
+  • Rozszerzenie PHP: pdo_mysql (lub mysqli), json, mbstring
+  • Opcjonalnie: możliwość chmod (dla instalacji przez panel WP)
+
+================================================================================

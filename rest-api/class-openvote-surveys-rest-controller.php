@@ -152,9 +152,10 @@ class Openvote_Surveys_Rest_Controller {
                 $text = $url;
             }
 
-            // Ogranicz do max_chars.
-            if ( mb_strlen( $text ) > (int) $q->max_chars ) {
-                $text = mb_substr( $text, 0, (int) $q->max_chars );
+            // Ogranicz do max_chars (gdy 0 — nie obcinaj, zapobiega pustym odpowiedziom przy błędnej konfiguracji).
+            $max_chars = max( 0, min( 2000, (int) $q->max_chars ) );
+            if ( $max_chars > 0 && mb_strlen( $text ) > $max_chars ) {
+                $text = mb_substr( $text, 0, $max_chars );
             }
             $clean_answers[ $qid ] = $text;
         }

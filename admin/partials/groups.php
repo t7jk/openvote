@@ -445,7 +445,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         if (searchResults) searchResults.innerHTML = '';
 
         var apiRoot = <?php echo json_encode( esc_url_raw( rest_url( 'openvote/v1' ) ) ); ?>;
-        var nonce = <?php echo json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
+        var nonce = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
 
         fetch( apiRoot + '/users/search-by-email?email=' + encodeURIComponent(q), {
             method: 'GET',
