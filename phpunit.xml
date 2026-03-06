@@ -19,8 +19,8 @@
 
     <source>
         <include>
-            <directory suffix=".php">includes</directory>
-            <directory suffix=".php">models</directory>
+            <directory suffix=".php">src/includes</directory>
+            <directory suffix=".php">src/models</directory>
         </include>
     </source>
 

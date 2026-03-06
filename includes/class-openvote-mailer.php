@@ -10,8 +10,69 @@ class Openvote_Mailer {
      * Rejestracja hooków – wywoływana z Openvote (class-openvote.php).
      */
     public static function register_hooks(): void {
-        add_action( 'phpmailer_init', [ self::class, 'configure_smtp' ] );
+        add_action( 'phpmailer_init', [ self::class, 'configure_smtp' ], 5 );
+        add_action( 'phpmailer_init', [ self::class, 'ensure_html_content_type' ], 20 );
         add_action( 'wp_ajax_openvote_send_test_invitation_email', [ self::class, 'ajax_send_test_invitation_email' ] );
+    }
+
+    /**
+     * Gdy treść wiadomości to HTML, ustaw PHPMailer na IsHTML(true) i wyczyść AltBody,
+     * żeby nie generować multipart/alternative z wersją plain (która mogłaby pokazywać surowy tekst).
+     *
+     * @param PHPMailer\PHPMailer\PHPMailer $phpmailer
+     */
+    public static function ensure_html_content_type( $phpmailer ): void {
+        if ( ! isset( $phpmailer->Body ) || ! is_string( $phpmailer->Body ) ) {
+            return;
+        }
+        // #region agent log
+        file_put_contents(
+            '/home/t7jk/Code/openvote/.cursor/debug-799c4d.log',
+            json_encode( [
+                'sessionId'    => '799c4d',
+                'runId'        => 'run2',
+                'hypothesisId' => 'H2',
+                'location'     => 'Openvote_Mailer::ensure_html_content_type(before)',
+                'message'      => 'phpmailer state before forcing HTML',
+                'data'         => [
+                    'mailer'                => isset( $phpmailer->Mailer ) ? (string) $phpmailer->Mailer : '',
+                    'content_type'          => isset( $phpmailer->ContentType ) ? (string) $phpmailer->ContentType : '',
+                    'has_custom_contenttype' => isset( $phpmailer->ContentType ) && stripos( (string) $phpmailer->ContentType, 'text/html' ) !== false,
+                    'message_is_html'       => str_starts_with( trim( $phpmailer->Body ), '<' ),
+                    'body_start'            => mb_substr( trim( $phpmailer->Body ), 0, 80 ),
+                    'alt_body_start'        => isset( $phpmailer->AltBody ) ? mb_substr( (string) $phpmailer->AltBody, 0, 80 ) : '',
+                ],
+                'timestamp'    => (int) ( microtime( true ) * 1000 ),
+            ] ) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
+        if ( str_starts_with( trim( $phpmailer->Body ), '<' ) ) {
+            $phpmailer->isHTML( true );
+            $phpmailer->AltBody = '';
+        }
+        // #region agent log
+        file_put_contents(
+            '/home/t7jk/Code/openvote/.cursor/debug-799c4d.log',
+            json_encode( [
+                'sessionId'    => '799c4d',
+                'runId'        => 'run2',
+                'hypothesisId' => 'H2',
+                'location'     => 'Openvote_Mailer::ensure_html_content_type(after)',
+                'message'      => 'phpmailer state after forcing HTML',
+                'data'         => [
+                    'mailer'                => isset( $phpmailer->Mailer ) ? (string) $phpmailer->Mailer : '',
+                    'content_type'          => isset( $phpmailer->ContentType ) ? (string) $phpmailer->ContentType : '',
+                    'has_custom_contenttype' => isset( $phpmailer->ContentType ) && stripos( (string) $phpmailer->ContentType, 'text/html' ) !== false,
+                    'message_is_html'       => str_starts_with( trim( $phpmailer->Body ), '<' ),
+                    'body_start'            => mb_substr( trim( $phpmailer->Body ), 0, 80 ),
+                    'alt_body_start'        => isset( $phpmailer->AltBody ) ? mb_substr( (string) $phpmailer->AltBody, 0, 80 ) : '',
+                ],
+                'timestamp'    => (int) ( microtime( true ) * 1000 ),
+            ] ) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
     }
 
     /**
@@ -563,6 +624,27 @@ class Openvote_Mailer {
             'Content-Type: text/html; charset=UTF-8',
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
+        // #region agent log
+        file_put_contents(
+            '/home/t7jk/Code/openvote/.cursor/debug-799c4d.log',
+            json_encode( [
+                'sessionId'    => '799c4d',
+                'runId'        => 'run2',
+                'hypothesisId' => 'H3',
+                'location'     => 'Openvote_Mailer::ajax_send_test_invitation_email',
+                'message'      => 'about to call wp_mail for test email',
+                'data'         => [
+                    'test_method'           => $test_method,
+                    'mail_method_option'    => openvote_get_mail_method(),
+                    'header_content_type'   => (string) $headers[0],
+                    'message_is_html'       => str_starts_with( trim( $message ), '<' ),
+                    'message_start'         => mb_substr( trim( $message ), 0, 80 ),
+                ],
+                'timestamp'    => (int) ( microtime( true ) * 1000 ),
+            ] ) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
 
         try {
             $sent = wp_mail( $to, $subject, $message, $headers );

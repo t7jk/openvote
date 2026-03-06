@@ -78,7 +78,7 @@ class Openvote_Survey_Page {
         add_action( 'wp_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
         add_filter( 'pre_get_document_title', [ __CLASS__, 'filter_document_title' ] );
 
-        return OPENVOTE_PLUGIN_DIR . 'public/views/survey-page.php';
+        return OPENVOTE_PLUGIN_DIR . 'src/public/views/survey-page.php';
     }
 
     public static function add_body_class( array $classes ): array {
@@ -95,13 +95,13 @@ class Openvote_Survey_Page {
     public static function enqueue_assets(): void {
         wp_enqueue_style(
             'openvote-public',
-            OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
+            OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
             [],
             OPENVOTE_VERSION
         );
         wp_enqueue_script(
             'openvote-survey-public',
-            OPENVOTE_PLUGIN_URL . 'public/js/survey-public.js',
+            OPENVOTE_PLUGIN_URL . 'src/public/js/survey-public.js',
             [],
             OPENVOTE_VERSION,
             true

@@ -48,7 +48,7 @@ rsync -a \
   --exclude='bin/' \
   --exclude='tests/' \
   --exclude='ftp-upgrade/' \
-  --exclude='blocks/openvote-poll/src/' \
+  --exclude='src/blocks/openvote-poll/src/' \
   --exclude='vendor/' \
   --exclude='package.json' \
   --exclude='package-lock.json' \

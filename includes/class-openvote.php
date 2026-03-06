@@ -21,18 +21,18 @@ class Openvote {
     }
 
     private function define_admin_hooks(): void {
-        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-mailer.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-mailer.php';
         Openvote_Mailer::register_hooks();
 
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-polls-list.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-polls.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-settings.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-roles.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-uninstall.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-surveys.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-surveys-list.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'models/class-openvote-survey.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-polls-list.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin-polls.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin-settings.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin-roles.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin-uninstall.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-admin-surveys.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/admin/class-openvote-surveys-list.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/models/class-openvote-survey.php';
 
         $admin = new Openvote_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
@@ -68,9 +68,9 @@ class Openvote {
     }
 
     private function define_public_hooks(): void {
-        require_once OPENVOTE_PLUGIN_DIR . 'public/class-openvote-public.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-vote-page.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-survey-page.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/public/class-openvote-public.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-vote-page.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-survey-page.php';
 
         $public = new Openvote_Public();
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_styles' );
@@ -84,9 +84,9 @@ class Openvote {
     }
 
     private function define_rest_hooks(): void {
-        require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-rest-controller.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-groups-rest-controller.php';
-        require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-surveys-rest-controller.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/rest-api/class-openvote-rest-controller.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/rest-api/class-openvote-groups-rest-controller.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/rest-api/class-openvote-surveys-rest-controller.php';
 
         $rest = new Openvote_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $rest, 'register_routes' );
@@ -104,12 +104,12 @@ class Openvote {
 
     public function register_blocks(): void {
         // Istniejący blok pojedynczego głosowania.
-        register_block_type( OPENVOTE_PLUGIN_DIR . 'blocks/openvote-poll' );
+        register_block_type( OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-poll' );
 
         // Nowy blok zakładek głosowań (bez procesu budowania — vanilla JS).
         wp_register_script(
             'openvote-voting-tabs-editor',
-            OPENVOTE_PLUGIN_URL . 'blocks/openvote-voting-tabs/editor.js',
+            OPENVOTE_PLUGIN_URL . 'src/blocks/openvote-voting-tabs/editor.js',
             [ 'wp-blocks', 'wp-element' ],
             OPENVOTE_VERSION,
             false
@@ -123,7 +123,7 @@ class Openvote {
         // Blok formularza ankiety.
         wp_register_script(
             'openvote-survey-form-editor',
-            OPENVOTE_PLUGIN_URL . 'blocks/openvote-survey-form/editor.js',
+            OPENVOTE_PLUGIN_URL . 'src/blocks/openvote-survey-form/editor.js',
             [ 'wp-blocks', 'wp-element' ],
             OPENVOTE_VERSION,
             false
@@ -137,7 +137,7 @@ class Openvote {
         // Blok zgłoszeń ankiet (nie spam).
         wp_register_script(
             'openvote-survey-responses-editor',
-            OPENVOTE_PLUGIN_URL . 'blocks/openvote-survey-responses/editor.js',
+            OPENVOTE_PLUGIN_URL . 'src/blocks/openvote-survey-responses/editor.js',
             [ 'wp-blocks', 'wp-element' ],
             OPENVOTE_VERSION,
             false
@@ -154,7 +154,7 @@ class Openvote {
      */
     public function render_voting_tabs_block( array $attributes, string $content ): string {
         ob_start();
-        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-voting-tabs/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-voting-tabs/render.php';
         return ob_get_clean();
     }
 
@@ -163,7 +163,7 @@ class Openvote {
      */
     public function render_survey_form_block( array $attributes, string $content ): string {
         ob_start();
-        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-survey-form/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-survey-form/render.php';
         return ob_get_clean();
     }
 
@@ -172,7 +172,7 @@ class Openvote {
      */
     public function render_survey_responses_block( array $attributes, string $content ): string {
         ob_start();
-        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-survey-responses/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-survey-responses/render.php';
         return ob_get_clean();
     }
 
@@ -181,7 +181,7 @@ class Openvote {
      */
     public static function render_survey_form_block_static( array $attributes, string $content ): string {
         ob_start();
-        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-survey-form/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-survey-form/render.php';
         return ob_get_clean();
     }
 

@@ -881,7 +881,8 @@ class Openvote_Batch_Processor {
         $subject      = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
         $email_type   = openvote_get_email_template_type();
         $message      = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
-        $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
+        $message_is_html = str_starts_with( trim( $message ), '<' );
+        $content_type = ( $email_type === 'html' || $message_is_html ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
         $headers      = [
             'Content-Type: ' . $content_type,
             'From: ' . $from_name . ' <' . $from_email . '>',
@@ -1056,6 +1057,33 @@ class Openvote_Batch_Processor {
         $email_type = openvote_get_email_template_type();
         $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
 
+        // Gdy treść wygląda na HTML, wysyłaj zawsze jako text/html (np. gdy w polu plain wklejono HTML).
+        $message_is_html = str_starts_with( trim( $message ), '<' );
+        $content_type    = ( $email_type === 'html' || $message_is_html ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
+        $content_type_short = ( $email_type === 'html' || $message_is_html ) ? 'text/html' : 'text/plain';
+
+        // #region agent log
+        file_put_contents(
+            '/home/t7jk/Code/openvote/.cursor/debug-799c4d.log',
+            json_encode( [
+                'sessionId'     => '799c4d',
+                'hypothesisId'  => 'H1',
+                'location'     => 'batch_send_invitations',
+                'message'      => 'email_type and content_type at send',
+                'data'         => [
+                    'email_type'        => $email_type,
+                    'content_type_used' => $content_type,
+                    'method'            => $method,
+                    'option_raw'        => get_option( 'openvote_email_template_type', '__default__' ),
+                    'message_starts'    => mb_substr( $message, 0, 80 ),
+                    'message_is_html'   => $message_is_html,
+                ],
+                'timestamp'    => (int) ( microtime( true ) * 1000 ),
+            ] ) . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+        // #endregion
+
         $sent      = [];
         $failed    = [];
         $extra_logs = [];
@@ -1065,7 +1093,7 @@ class Openvote_Batch_Processor {
             foreach ( $rows as $row ) {
                 $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
             }
-            $content_type_sendgrid = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $content_type_sendgrid = $content_type_short;
             $result = Openvote_Mailer::send_via_sendgrid( $recipients, $subject, $message, '', $content_type_sendgrid );
             $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
@@ -1087,7 +1115,7 @@ class Openvote_Batch_Processor {
             foreach ( $rows as $row ) {
                 $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
             }
-            $content_type_brevo = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $content_type_brevo = $content_type_short;
             $result = Openvote_Mailer::send_via_brevo( $recipients, $subject, $message, '', $content_type_brevo );
             $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
@@ -1109,7 +1137,7 @@ class Openvote_Batch_Processor {
             foreach ( $rows as $row ) {
                 $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
             }
-            $content_type_fm = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $content_type_fm = $content_type_short;
             $result = Openvote_Mailer::send_via_freshmail( $recipients, $subject, $message, '', '', $content_type_fm );
             $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
@@ -1131,7 +1159,7 @@ class Openvote_Batch_Processor {
             foreach ( $rows as $row ) {
                 $recipients[] = [ 'email' => $row->email, 'name' => $row->name ];
             }
-            $content_type_gr = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+            $content_type_gr = $content_type_short;
             $result = Openvote_Mailer::send_via_getresponse( $recipients, $subject, $message, '', '', $content_type_gr );
             $all_sent = ( $result['sent'] === count( $rows ) );
             foreach ( $rows as $row ) {
@@ -1151,7 +1179,6 @@ class Openvote_Batch_Processor {
         } else {
             $from_email   = openvote_get_from_email();
             $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );
-            $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
             $headers      = [
                 'Content-Type: ' . $content_type,
                 'From: ' . $from_name . ' <' . $from_email . '>',

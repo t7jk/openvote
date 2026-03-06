@@ -18,10 +18,10 @@
     },
     "autoload": {
         "classmap": [
-            "includes/",
-            "admin/",
-            "models/",
-            "rest-api/"
+            "src/includes/",
+            "src/admin/",
+            "src/models/",
+            "src/rest-api/"
         ]
     },
     "autoload-dev": {

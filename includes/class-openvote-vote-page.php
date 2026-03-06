@@ -102,7 +102,7 @@ class Openvote_Vote_Page {
 
         wp_enqueue_style(
             'openvote-public',
-            OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
+            OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
             [],
             OPENVOTE_VERSION
         );
@@ -115,7 +115,7 @@ class Openvote_Vote_Page {
         ) );
         wp_enqueue_script(
             'openvote-public',
-            OPENVOTE_PLUGIN_URL . 'public/js/openvote-public.js',
+            OPENVOTE_PLUGIN_URL . 'src/public/js/openvote-public.js',
             [],
             OPENVOTE_VERSION,
             true
@@ -248,7 +248,7 @@ class Openvote_Vote_Page {
         }
 
         // Brak prawdziwej strony WP — użyj wirtualnego szablonu wtyczki.
-        require_once OPENVOTE_PLUGIN_DIR . 'includes/openvote-render-poll.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'src/includes/openvote-render-poll.php';
 
         global $wp_query;
         $wp_query->is_home     = false;
@@ -257,6 +257,6 @@ class Openvote_Vote_Page {
         $wp_query->is_singular = true;
         $wp_query->is_page     = true;
 
-        return OPENVOTE_PLUGIN_DIR . 'public/views/vote-page-theme.php';
+        return OPENVOTE_PLUGIN_DIR . 'src/public/views/vote-page-theme.php';
     }
 }

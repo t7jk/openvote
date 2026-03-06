@@ -12,7 +12,7 @@
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       openvote
- * Domain Path:       /languages
+ * Domain Path:       /src/languages
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -28,22 +28,22 @@ if ( file_exists( OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once OPENVOTE_PLUGIN_DIR . 'vendor/autoload.php';
 }
 
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-field-map.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-manager.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-role-map.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-rate-limits.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-cron-sync.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-resume-cron.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-deactivator.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-loader.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-i18n.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote.php';
-require_once OPENVOTE_PLUGIN_DIR . 'models/class-openvote-poll.php';
-require_once OPENVOTE_PLUGIN_DIR . 'models/class-openvote-vote.php';
-require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-results-pdf.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-field-map.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-role-manager.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-role-map.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-email-rate-limits.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-batch-processor.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-cron-sync.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-email-resume-cron.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-eligibility.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-activator.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-deactivator.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-loader.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-i18n.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/models/class-openvote-poll.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/models/class-openvote-vote.php';
+require_once OPENVOTE_PLUGIN_DIR . 'src/includes/class-openvote-results-pdf.php';
 
 register_activation_hook( __FILE__, [ 'Openvote_Activator', 'activate' ] );
 register_deactivation_hook( __FILE__, [ 'Openvote_Deactivator', 'deactivate' ] );
@@ -716,7 +716,7 @@ function openvote_get_email_from_template(): string {
  * Typ szablonu e-maila: 'plain' (czysty tekst) lub 'html'.
  */
 function openvote_get_email_template_type(): string {
-	$v = get_option( 'openvote_email_template_type', 'plain' );
+	$v = get_option( 'openvote_email_template_type', 'html' );
 	return ( $v === 'html' ) ? 'html' : 'plain';
 }
 

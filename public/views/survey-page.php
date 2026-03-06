@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
         // Renderuj ten sam HTML co blok Gutenberg (przez include).
         $attributes = [];
         $content    = '';
-        include OPENVOTE_PLUGIN_DIR . 'blocks/openvote-survey-form/render.php';
+        include OPENVOTE_PLUGIN_DIR . 'src/blocks/openvote-survey-form/render.php';
         ?>
     </div>
 </div>

@@ -8,14 +8,14 @@ defined( 'ABSPATH' ) || exit;
 class Openvote_I18n {
 
     public function load_plugin_textdomain(): void {
-        $rel_path = dirname( OPENVOTE_PLUGIN_BASENAME ) . '/languages';
+        $rel_path = dirname( OPENVOTE_PLUGIN_BASENAME ) . '/src/languages';
         load_plugin_textdomain( 'openvote', false, $rel_path );
 
         // Gdy język WordPress to nie polski — załaduj tłumaczenie angielskie, aby interfejs był po angielsku.
         $locale = get_locale();
         $is_polish = ( $locale === 'pl_PL' || $locale === 'pl' || strpos( $locale, 'pl_' ) === 0 );
         if ( ! $is_polish ) {
-            $mopath = OPENVOTE_PLUGIN_DIR . 'languages/openvote-en_US.mo';
+            $mopath = OPENVOTE_PLUGIN_DIR . 'src/languages/openvote-en_US.mo';
             if ( file_exists( $mopath ) ) {
                 load_textdomain( 'openvote', $mopath );
             }

@@ -1,6 +1,9 @@
 node_modules/
+vendor/
 .claude/
 user_base.csv
 openvote.zip
+openvote-install.zip
+.phpunit.result.cache
 wp-tests-config.php
 ftp-upgrade/
