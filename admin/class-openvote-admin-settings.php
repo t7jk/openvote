@@ -287,7 +287,7 @@ class Openvote_Admin_Settings {
         $email_body_plain = wp_unslash( $_POST['openvote_email_body_plain'] ?? '' );
         $email_body_plain = wp_strip_all_tags( $email_body_plain );
         update_option( 'openvote_email_body_plain', $email_body_plain, false );
-        $email_body_html = wp_kses_post( wp_unslash( $_POST['openvote_email_body_html'] ?? '' ) );
+        $email_body_html = wp_unslash( $_POST['openvote_email_body_html'] ?? '' );
         update_option( 'openvote_email_body_html', $email_body_html, false );
 
         Openvote_Cron_Sync::reschedule();

@@ -819,6 +819,12 @@ function openvote_get_email_body_html_template(): string {
 	$saved = get_option( 'openvote_email_body_html', '' );
 	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
 		$saved = trim( $saved );
+		// Wykryj szablon uszkodzony przez wp_kses_post() (stripuje <style>/<head>/<html>,
+		// zostawiając CSS jako surowy tekst — taki szablon nie zaczyna się od '<').
+		if ( ! str_starts_with( $saved, '<' ) ) {
+			delete_option( 'openvote_email_body_html' );
+			return openvote_get_email_body_html_default();
+		}
 		// Uaktualnij stary nagłówek (tylko {brand_short}) do wersji z nazwą witryny i sloganem.
 		$old_header = '<p>{brand_short}</p>';
 		$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';

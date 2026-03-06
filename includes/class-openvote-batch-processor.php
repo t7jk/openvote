@@ -1062,28 +1062,6 @@ class Openvote_Batch_Processor {
         $content_type    = ( $email_type === 'html' || $message_is_html ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
         $content_type_short = ( $email_type === 'html' || $message_is_html ) ? 'text/html' : 'text/plain';
 
-        // #region agent log
-        file_put_contents(
-            '/home/t7jk/Code/openvote/.cursor/debug-799c4d.log',
-            json_encode( [
-                'sessionId'     => '799c4d',
-                'hypothesisId'  => 'H1',
-                'location'     => 'batch_send_invitations',
-                'message'      => 'email_type and content_type at send',
-                'data'         => [
-                    'email_type'        => $email_type,
-                    'content_type_used' => $content_type,
-                    'method'            => $method,
-                    'option_raw'        => get_option( 'openvote_email_template_type', '__default__' ),
-                    'message_starts'    => mb_substr( $message, 0, 80 ),
-                    'message_is_html'   => $message_is_html,
-                ],
-                'timestamp'    => (int) ( microtime( true ) * 1000 ),
-            ] ) . "\n",
-            FILE_APPEND | LOCK_EX
-        );
-        // #endregion
-
         $sent      = [];
         $failed    = [];
         $extra_logs = [];
