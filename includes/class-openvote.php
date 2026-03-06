@@ -41,7 +41,6 @@ class Openvote {
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_menu_restrict_script' );
         $this->loader->add_action( 'admin_init', $admin, 'handle_results_pdf_download', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_groups_form_early', 1 );
-        $this->loader->add_action( 'admin_init', $admin, 'handle_statistics_form_early', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_surveys_action', 1 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_openvote_get_actions', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_polls_action', 5 );

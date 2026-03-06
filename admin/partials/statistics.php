@@ -1,10 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-// Zapis opcji i przeliczanie nieaktywnych są obsługiwane w Openvote_Admin::handle_statistics_form_early() (admin_init, priorytet 1), żeby redirect działał przed outputem motywu.
-
-$missed_votes   = openvote_get_stat_missed_votes();
-$months_inactive = openvote_get_stat_months_inactive();
+// Przeliczanie nieaktywnych jest uruchamiane przez REST (POST /statistics/recalc-inactive) — zob. batch-progress.js.
 
 global $wpdb;
 $groups_table = $wpdb->prefix . 'openvote_groups';
@@ -274,101 +271,4 @@ if ( ! $chart_has_data ) {
 		<p class="description" style="margin-top:12px;margin-bottom:0;"><?php esc_html_e( 'Oś X: numer głosowania (1 = ostatnie, 11 = średnia). Oś Y: frekwencja w %.', 'openvote' ); ?></p>
 	</div>
 
-	<div class="openvote-stat-threshold-section">
-		<h2 class="title"><?php esc_html_e( 'Progi nieaktywności', 'openvote' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać powiadomień o nowych głosowaniach.', 'openvote' ); ?>
-		</p>
-		<p class="description">
-			<?php esc_html_e( 'Ustawienie wartości maksymalnej (24) powoduje wyłączenie oznaczania użytkowników jako nieaktywnych.', 'openvote' ); ?>
-		</p>
-		<p class="description">
-			<?php esc_html_e( 'Wystarczy aby jeden z wyżej ustawionych warunków został spełniony.', 'openvote' ); ?>
-		</p>
-
-		<form method="post" action="">
-		<?php wp_nonce_field( 'openvote_save_statistics', 'openvote_statistics_nonce' ); ?>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="openvote_stat_missed_votes"><?php esc_html_e( 'Ilość opuszczonych głosowań', 'openvote' ); ?></label></th>
-				<td>
-					<input type="range" name="openvote_stat_missed_votes" id="openvote_stat_missed_votes" min="1" max="24" value="<?php echo esc_attr( (string) $missed_votes ); ?>" class="openvote-stat-range">
-					<span class="openvote-stat-range-value" data-for="openvote_stat_missed_votes"><?php echo esc_html( (string) $missed_votes ); ?></span>
-					<p class="description"><?php esc_html_e( 'To ustawienie określa, ile głosowań musi opuścić (nie brać w ogóle udziału) członek, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="openvote_stat_months_inactive"><?php esc_html_e( 'Ilość miesięcy', 'openvote' ); ?></label></th>
-				<td>
-					<input type="range" name="openvote_stat_months_inactive" id="openvote_stat_months_inactive" min="1" max="24" value="<?php echo esc_attr( (string) $months_inactive ); ?>" class="openvote-stat-range">
-					<span class="openvote-stat-range-value" data-for="openvote_stat_months_inactive"><?php echo esc_html( (string) $months_inactive ); ?></span>
-					<p class="description"><?php esc_html_e( 'Ilość miesięcy, ile musi minąć od ostatniego głosowania, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
-				</td>
-			</tr>
-		</table>
-		<p class="submit">
-			<?php submit_button( __( 'Zapisz', 'openvote' ), 'primary', 'submit', false ); ?>
-		</p>
-		</form>
-
-		<?php if ( current_user_can( 'manage_options' ) ) : ?>
-		<style>.openvote-progress-wrap{display:flex;align-items:center;gap:12px;margin:4px 0}.openvote-progress-bar-outer{width:280px;max-width:100%;height:12px;background:#ddd;border-radius:6px;overflow:hidden}.openvote-progress-bar-inner{height:100%;background:#2271b1;transition:width .3s}.openvote-progress-label{margin:0;font-size:12px;color:#555}.openvote-progress-done{color:#0a730a;font-weight:600}.openvote-progress-error{color:#d63638;font-weight:600}</style>
-		<div style="margin-top:16px;">
-			<button type="button" id="openvote-recalc-inactive-btn" class="button"><?php esc_html_e( 'Przelicz statystyki nieaktywnych', 'openvote' ); ?></button>
-			<p class="description" style="margin-top:6px;"><?php esc_html_e( 'Przelicza liczbę opuszczonych głosowań dla wszystkich członków. Przetwarzanie partiami z paskiem postępu (ograniczenie obciążenia serwera).', 'openvote' ); ?></p>
-			<div id="openvote-recalc-progress" style="display:none;margin-top:10px;max-width:560px;"></div>
-		</div>
-		<?php endif; ?>
-	</div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-	document.querySelectorAll('.openvote-stat-range').forEach(function(el) {
-		var val = document.querySelector('.openvote-stat-range-value[data-for="' + el.id + '"]');
-		if (val) {
-			el.addEventListener('input', function() { val.textContent = this.value; });
-		}
-	});
-
-	var recalcBtn = document.getElementById('openvote-recalc-inactive-btn');
-	var recalcProgress = document.getElementById('openvote-recalc-progress');
-	if (recalcBtn && recalcProgress && typeof openvoteRunBatchJob === 'function' && typeof openvoteRenderProgress === 'function') {
-		recalcBtn.addEventListener('click', function() {
-			var apiRoot = window.openvoteBatch && window.openvoteBatch.apiRoot ? window.openvoteBatch.apiRoot : '/wp-json/openvote/v1';
-			var nonce = window.openvoteBatch && window.openvoteBatch.nonce ? window.openvoteBatch.nonce : '';
-			recalcBtn.disabled = true;
-			recalcProgress.style.display = '';
-			recalcProgress.innerHTML = '<p class="openvote-progress-label"><?php echo esc_js( __( 'Uruchamianie…', 'openvote' ) ); ?></p>';
-
-			fetch( apiRoot + '/statistics/recalc-inactive', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce }
-			} ).then(function(r) { return r.json(); }).then(function(data) {
-				if (!data.job_id) {
-					throw new Error(data.message || '<?php echo esc_js( __( 'Błąd uruchamiania.', 'openvote' ) ); ?>');
-				}
-				openvoteRunBatchJob(
-					data.job_id,
-					function(processed, total, pct) {
-						openvoteRenderProgress(recalcProgress, processed, total, pct, null);
-					},
-					function() {
-						recalcProgress.innerHTML = '<p class="openvote-progress-done">✓ <?php echo esc_js( __( 'Statystyki nieaktywnych przeliczone.', 'openvote' ) ); ?></p>';
-						recalcBtn.disabled = false;
-						setTimeout(function() { window.location.reload(); }, 1500);
-					},
-					function(err) {
-						recalcProgress.innerHTML = '<p class="openvote-progress-error">' + (err && err.message ? err.message : '<?php echo esc_js( __( 'Błąd.', 'openvote' ) ); ?>') + '</p>';
-						recalcBtn.disabled = false;
-					},
-					2000
-				);
-			}).catch(function(err) {
-				recalcProgress.innerHTML = '<p class="openvote-progress-error">' + (err && err.message ? err.message : '<?php echo esc_js( __( 'Błąd.', 'openvote' ) ); ?>') + '</p>';
-				recalcBtn.disabled = false;
-			});
-		});
-	}
-});
-</script>

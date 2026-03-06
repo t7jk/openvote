@@ -352,26 +352,6 @@ class Openvote_Admin {
         }
     }
 
-    /**
-     * Obsługa formularzy Statystyki (zapisz progi, przelicz nieaktywnych) — przed jakimkolwiek outputem,
-     * żeby przekierowanie nie powodowało "headers already sent" (np. z motywem Blocksy).
-     */
-    public function handle_statistics_form_early(): void {
-        if ( isset( $_POST['openvote_statistics_nonce'] ) ) {
-            check_admin_referer( 'openvote_save_statistics', 'openvote_statistics_nonce' );
-            $missed  = isset( $_POST['openvote_stat_missed_votes'] ) ? absint( $_POST['openvote_stat_missed_votes'] ) : 0;
-            $months  = isset( $_POST['openvote_stat_months_inactive'] ) ? absint( $_POST['openvote_stat_months_inactive'] ) : 0;
-            if ( $missed >= 1 && $missed <= 24 ) {
-                update_option( 'openvote_stat_missed_votes', $missed, false );
-            }
-            if ( $months >= 1 && $months <= 24 ) {
-                update_option( 'openvote_stat_months_inactive', $months, false );
-            }
-            wp_safe_redirect( add_query_arg( 'saved', 1, admin_url( 'admin.php?page=openvote-statistics' ) ) );
-            exit;
-        }
-        // Przeliczanie nieaktywnych jest uruchamiane przez REST (POST /statistics/recalc-inactive) i przetwarzane partiami z paskiem postępu — zob. statistics.php i batch-progress.js.
-    }
 
     /**
      * Pobieranie wyników głosowania jako PDF (admin_init, priorytet 1).

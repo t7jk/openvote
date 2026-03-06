@@ -290,6 +290,15 @@ class Openvote_Admin_Settings {
         $email_body_html = wp_unslash( $_POST['openvote_email_body_html'] ?? '' );
         update_option( 'openvote_email_body_html', $email_body_html, false );
 
+        $missed = isset( $_POST['openvote_stat_missed_votes'] ) ? absint( $_POST['openvote_stat_missed_votes'] ) : 0;
+        if ( $missed >= 1 && $missed <= 24 ) {
+            update_option( 'openvote_stat_missed_votes', $missed, false );
+        }
+        $months = isset( $_POST['openvote_stat_months_inactive'] ) ? absint( $_POST['openvote_stat_months_inactive'] ) : 0;
+        if ( $months >= 1 && $months <= 24 ) {
+            update_option( 'openvote_stat_months_inactive', $months, false );
+        }
+
         Openvote_Cron_Sync::reschedule();
 
         flush_rewrite_rules();
