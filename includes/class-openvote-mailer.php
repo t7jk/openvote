@@ -6,13 +6,42 @@ defined( 'ABSPATH' ) || exit;
  */
 class Openvote_Mailer {
 
+    /** Treść zaproszenia (HTML) przed wysyłką — przywracana przez filtr jeśli inna wtyczka usunie <style>. */
+    public static $intended_invitation_body = '';
+
     /**
      * Rejestracja hooków – wywoływana z Openvote (class-openvote.php).
      */
     public static function register_hooks(): void {
         add_action( 'phpmailer_init', [ self::class, 'configure_smtp' ], 5 );
         add_action( 'phpmailer_init', [ self::class, 'ensure_html_content_type' ], 20 );
+        add_filter( 'wp_mail', [ self::class, 'restore_invitation_body_if_stripped' ], 9999, 1 );
         add_action( 'wp_ajax_openvote_send_test_invitation_email', [ self::class, 'ajax_send_test_invitation_email' ] );
+    }
+
+    /**
+     * Jeśli inna wtyczka/filtr usunęła tagi HTML z treści zaproszenia (np. wp_kses_post), przywróć oryginalną treść.
+     * Wykrywanie: zamierzona treść to HTML (zaczyna się od '<'), a aktualna zawiera surowy CSS (body { font).
+     *
+     * @param array<string, mixed> $args Argumenty wp_mail (to, subject, message, headers, attachments).
+     * @return array<string, mixed>
+     */
+    public static function restore_invitation_body_if_stripped( array $args ): array {
+        if ( self::$intended_invitation_body === '' || ! isset( $args['message'] ) || ! is_string( $args['message'] ) ) {
+            return $args;
+        }
+        $intended = trim( self::$intended_invitation_body );
+        if ( ! str_starts_with( $intended, '<' ) ) {
+            return $args;
+        }
+        $current = trim( $args['message'] );
+        if ( str_starts_with( $current, '<' ) ) {
+            return $args;
+        }
+        if ( str_contains( $current, 'body { font' ) ) {
+            $args['message'] = self::$intended_invitation_body;
+        }
+        return $args;
     }
 
     /**
@@ -585,8 +614,10 @@ class Openvote_Mailer {
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
         try {
+            self::$intended_invitation_body = $message;
             $sent = wp_mail( $to, $subject, $message, $headers );
         } finally {
+            self::$intended_invitation_body = '';
             if ( $test_method === 'smtp' && isset( $current ) ) {
                 update_option( 'openvote_mail_method', $current, false );
             }

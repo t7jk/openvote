@@ -1422,6 +1422,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                     <label for="openvote_email_body_html"><?php esc_html_e( 'Treść (wersja HTML)', 'openvote' ); ?></label>
                 </th>
                 <td>
+                    <input type="hidden" name="openvote_email_body_html_b64" id="openvote_email_body_html_b64" value="" />
                     <textarea id="openvote_email_body_html"
                               name="openvote_email_body_html"
                               rows="24"
@@ -1437,6 +1438,18 @@ function openvote_settings_select( string $logical, string $current, array $core
 
         <script>
         ( function() {
+            var form = document.getElementById('openvote-settings-form');
+            if ( form ) {
+                form.addEventListener('submit', function() {
+                    var textarea = document.getElementById('openvote_email_body_html');
+                    var hidden = document.getElementById('openvote_email_body_html_b64');
+                    if ( textarea && hidden && textarea.value ) {
+                        try {
+                            hidden.value = btoa(unescape(encodeURIComponent( textarea.value )));
+                        } catch ( err ) {}
+                    }
+                });
+            }
             var plainDefault = <?php echo json_encode( openvote_get_email_body_plain_default() ); ?>;
             var htmlDefault = <?php echo json_encode( openvote_get_email_body_html_default() ); ?>;
             var previewPlaceholders = <?php echo json_encode( [

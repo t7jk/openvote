@@ -765,6 +765,55 @@ function openvote_get_email_template_type(): string {
 	return ( $v === 'html' ) ? 'html' : 'plain';
 }
 
+/** Wartość opcji openvote_email_body_html oznaczająca „treść w pliku” (omija filtry typu wp_kses_post przy zapisie). */
+define( 'OPENVOTE_EMAIL_HTML_OPTION_FILE_MARKER', '__OPENVOTE_FILE__' );
+
+/**
+ * Ścieżka do pliku z szablonem HTML e-maila (w katalogu uploadów).
+ * Zapis w pliku omija filtry pre_update_option, które mogłyby usuwać <style>/<head>.
+ *
+ * @return string Ścieżka bezwzględna do pliku.
+ */
+function openvote_get_email_body_html_storage_path(): string {
+	$upload_dir = wp_upload_dir();
+	if ( ! empty( $upload_dir['error'] ) ) {
+		return '';
+	}
+	return $upload_dir['basedir'] . '/openvote/email-body-html.html';
+}
+
+/**
+ * Zapisuje szablon HTML e-maila do pliku. Tworzy katalog openvote w uploads, jeśli trzeba.
+ *
+ * @param string $html Pełna treść HTML (z <!DOCTYPE>, <style> itd.).
+ * @return bool True, jeśli zapis się udał.
+ */
+function openvote_write_email_body_html_to_file( string $html ): bool {
+	$path = openvote_get_email_body_html_storage_path();
+	if ( $path === '' ) {
+		return false;
+	}
+	$dir = dirname( $path );
+	if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
+		return false;
+	}
+	return file_put_contents( $path, $html, LOCK_EX ) !== false;
+}
+
+/**
+ * Odczytuje szablon HTML e-maila z pliku.
+ *
+ * @return string Treść pliku lub pusty string, jeśli plik nie istnieje / nie da się odczytać.
+ */
+function openvote_read_email_body_html_from_file(): string {
+	$path = openvote_get_email_body_html_storage_path();
+	if ( $path === '' || ! is_readable( $path ) ) {
+		return '';
+	}
+	$content = file_get_contents( $path );
+	return is_string( $content ) ? $content : '';
+}
+
 /**
  * Domyślna treść e-maila (wersja czysty tekst).
  * Zawiera stopkę z {plugin_author}, {github_url}.
@@ -842,35 +891,69 @@ function openvote_get_email_body_html_default(): string {
 
 /**
  * Treść e-maila zaproszenia (wersja czysty tekst). Zapis lub domyślna.
+ * Wykrywa szablon zanieczyszczony wklejonym HTML (np. body { font...), resetuje do domyślnego.
  */
 function openvote_get_email_body_plain_template(): string {
 	$saved = get_option( 'openvote_email_body_plain', '' );
 	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
-		return trim( $saved );
+		$saved = trim( $saved );
+		// Wykryj szablon będący wklejonym HTML po wp_strip_all_tags (zostaje surowy CSS w treści).
+		if ( str_contains( $saved, 'body { font' ) && str_contains( $saved, '.wrapper {' ) ) {
+			delete_option( 'openvote_email_body_plain' );
+			return openvote_get_email_body_plain_default();
+		}
+		return $saved;
 	}
 	// Kompatybilność: stara opcja openvote_email_body jako plain.
 	$legacy = get_option( 'openvote_email_body', '' );
 	if ( is_string( $legacy ) && trim( $legacy ) !== '' ) {
-		return trim( $legacy );
+		$legacy = trim( $legacy );
+		if ( str_contains( $legacy, 'body { font' ) && str_contains( $legacy, '.wrapper {' ) ) {
+			delete_option( 'openvote_email_body' );
+			return openvote_get_email_body_plain_default();
+		}
+		return $legacy;
 	}
 	return openvote_get_email_body_plain_default();
 }
 
 /**
- * Treść e-maila zaproszenia (wersja HTML). Zapis lub domyślna.
- * Aktualizuje zapisany szablon ze starym nagłówkiem (tylko {brand_short}) do wersji z {site_name} i {site_tagline}.
+ * Treść e-maila zaproszenia (wersja HTML). Zapis w pliku (gdy opcja = marker) lub w opcji, inaczej domyślna.
+ * Zapis w pliku omija filtry pre_update_option (np. wp_kses_post), które usuwałyby <style>/<head>.
  */
 function openvote_get_email_body_html_template(): string {
-	$saved = get_option( 'openvote_email_body_html', '' );
-	if ( is_string( $saved ) && trim( $saved ) !== '' ) {
-		$saved = trim( $saved );
-		// Wykryj szablon uszkodzony przez wp_kses_post() (stripuje <style>/<head>/<html>,
-		// zostawiając CSS jako surowy tekst — taki szablon nie zaczyna się od '<').
+	$option_value = get_option( 'openvote_email_body_html', '' );
+
+	// Treść w pliku — filtr przy zapisie nie niszczy <style>.
+	if ( $option_value === OPENVOTE_EMAIL_HTML_OPTION_FILE_MARKER ) {
+		$saved = openvote_read_email_body_html_from_file();
+		if ( $saved !== '' ) {
+			$saved = trim( $saved );
+			if ( str_starts_with( $saved, '<' ) && ( ! preg_match( '/\bbody\s*\{\s*font/i', $saved ) || preg_match( '/<style[\s>]/i', $saved ) ) ) {
+				$old_header = '<p>{brand_short}</p>';
+				$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';
+				if ( str_contains( $saved, $old_header ) && ! str_contains( $saved, '{site_name}' ) ) {
+					$saved = str_replace( $old_header, $new_header, $saved );
+				}
+				return $saved;
+			}
+		}
+		// Plik pusty lub uszkodzony — zwróć domyślny, bez zmiany opcji (następny zapis z formularza nadpisze plik).
+		return openvote_get_email_body_html_default();
+	}
+
+	// Treść w opcji (stara metoda).
+	$saved = is_string( $option_value ) ? trim( $option_value ) : '';
+	if ( $saved !== '' ) {
+		// Wykryj szablon uszkodzony przez wp_kses_post() (stripuje <style>/<head>/<html>).
 		if ( ! str_starts_with( $saved, '<' ) ) {
 			delete_option( 'openvote_email_body_html' );
 			return openvote_get_email_body_html_default();
 		}
-		// Uaktualnij stary nagłówek (tylko {brand_short}) do wersji z nazwą witryny i sloganem.
+		if ( preg_match( '/\bbody\s*\{\s*font/i', $saved ) && ! preg_match( '/<style[\s>]/i', $saved ) ) {
+			delete_option( 'openvote_email_body_html' );
+			return openvote_get_email_body_html_default();
+		}
 		$old_header = '<p>{brand_short}</p>';
 		$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';
 		if ( str_contains( $saved, $old_header ) && ! str_contains( $saved, '{site_name}' ) ) {
