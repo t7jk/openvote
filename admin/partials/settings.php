@@ -1419,9 +1419,14 @@ function openvote_settings_select( string $logical, string $current, array $core
         <?php if ( current_user_can( 'manage_options' ) ) : ?>
         <style>.openvote-progress-wrap{display:flex;align-items:center;gap:12px;margin:4px 0}.openvote-progress-bar-outer{width:280px;max-width:100%;height:12px;background:#ddd;border-radius:6px;overflow:hidden}.openvote-progress-bar-inner{height:100%;background:#2271b1;transition:width .3s}.openvote-progress-label{margin:0;font-size:12px;color:#555}.openvote-progress-done{color:#0a730a;font-weight:600}.openvote-progress-error{color:#d63638;font-weight:600}</style>
         <div style="margin-top:16px;">
-            <button type="button" id="openvote-recalc-inactive-btn" class="button"><?php esc_html_e( 'Przelicz statystyki nieaktywnych', 'openvote' ); ?></button>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <button type="button" id="openvote-recalc-inactive-btn" class="button"><?php esc_html_e( 'Przelicz statystyki nieaktywnych', 'openvote' ); ?></button>
+                <button type="button" id="openvote-clear-counters-btn" class="button" style="background:#d63638;border-color:#d63638;color:#fff;"><?php esc_html_e( 'Wyczyść liczniki', 'openvote' ); ?></button>
+            </div>
             <p class="description" style="margin-top:6px;"><?php esc_html_e( 'Przelicza liczbę opuszczonych głosowań dla wszystkich członków. Przetwarzanie partiami z paskiem postępu (ograniczenie obciążenia serwera).', 'openvote' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Wyczyść liczniki — kasuje dla wszystkich użytkowników liczbę opuszczonych głosowań i datę ostatniego głosowania.', 'openvote' ); ?></p>
             <div id="openvote-recalc-progress" style="display:none;margin-top:10px;max-width:560px;"></div>
+            <div id="openvote-clear-counters-result" style="display:none;margin-top:8px;"></div>
         </div>
         <?php endif; ?>
 
@@ -1644,6 +1649,35 @@ function openvote_settings_select( string $logical, string $current, array $core
                 el.addEventListener('input', function() { val.textContent = this.value; });
             }
         });
+
+        var clearBtn = document.getElementById('openvote-clear-counters-btn');
+        var clearResult = document.getElementById('openvote-clear-counters-result');
+        if (clearBtn && clearResult) {
+            clearBtn.addEventListener('click', function() {
+                if (!window.confirm('<?php echo esc_js( __( 'Czy na pewno chcesz wyczyścić liczniki nieaktywności dla wszystkich użytkowników? Tej operacji nie można cofnąć.', 'openvote' ) ); ?>')) {
+                    return;
+                }
+                var apiRoot = window.openvoteBatch && window.openvoteBatch.apiRoot ? window.openvoteBatch.apiRoot : '/wp-json/openvote/v1';
+                var nonce = window.openvoteBatch && window.openvoteBatch.nonce ? window.openvoteBatch.nonce : '';
+                clearBtn.disabled = true;
+                clearResult.style.display = '';
+                clearResult.innerHTML = '<p class="openvote-progress-label"><?php echo esc_js( __( 'Czyszczenie…', 'openvote' ) ); ?></p>';
+                fetch( apiRoot + '/statistics/clear-counters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce }
+                } ).then(function(r) { return r.json(); }).then(function(data) {
+                    if (data.success) {
+                        clearResult.innerHTML = '<p class="openvote-progress-done">✓ ' + (data.message || '<?php echo esc_js( __( 'Liczniki wyczyszczone.', 'openvote' ) ); ?>') + '</p>';
+                    } else {
+                        throw new Error(data.message || '<?php echo esc_js( __( 'Błąd.', 'openvote' ) ); ?>');
+                    }
+                }).catch(function(err) {
+                    clearResult.innerHTML = '<p class="openvote-progress-error">' + (err && err.message ? err.message : '<?php echo esc_js( __( 'Błąd.', 'openvote' ) ); ?>') + '</p>';
+                }).finally(function() {
+                    clearBtn.disabled = false;
+                });
+            });
+        }
 
         var recalcBtn = document.getElementById('openvote-recalc-inactive-btn');
         var recalcProgress = document.getElementById('openvote-recalc-progress');

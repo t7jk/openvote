@@ -72,6 +72,13 @@ class Openvote_Groups_Rest_Controller {
             'permission_callback' => fn() => current_user_can( 'manage_options' ),
         ] );
 
+        // POST /statistics/clear-counters — wyczyść liczniki nieaktywności dla wszystkich użytkowników
+        register_rest_route( self::NAMESPACE, '/statistics/clear-counters', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'clear_inactive_counters' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+        ] );
+
         // GET /jobs/{job_id}/progress
         register_rest_route( self::NAMESPACE, '/jobs/(?P<job_id>[a-zA-Z0-9_.]+)/progress', [
             'methods'             => WP_REST_Server::READABLE,
@@ -316,6 +323,20 @@ class Openvote_Groups_Rest_Controller {
         return new WP_REST_Response( [
             'job_id'  => $job_id,
             'message' => __( 'Synchronizacja wszystkich grup-miast uruchomiona.', 'openvote' ),
+        ], 200 );
+    }
+
+    /**
+     * Wyczyść liczniki nieaktywności (openvote_missed_polls_count i openvote_last_voted_at)
+     * dla wszystkich użytkowników w usermeta.
+     */
+    public function clear_inactive_counters( WP_REST_Request $request ): WP_REST_Response {
+        global $wpdb;
+        $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => 'openvote_missed_polls_count' ] );
+        $wpdb->delete( $wpdb->usermeta, [ 'meta_key' => 'openvote_last_voted_at' ] );
+        return new WP_REST_Response( [
+            'success' => true,
+            'message' => __( 'Liczniki nieaktywności zostały wyczyszczone.', 'openvote' ),
         ], 200 );
     }
 
