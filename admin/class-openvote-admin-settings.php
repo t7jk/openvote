@@ -281,31 +281,9 @@ class Openvote_Admin_Settings {
             sanitize_text_field( wp_unslash( $_POST['openvote_email_from_template'] ?? '' ) ),
             false
         );
-        $email_type_raw = sanitize_key( (string) ( $_POST['openvote_email_template_type'] ?? 'plain' ) );
-        $email_type     = ( $email_type_raw === 'html' ) ? 'html' : 'plain';
-        update_option( 'openvote_email_template_type', $email_type, false );
         $email_body_plain = wp_unslash( $_POST['openvote_email_body_plain'] ?? '' );
         $email_body_plain = wp_strip_all_tags( $email_body_plain );
         update_option( 'openvote_email_body_plain', $email_body_plain, false );
-        // Treść HTML: preferuj pole Base64 (omija filtry czyszczące $_POST), w razie braku — textarea.
-        $email_body_html_b64 = isset( $_POST['openvote_email_body_html_b64'] ) ? wp_unslash( $_POST['openvote_email_body_html_b64'] ) : '';
-        if ( is_string( $email_body_html_b64 ) && $email_body_html_b64 !== '' ) {
-            $decoded = base64_decode( $email_body_html_b64, true );
-            $email_body_html = ( $decoded !== false && $decoded !== '' ) ? $decoded : ( wp_unslash( $_POST['openvote_email_body_html'] ?? '' ) );
-        } else {
-            $email_body_html = wp_unslash( $_POST['openvote_email_body_html'] ?? '' );
-        }
-        $email_body_html = is_string( $email_body_html ) ? $email_body_html : '';
-        if ( trim( $email_body_html ) !== '' ) {
-            openvote_write_email_body_html_to_file( $email_body_html );
-            update_option( 'openvote_email_body_html', OPENVOTE_EMAIL_HTML_OPTION_FILE_MARKER, false );
-        } else {
-            $path = openvote_get_email_body_html_storage_path();
-            if ( $path !== '' && is_file( $path ) ) {
-                @unlink( $path );
-            }
-            update_option( 'openvote_email_body_html', '', false );
-        }
 
         $missed = isset( $_POST['openvote_stat_missed_votes'] ) ? absint( $_POST['openvote_stat_missed_votes'] ) : 0;
         if ( $missed >= 1 && $missed <= 24 ) {
@@ -620,5 +598,18 @@ class Openvote_Admin_Settings {
             return false;
         }
         return has_block( 'openvote/survey-responses', $page );
+    }
+
+    /**
+     * AJAX: zapisz domyślną treść e-maila (plain) do opcji. Wywoływane z przycisku „Przywróć domyślną”.
+     */
+    public function ajax_reset_email_body_plain(): void {
+        check_ajax_referer( 'openvote_reset_email_body_plain', 'nonce' );
+        if ( ! current_user_can( self::CAP ) ) {
+            wp_send_json_error( [ 'message' => __( 'Brak uprawnień.', 'openvote' ) ] );
+        }
+        $default = openvote_get_email_body_plain_default();
+        update_option( 'openvote_email_body_plain', $default, false );
+        wp_send_json_success( [ 'message' => __( 'Zapisano domyślną treść.', 'openvote' ) ] );
     }
 }

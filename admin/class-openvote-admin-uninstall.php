@@ -65,15 +65,6 @@ class Openvote_Admin_Uninstall {
         foreach ( self::get_option_keys() as $key ) {
             delete_option( $key );
         }
-
-        // Usuń plik szablonu HTML e-maila (zapis w uploads/openvote/).
-        $upload_dir = wp_upload_dir();
-        if ( empty( $upload_dir['error'] ) ) {
-            $path = $upload_dir['basedir'] . '/openvote/email-body-html.html';
-            if ( is_file( $path ) ) {
-                @unlink( $path );
-            }
-        }
     }
 
     /**
@@ -136,9 +127,8 @@ class Openvote_Admin_Uninstall {
             'openvote_email_subject',
             'openvote_email_from_template',
             'openvote_email_body',
-            'openvote_email_template_type',
             'openvote_email_body_plain',
-            'openvote_email_body_html',
+            'openvote_test_invitation_to',
             'openvote_required_fields',
             'openvote_survey_required_fields',
             'openvote_role_screen_map',

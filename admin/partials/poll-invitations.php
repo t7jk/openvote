@@ -53,8 +53,6 @@ $status_labels = [
     'closed' => __( 'Zakończone', 'openvote' ),
 ];
 
-// Szablony zaproszenia (HTML i tekst) do kopiowania na media społecznościowe.
-$invitation_html  = openvote_render_email_template( openvote_get_email_body_html_template(), $poll, 'html' );
 $invitation_plain = openvote_render_email_template( openvote_get_email_body_plain_template(), $poll, 'plain' );
 ?>
 <div class="wrap">
@@ -132,20 +130,13 @@ $invitation_plain = openvote_render_email_template( openvote_get_email_body_plai
         <p style="margin:0 0 12px;font-size:13px;color:#1d2327;line-height:1.5;">
             <?php esc_html_e( 'Możesz skopiować treść zaproszenia do schowka i wkleić je samodzielnie na mediach społecznościowych lub w innym kanale (np. komunikator, forum).', 'openvote' ); ?>
         </p>
-        <p style="margin:0 0 14px;font-size:12px;color:#50575e;">
-            <?php esc_html_e( 'Wybierz wersję HTML (do wklejenia w edytorze obsługującym formatowanie) lub tekstową (zwykły tekst).', 'openvote' ); ?>
-        </p>
-        <button type="button" class="button" id="openvote-copy-invitation-html">
-            <?php esc_html_e( 'Wyślij samodzielnie (HTML)', 'openvote' ); ?>
-        </button>
-        <button type="button" class="button" id="openvote-copy-invitation-plain" style="margin-left:8px;">
-            <?php esc_html_e( 'Wyślij samodzielnie (Text)', 'openvote' ); ?>
+        <button type="button" class="button" id="openvote-copy-invitation-plain">
+            <?php esc_html_e( 'Skopiuj treść zaproszenia', 'openvote' ); ?>
         </button>
         <span id="openvote-copy-feedback" style="margin-left:12px;font-size:13px;color:#0a6b2e;font-weight:500;display:none;"></span>
     </div>
     <script>
     (function(){
-        var invitationHtml  = <?php echo wp_json_encode( $invitation_html ); ?>;
         var invitationPlain = <?php echo wp_json_encode( $invitation_plain ); ?>;
         var feedbackEl = document.getElementById('openvote-copy-feedback');
         var copyMsg = <?php echo wp_json_encode( __( 'Skopiowano do schowka.', 'openvote' ) ); ?>;
@@ -155,18 +146,7 @@ $invitation_plain = openvote_render_email_template( openvote_get_email_body_plai
             feedbackEl.style.display = 'inline';
             setTimeout(function(){ feedbackEl.style.display = 'none'; }, 2500);
         }
-        var btnHtml = document.getElementById('openvote-copy-invitation-html');
         var btnPlain = document.getElementById('openvote-copy-invitation-plain');
-        if ( btnHtml ) {
-            btnHtml.addEventListener('click', function() {
-                if ( navigator.clipboard && navigator.clipboard.writeText ) {
-                    navigator.clipboard.writeText( invitationHtml ).then( showFeedback ).catch(function() { feedbackEl.textContent = ''; });
-                } else {
-                    feedbackEl.textContent = <?php echo wp_json_encode( __( 'Skopiuj ręcznie (Ctrl+C).', 'openvote' ) ); ?>;
-                    feedbackEl.style.display = 'inline';
-                }
-            });
-        }
         if ( btnPlain ) {
             btnPlain.addEventListener('click', function() {
                 if ( navigator.clipboard && navigator.clipboard.writeText ) {

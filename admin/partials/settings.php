@@ -338,7 +338,10 @@ function openvote_settings_select( string $logical, string $current, array $core
         $batch_smtp_per_15    = (int) get_option( 'openvote_batch_smtp_per_15min', 0 );
         $batch_smtp_per_hour  = (int) get_option( 'openvote_batch_smtp_per_hour', 0 );
         $admin_email    = wp_get_current_user()->user_email;
-        $default_invitation_test_to = 'email@poczta.pl';
+        $default_invitation_test_to = get_option( 'openvote_test_invitation_to', '' );
+        if ( $default_invitation_test_to === '' || ! is_email( $default_invitation_test_to ) ) {
+            $default_invitation_test_to = 'email@poczta.pl';
+        }
         $wp_mail_disabled = $email_count > 250;
         ?>
         <table class="form-table openvote-settings-email-section__table" role="presentation">
@@ -423,7 +426,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                     </button>
                     <span id="openvote-test-invitation-result" style="margin-left:12px;font-weight:500;"></span>
                     <p class="description" style="margin-top:6px;">
-                        <?php esc_html_e( 'Wysyła na podany adres z treścią zaproszenia (HTML). Używana jest metoda zaznaczona powyżej.', 'openvote' ); ?>
+                        <?php esc_html_e( 'Wysyła na podany adres z treścią zaproszenia (czysty tekst). Używana jest metoda zaznaczona powyżej.', 'openvote' ); ?>
                     </p>
                 </td>
             </tr>
@@ -1389,21 +1392,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             </tr>
             <tr>
                 <th scope="row" style="vertical-align:top;padding-top:12px;">
-                    <?php esc_html_e( 'Typ szablonu wysyłanego', 'openvote' ); ?>
-                </th>
-                <td>
-                    <fieldset>
-                        <label><input type="radio" name="openvote_email_template_type" value="plain" <?php checked( openvote_get_email_template_type(), 'plain' ); ?> /> <?php esc_html_e( 'Szablon czysty tekst (text/plain)', 'openvote' ); ?></label><br>
-                        <label><input type="radio" name="openvote_email_template_type" value="html" <?php checked( openvote_get_email_template_type(), 'html' ); ?> /> <?php esc_html_e( 'Szablon HTML (text/html)', 'openvote' ); ?></label>
-                    </fieldset>
-                    <p class="description" style="margin-top:4px;">
-                        <?php esc_html_e( 'Wybierz, w jakim formacie mają być wysyłane e-maile zaproszenia.', 'openvote' ); ?>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row" style="vertical-align:top;padding-top:12px;">
-                    <label for="openvote_email_body_plain"><?php esc_html_e( 'Treść (wersja czysty tekst)', 'openvote' ); ?></label>
+                    <label for="openvote_email_body_plain"><?php esc_html_e( 'Treść e-maila (czysty tekst)', 'openvote' ); ?></label>
                 </th>
                 <td>
                     <textarea id="openvote_email_body_plain"
@@ -1412,25 +1401,8 @@ function openvote_settings_select( string $logical, string $current, array $core
                               class="large-text"
                               style="font-family:monospace;font-size:13px;line-height:1.6;"><?php echo esc_textarea( openvote_get_email_body_plain_template() ); ?></textarea>
                     <p style="margin-top:6px;">
-                        <button type="button" class="button" id="openvote-email-reset-plain-btn"><?php esc_html_e( 'Przywróć domyślną (czysty tekst)', 'openvote' ); ?></button>
+                        <button type="button" class="button" id="openvote-email-reset-plain-btn"><?php esc_html_e( 'Przywróć domyślną', 'openvote' ); ?></button>
                         <button type="button" class="button" id="openvote-email-preview-plain-btn"><?php esc_html_e( 'Zobacz podgląd', 'openvote' ); ?></button>
-                    </p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row" style="vertical-align:top;padding-top:12px;">
-                    <label for="openvote_email_body_html"><?php esc_html_e( 'Treść (wersja HTML)', 'openvote' ); ?></label>
-                </th>
-                <td>
-                    <input type="hidden" name="openvote_email_body_html_b64" id="openvote_email_body_html_b64" value="" />
-                    <textarea id="openvote_email_body_html"
-                              name="openvote_email_body_html"
-                              rows="24"
-                              class="large-text"
-                              style="font-family:monospace;font-size:12px;line-height:1.5;"><?php echo esc_textarea( openvote_get_email_body_html_template() ); ?></textarea>
-                    <p style="margin-top:6px;">
-                        <button type="button" class="button" id="openvote-email-reset-html-btn"><?php esc_html_e( 'Przywróć domyślną (HTML)', 'openvote' ); ?></button>
-                        <button type="button" class="button" id="openvote-email-preview-html-btn"><?php esc_html_e( 'Zobacz podgląd', 'openvote' ); ?></button>
                     </p>
                 </td>
             </tr>
@@ -1438,20 +1410,7 @@ function openvote_settings_select( string $logical, string $current, array $core
 
         <script>
         ( function() {
-            var form = document.getElementById('openvote-settings-form');
-            if ( form ) {
-                form.addEventListener('submit', function() {
-                    var textarea = document.getElementById('openvote_email_body_html');
-                    var hidden = document.getElementById('openvote_email_body_html_b64');
-                    if ( textarea && hidden && textarea.value ) {
-                        try {
-                            hidden.value = btoa(unescape(encodeURIComponent( textarea.value )));
-                        } catch ( err ) {}
-                    }
-                });
-            }
             var plainDefault = <?php echo json_encode( openvote_get_email_body_plain_default() ); ?>;
-            var htmlDefault = <?php echo json_encode( openvote_get_email_body_html_default() ); ?>;
             var previewPlaceholders = <?php echo json_encode( [
                 'poll_title'     => __( 'Przykładowe głosowanie', 'openvote' ),
                 'brand_short'    => openvote_get_brand_short_name(),
@@ -1467,10 +1426,28 @@ function openvote_settings_select( string $logical, string $current, array $core
                 'plugin_author'  => OPENVOTE_PLUGIN_AUTHOR,
                 'github_url'     => OPENVOTE_GITHUB_URL,
             ] ); ?>;
-            document.getElementById('openvote-email-reset-plain-btn').addEventListener('click', function() {
-                if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść (czysty tekst)? Obecna treść zostanie nadpisana.', 'openvote' ) ); ?>')) return;
-                document.getElementById('openvote_email_body_plain').value = plainDefault;
-            });
+            (function(){
+                var resetBtn = document.getElementById('openvote-email-reset-plain-btn');
+                var textarea = document.getElementById('openvote_email_body_plain');
+                if (!resetBtn || !textarea) return;
+                resetBtn.addEventListener('click', function() {
+                    if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść? Zostanie zapisana od razu.', 'openvote' ) ); ?>')) return;
+                    resetBtn.disabled = true;
+                    fetch(ajaxurl, {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+                        body: new URLSearchParams({
+                            action: 'openvote_reset_email_body_plain',
+                            nonce: '<?php echo esc_js( wp_create_nonce( 'openvote_reset_email_body_plain' ) ); ?>'
+                        })
+                    }).then(function(r){ return r.json(); }).then(function(d){
+                        if (d.success) {
+                            textarea.value = plainDefault;
+                            if (d.data && d.data.message) { resetBtn.textContent = d.data.message; setTimeout(function(){ resetBtn.textContent = '<?php echo esc_js( __( 'Przywróć domyślną', 'openvote' ) ); ?>'; }, 2000); }
+                        }
+                    }).finally(function(){ resetBtn.disabled = false; });
+                });
+            })();
             document.getElementById('openvote-email-preview-plain-btn').addEventListener('click', function() {
                 var text = document.getElementById('openvote_email_body_plain').value;
                 var placeholders = {};
@@ -1489,24 +1466,6 @@ function openvote_settings_select( string $logical, string $current, array $core
                 var w = window.open('', '_blank');
                 if (w) {
                     w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title><?php echo esc_js( __( 'Podgląd wiadomości (czysty tekst)', 'openvote' ) ); ?></title></head><body style="font-family:monospace;font-size:14px;line-height:1.6;white-space:pre-wrap;max-width:720px;margin:24px auto;padding:0 20px;">' + (function() { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; })() + '</body></html>');
-                    w.document.close();
-                }
-            });
-            document.getElementById('openvote-email-reset-html-btn').addEventListener('click', function() {
-                if (!confirm('<?php echo esc_js( __( 'Przywrócić domyślną treść (HTML)? Obecna treść zostanie nadpisana.', 'openvote' ) ); ?>')) return;
-                document.getElementById('openvote_email_body_html').value = htmlDefault;
-            });
-            document.getElementById('openvote-email-preview-html-btn').addEventListener('click', function() {
-                var html = document.getElementById('openvote_email_body_html').value;
-                var key;
-                for (key in previewPlaceholders) {
-                    if (previewPlaceholders.hasOwnProperty(key)) {
-                        html = html.replace(new RegExp('\\{' + key + '\\}', 'g'), previewPlaceholders[key]);
-                    }
-                }
-                var w = window.open('', '_blank');
-                if (w) {
-                    w.document.write(html);
                     w.document.close();
                 }
             });

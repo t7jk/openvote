@@ -758,63 +758,6 @@ function openvote_get_email_from_template(): string {
 }
 
 /**
- * Typ szablonu e-maila: 'plain' (czysty tekst) lub 'html'.
- */
-function openvote_get_email_template_type(): string {
-	$v = get_option( 'openvote_email_template_type', 'html' );
-	return ( $v === 'html' ) ? 'html' : 'plain';
-}
-
-/** Wartość opcji openvote_email_body_html oznaczająca „treść w pliku” (omija filtry typu wp_kses_post przy zapisie). */
-define( 'OPENVOTE_EMAIL_HTML_OPTION_FILE_MARKER', '__OPENVOTE_FILE__' );
-
-/**
- * Ścieżka do pliku z szablonem HTML e-maila (w katalogu uploadów).
- * Zapis w pliku omija filtry pre_update_option, które mogłyby usuwać <style>/<head>.
- *
- * @return string Ścieżka bezwzględna do pliku.
- */
-function openvote_get_email_body_html_storage_path(): string {
-	$upload_dir = wp_upload_dir();
-	if ( ! empty( $upload_dir['error'] ) ) {
-		return '';
-	}
-	return $upload_dir['basedir'] . '/openvote/email-body-html.html';
-}
-
-/**
- * Zapisuje szablon HTML e-maila do pliku. Tworzy katalog openvote w uploads, jeśli trzeba.
- *
- * @param string $html Pełna treść HTML (z <!DOCTYPE>, <style> itd.).
- * @return bool True, jeśli zapis się udał.
- */
-function openvote_write_email_body_html_to_file( string $html ): bool {
-	$path = openvote_get_email_body_html_storage_path();
-	if ( $path === '' ) {
-		return false;
-	}
-	$dir = dirname( $path );
-	if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
-		return false;
-	}
-	return file_put_contents( $path, $html, LOCK_EX ) !== false;
-}
-
-/**
- * Odczytuje szablon HTML e-maila z pliku.
- *
- * @return string Treść pliku lub pusty string, jeśli plik nie istnieje / nie da się odczytać.
- */
-function openvote_read_email_body_html_from_file(): string {
-	$path = openvote_get_email_body_html_storage_path();
-	if ( $path === '' || ! is_readable( $path ) ) {
-		return '';
-	}
-	$content = file_get_contents( $path );
-	return is_string( $content ) ? $content : '';
-}
-
-/**
  * Domyślna treść e-maila (wersja czysty tekst).
  * Zawiera stopkę z {plugin_author}, {github_url}.
  */
@@ -824,69 +767,6 @@ function openvote_get_email_body_plain_default(): string {
 		'Autor systemu: ' . OPENVOTE_PLUGIN_AUTHOR . "\n" .
 		"──────────────────────────────────────────────────";
 	return "Szanowni Państwo,\n\nmamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:\n\n  „{poll_title}\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nZAGADNIENIA PODDANE POD GŁOSOWANIE:\n\n{questions}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  Głosowanie dostępne pod adresem:\n  {vote_url}\n\n  Termin głosowania: do {date_end}\n\nKażdy głos ma znaczenie – zachęcamy do wzięcia udziału.\n\nZapraszamy do głosowania!\n\nZespół {brand_short} - {site_name}\n{site_tagline}" . $footer;
-}
-
-/**
- * Domyślna treść e-maila (wersja HTML).
- */
-function openvote_get_email_body_html_default(): string {
-	return '<!DOCTYPE html>
-<html lang="pl">
-<head>
-<meta charset="UTF-8">
-<style>
-  body { font-family: Arial, sans-serif; color: #2c2c2c; background: #f5f5f5; margin: 0; padding: 20px; }
-  .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .header { background: #1a3c6e; color: #ffffff; padding: 32px 40px; text-align: center; }
-  .header h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
-  .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.8; }
-  .header p.header__tagline { margin-top: 4px; font-size: 13px; opacity: 0.9; }
-  .header p:empty { display: none; }
-  .body { padding: 36px 40px; }
-  .body p { line-height: 1.7; font-size: 15px; }
-  .poll-title { font-size: 18px; font-weight: 700; color: #1a3c6e; margin: 16px 0; }
-  .questions { background: #f0f4fa; border-left: 4px solid #1a3c6e; border-radius: 4px; padding: 16px 20px; margin: 20px 0; }
-  .questions h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
-  .questions ul { margin: 0; padding-left: 18px; }
-  .questions ul li { margin-bottom: 6px; font-size: 15px; }
-  .deadline { font-size: 14px; color: #666; margin: 16px 0; }
-  .deadline strong { color: #c0392b; }
-  .cta { text-align: center; margin: 28px 0; }
-  .cta a { background: #1a3c6e; color: #ffffff; padding: 14px 36px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: 600; display: inline-block; letter-spacing: 0.3px; }
-  .footer { text-align: center; padding: 20px 40px; background: #f5f5f5; font-size: 13px; color: #999; border-top: 1px solid #e0e0e0; }
-</style>
-</head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    <h1>Zaproszenie do głosowania</h1>
-    <p>{brand_short} — {site_name}</p>
-    <p class="header__tagline">{site_tagline}</p>
-  </div>
-  <div class="body">
-    <p>Szanowni Państwo,</p>
-    <p>mamy zaszczyt zaprosić Państwa do udziału w głosowaniu elektronicznym:</p>
-    <div class="poll-title">„{poll_title}"</div>
-    <div class="questions">
-      <h3>Zagadnienia poddane pod głosowanie</h3>
-      {questions}
-    </div>
-    <div class="deadline">Termin głosowania: <strong>do {date_end}</strong></div>
-    <div class="cta">
-      <a href="{vote_url}">Przejdź do głosowania →</a>
-    </div>
-    <p>Każdy głos ma znaczenie. Dziękujemy za zaangażowanie.</p>
-  </div>
-  <div class="footer">
-    © {brand_short} &nbsp;|&nbsp; Wiadomość wygenerowana automatycznie<br><br>
-    <span style="font-size:12px; color:#bbb;">
-      Głosowanie przeprowadzono na stronie <a href="{site_url}" style="color:#bbb;">{site_url}</a><br>
-      System: <em>Otwarte Głosowanie (Open Vote)</em> &mdash; autor: ' . OPENVOTE_PLUGIN_AUTHOR . '
-    </span>
-  </div>
-</div>
-</body>
-</html>';
 }
 
 /**
@@ -918,59 +798,10 @@ function openvote_get_email_body_plain_template(): string {
 }
 
 /**
- * Treść e-maila zaproszenia (wersja HTML). Zapis w pliku (gdy opcja = marker) lub w opcji, inaczej domyślna.
- * Zapis w pliku omija filtry pre_update_option (np. wp_kses_post), które usuwałyby <style>/<head>.
- */
-function openvote_get_email_body_html_template(): string {
-	$option_value = get_option( 'openvote_email_body_html', '' );
-
-	// Treść w pliku — filtr przy zapisie nie niszczy <style>.
-	if ( $option_value === OPENVOTE_EMAIL_HTML_OPTION_FILE_MARKER ) {
-		$saved = openvote_read_email_body_html_from_file();
-		if ( $saved !== '' ) {
-			$saved = trim( $saved );
-			if ( str_starts_with( $saved, '<' ) && ( ! preg_match( '/\bbody\s*\{\s*font/i', $saved ) || preg_match( '/<style[\s>]/i', $saved ) ) ) {
-				$old_header = '<p>{brand_short}</p>';
-				$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';
-				if ( str_contains( $saved, $old_header ) && ! str_contains( $saved, '{site_name}' ) ) {
-					$saved = str_replace( $old_header, $new_header, $saved );
-				}
-				return $saved;
-			}
-		}
-		// Plik pusty lub uszkodzony — zwróć domyślny, bez zmiany opcji (następny zapis z formularza nadpisze plik).
-		return openvote_get_email_body_html_default();
-	}
-
-	// Treść w opcji (stara metoda).
-	$saved = is_string( $option_value ) ? trim( $option_value ) : '';
-	if ( $saved !== '' ) {
-		// Wykryj szablon uszkodzony przez wp_kses_post() (stripuje <style>/<head>/<html>).
-		if ( ! str_starts_with( $saved, '<' ) ) {
-			delete_option( 'openvote_email_body_html' );
-			return openvote_get_email_body_html_default();
-		}
-		if ( preg_match( '/\bbody\s*\{\s*font/i', $saved ) && ! preg_match( '/<style[\s>]/i', $saved ) ) {
-			delete_option( 'openvote_email_body_html' );
-			return openvote_get_email_body_html_default();
-		}
-		$old_header = '<p>{brand_short}</p>';
-		$new_header = '<p>{brand_short} — {site_name}</p>' . "\n    " . '<p class="header__tagline">{site_tagline}</p>';
-		if ( str_contains( $saved, $old_header ) && ! str_contains( $saved, '{site_name}' ) ) {
-			$saved = str_replace( $old_header, $new_header, $saved );
-		}
-		return $saved;
-	}
-	return openvote_get_email_body_html_default();
-}
-
-/**
- * Treść e-maila zaproszenia dla aktualnie wybranego typu (plain/html).
+ * Treść e-maila zaproszenia (zawsze czysty tekst).
  */
 function openvote_get_email_body_template(): string {
-	return openvote_get_email_template_type() === 'html'
-		? openvote_get_email_body_html_template()
-		: openvote_get_email_body_plain_template();
+	return openvote_get_email_body_plain_template();
 }
 
 /**

@@ -6,58 +6,12 @@ defined( 'ABSPATH' ) || exit;
  */
 class Openvote_Mailer {
 
-    /** Treść zaproszenia (HTML) przed wysyłką — przywracana przez filtr jeśli inna wtyczka usunie <style>. */
-    public static $intended_invitation_body = '';
-
     /**
      * Rejestracja hooków – wywoływana z Openvote (class-openvote.php).
      */
     public static function register_hooks(): void {
         add_action( 'phpmailer_init', [ self::class, 'configure_smtp' ], 5 );
-        add_action( 'phpmailer_init', [ self::class, 'ensure_html_content_type' ], 20 );
-        add_filter( 'wp_mail', [ self::class, 'restore_invitation_body_if_stripped' ], 9999, 1 );
         add_action( 'wp_ajax_openvote_send_test_invitation_email', [ self::class, 'ajax_send_test_invitation_email' ] );
-    }
-
-    /**
-     * Jeśli inna wtyczka/filtr usunęła tagi HTML z treści zaproszenia (np. wp_kses_post), przywróć oryginalną treść.
-     * Wykrywanie: zamierzona treść to HTML (zaczyna się od '<'), a aktualna zawiera surowy CSS (body { font).
-     *
-     * @param array<string, mixed> $args Argumenty wp_mail (to, subject, message, headers, attachments).
-     * @return array<string, mixed>
-     */
-    public static function restore_invitation_body_if_stripped( array $args ): array {
-        if ( self::$intended_invitation_body === '' || ! isset( $args['message'] ) || ! is_string( $args['message'] ) ) {
-            return $args;
-        }
-        $intended = trim( self::$intended_invitation_body );
-        if ( ! str_starts_with( $intended, '<' ) ) {
-            return $args;
-        }
-        $current = trim( $args['message'] );
-        if ( str_starts_with( $current, '<' ) ) {
-            return $args;
-        }
-        if ( str_contains( $current, 'body { font' ) ) {
-            $args['message'] = self::$intended_invitation_body;
-        }
-        return $args;
-    }
-
-    /**
-     * Gdy treść wiadomości to HTML, ustaw PHPMailer na IsHTML(true) i wyczyść AltBody,
-     * żeby nie generować multipart/alternative z wersją plain (która mogłaby pokazywać surowy tekst).
-     *
-     * @param PHPMailer\PHPMailer\PHPMailer $phpmailer
-     */
-    public static function ensure_html_content_type( $phpmailer ): void {
-        if ( ! isset( $phpmailer->Body ) || ! is_string( $phpmailer->Body ) ) {
-            return;
-        }
-        if ( str_starts_with( trim( $phpmailer->Body ), '<' ) ) {
-            $phpmailer->isHTML( true );
-            $phpmailer->AltBody = '';
-        }
     }
 
     /**
@@ -521,7 +475,7 @@ class Openvote_Mailer {
     }
 
     /**
-     * AJAX: wyślij testowy e-mail z treścią zaproszenia (HTML) wybraną metodą.
+     * AJAX: wyślij testowy e-mail z treścią zaproszenia (czysty tekst) wybraną metodą.
      */
     public static function ajax_send_test_invitation_email(): void {
         check_ajax_referer( 'openvote_send_test_invitation_email', 'nonce' );
@@ -541,7 +495,6 @@ class Openvote_Mailer {
             $test_method = 'wordpress';
         }
 
-        // Atrapa głosowania do renderowania szablonu zaproszenia (HTML).
         $poll_dummy = (object) [
             'title'      => __( 'Test zaproszenia', 'openvote' ),
             'date_start' => gmdate( 'Y-m-d' ),
@@ -551,14 +504,15 @@ class Openvote_Mailer {
 
         $subject   = openvote_render_email_template( openvote_get_email_subject_template(), $poll_dummy );
         $from_name = openvote_render_email_template( openvote_get_email_from_template(), $poll_dummy );
-        $message   = openvote_render_email_template( openvote_get_email_body_html_template(), $poll_dummy, 'html' );
+        $message   = openvote_render_email_template( openvote_get_email_body_plain_template(), $poll_dummy, 'plain' );
 
         $recipient = [ [ 'email' => $to, 'name' => '' ] ];
 
         if ( $test_method === 'sendgrid' ) {
-            $result = self::send_via_sendgrid( $recipient, $subject, $message, '', 'text/html' );
+            $result = self::send_via_sendgrid( $recipient, $subject, $message, '', 'text/plain' );
             if ( $result['sent'] > 0 ) {
                 self::record_test_email_sent();
+                update_option( 'openvote_test_invitation_to', $to, false );
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -567,9 +521,10 @@ class Openvote_Mailer {
         }
 
         if ( $test_method === 'brevo' || $test_method === 'brevo_paid' ) {
-            $result = self::send_via_brevo( $recipient, $subject, $message, '', 'text/html' );
+            $result = self::send_via_brevo( $recipient, $subject, $message, '', 'text/plain' );
             if ( $result['sent'] > 0 ) {
                 self::record_test_email_sent();
+                update_option( 'openvote_test_invitation_to', $to, false );
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -578,9 +533,10 @@ class Openvote_Mailer {
         }
 
         if ( $test_method === 'freshmail' ) {
-            $result = self::send_via_freshmail( $recipient, $subject, $message, '', '', 'text/html' );
+            $result = self::send_via_freshmail( $recipient, $subject, $message, '', '', 'text/plain' );
             if ( $result['sent'] > 0 ) {
                 self::record_test_email_sent();
+                update_option( 'openvote_test_invitation_to', $to, false );
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -589,9 +545,10 @@ class Openvote_Mailer {
         }
 
         if ( $test_method === 'getresponse' ) {
-            $result = self::send_via_getresponse( $recipient, $subject, $message, '', '', 'text/html' );
+            $result = self::send_via_getresponse( $recipient, $subject, $message, '', '', 'text/plain' );
             if ( $result['sent'] > 0 ) {
                 self::record_test_email_sent();
+                update_option( 'openvote_test_invitation_to', $to, false );
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -610,14 +567,12 @@ class Openvote_Mailer {
 
         $from_email = openvote_get_from_email();
         $headers    = [
-            'Content-Type: text/html; charset=UTF-8',
+            'Content-Type: text/plain; charset=UTF-8',
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
         try {
-            self::$intended_invitation_body = $message;
             $sent = wp_mail( $to, $subject, $message, $headers );
         } finally {
-            self::$intended_invitation_body = '';
             if ( $test_method === 'smtp' && isset( $current ) ) {
                 update_option( 'openvote_mail_method', $current, false );
             }
@@ -625,6 +580,7 @@ class Openvote_Mailer {
 
         if ( $sent ) {
             self::record_test_email_sent();
+            update_option( 'openvote_test_invitation_to', $to, false );
             wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
         } else {
             global $phpmailer;

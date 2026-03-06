@@ -55,6 +55,7 @@ class Openvote {
 
         $settings = new Openvote_Admin_Settings();
         $this->loader->add_action( 'admin_init', $settings, 'handle_form_submission', 5 );
+        $this->loader->add_action( 'wp_ajax_openvote_reset_email_body_plain', $settings, 'ajax_reset_email_body_plain' );
 
         $roles = new Openvote_Admin_Roles();
         $this->loader->add_action( 'admin_init', $roles, 'handle_form_submission' );

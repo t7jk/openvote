@@ -899,27 +899,19 @@ class Openvote_Batch_Processor {
         $from_email   = openvote_get_from_email();
         $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );
         $subject      = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
-        $email_type   = openvote_get_email_template_type();
-        $message      = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
-        $content_type = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
-        $headers      = [
-            'Content-Type: ' . $content_type,
+        $message = openvote_render_email_template( openvote_get_email_body_template(), $poll, 'plain' );
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
-        $sent         = [];
-
-        Openvote_Mailer::$intended_invitation_body = ( $email_type === 'html' ? $message : '' );
-        try {
-            foreach ( $users as $user ) {
-                if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $user->ID ) ) {
-                    continue;
-                }
-                if ( is_email( $user->user_email ) && wp_mail( $user->user_email, $subject, $message, $headers ) ) {
-                    $sent[] = $user->user_email;
-                }
+        $sent = [];
+        foreach ( $users as $user ) {
+            if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $user->ID ) ) {
+                continue;
             }
-        } finally {
-            Openvote_Mailer::$intended_invitation_body = '';
+            if ( is_email( $user->user_email ) && wp_mail( $user->user_email, $subject, $message, $headers ) ) {
+                $sent[] = $user->user_email;
+            }
         }
 
         return $sent;
@@ -1077,11 +1069,8 @@ class Openvote_Batch_Processor {
         }
 
         $subject    = openvote_render_email_template( openvote_get_email_subject_template(), $poll );
-        $email_type = openvote_get_email_template_type();
-        $message    = openvote_render_email_template( openvote_get_email_body_template(), $poll, $email_type );
-
-        $content_type       = ( $email_type === 'html' ) ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
-        $content_type_short = ( $email_type === 'html' ) ? 'text/html' : 'text/plain';
+        $message = openvote_render_email_template( openvote_get_email_body_template(), $poll, 'plain' );
+        $content_type_short = 'text/plain';
 
         $sent      = [];
         $failed    = [];
@@ -1176,24 +1165,19 @@ class Openvote_Batch_Processor {
                 );
             }
         } else {
-            $from_email   = openvote_get_from_email();
-            $from_name    = openvote_render_email_template( openvote_get_email_from_template(), $poll );
-            $headers      = [
-                'Content-Type: ' . $content_type,
+            $from_email = openvote_get_from_email();
+            $from_name  = openvote_render_email_template( openvote_get_email_from_template(), $poll );
+            $headers    = [
+                'Content-Type: text/plain; charset=UTF-8',
                 'From: ' . $from_name . ' <' . $from_email . '>',
             ];
-            Openvote_Mailer::$intended_invitation_body = ( $email_type === 'html' ? $message : '' );
-            try {
-                foreach ( $rows as $row ) {
-                    $ok = wp_mail( $row->email, $subject, $message, $headers );
-                    if ( $ok ) {
-                        $sent[] = $row->email;
-                    } else {
-                        $failed[ $row->id ] = 'wp_mail error';
-                    }
+            foreach ( $rows as $row ) {
+                $ok = wp_mail( $row->email, $subject, $message, $headers );
+                if ( $ok ) {
+                    $sent[] = $row->email;
+                } else {
+                    $failed[ $row->id ] = 'wp_mail error';
                 }
-            } finally {
-                Openvote_Mailer::$intended_invitation_body = '';
             }
             if ( ! empty( $failed ) ) {
                 $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację.', 'openvote' );
