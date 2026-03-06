@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.2.0
+ * Version:           1.0.20
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.2.0' );
+define( 'OPENVOTE_VERSION', '1.0.20' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -331,6 +331,51 @@ function openvote_surveys_audit_log_get(): array {
 		update_option( 'openvote_surveys_audit_log', $log, false );
 	}
 	return $log;
+}
+
+// ─── Licznik wysłanych e-maili (per miesiąc) ────────────────────────────────
+
+/**
+ * Atomicznie zwiększa licznik wysłanych e-maili dla bieżącego miesiąca.
+ * Klucz opcji: openvote_emails_sent_YYYY_MM (UTC).
+ *
+ * @param int $count Liczba wysłanych wiadomości do dodania.
+ */
+function openvote_increment_emails_sent( int $count = 1 ): void {
+	if ( $count <= 0 ) {
+		return;
+	}
+	global $wpdb;
+	$key = 'openvote_emails_sent_' . gmdate( 'Y_m' );
+	$wpdb->query(
+		$wpdb->prepare(
+			"INSERT INTO {$wpdb->options} (option_name, option_value, autoload)
+			 VALUES (%s, %d, 'no')
+			 ON DUPLICATE KEY UPDATE option_value = option_value + %d",
+			$key,
+			$count,
+			$count
+		)
+	);
+	wp_cache_delete( $key, 'options' );
+}
+
+/**
+ * Zwraca historię wysłanych e-maili za ostatnie $months miesięcy (UTC).
+ * Klucze tablicy wynikowej: 'YYYY-MM', wartości: int.
+ *
+ * @param int $months Liczba miesięcy wstecz (włącznie z bieżącym).
+ * @return array<string, int>
+ */
+function openvote_get_emails_sent_history( int $months = 12 ): array {
+	$result = [];
+	for ( $i = 0; $i < $months; $i++ ) {
+		$ts    = strtotime( "-{$i} months", time() );
+		$key   = gmdate( 'Y_m', $ts );
+		$label = gmdate( 'Y-m', $ts );
+		$result[ $label ] = (int) get_option( 'openvote_emails_sent_' . $key, 0 );
+	}
+	return $result;
 }
 
 // ─── Statystyka i nieaktywni użytkownicy ───────────────────────────────────

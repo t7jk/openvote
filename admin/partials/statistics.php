@@ -211,6 +211,45 @@ if ( ! $chart_has_data ) {
 		</div>
 	</div>
 
+	<?php
+	$email_rate_counts = class_exists( 'Openvote_Email_Rate_Limits', false ) ? Openvote_Email_Rate_Limits::get_counts() : [ 'count_15' => 0, 'count_hour' => 0, 'count_day' => 0 ];
+	$email_month_history = openvote_get_emails_sent_history( 1 );
+	$email_count_month   = reset( $email_month_history ) ?: 0;
+	?>
+	<div class="openvote-stat-section" style="margin-top:24px;">
+		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Ilość wysłanych e-maili', 'openvote' ); ?></h2>
+		<div class="openvote-stat-cards" style="grid-template-columns: repeat(4, 1fr);">
+			<div class="openvote-stat-card">
+				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu ostatnich 15 minut', 'openvote' ); ?></span>
+				<div class="openvote-stat-card__row">
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_15'] ); ?></span>
+				</div>
+			</div>
+			<div class="openvote-stat-card">
+				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu ostatniej godziny', 'openvote' ); ?></span>
+				<div class="openvote-stat-card__row">
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_hour'] ); ?></span>
+				</div>
+			</div>
+			<div class="openvote-stat-card">
+				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu doby', 'openvote' ); ?></span>
+				<div class="openvote-stat-card__row">
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_day'] ); ?></span>
+				</div>
+			</div>
+			<div class="openvote-stat-card">
+				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu miesiąca', 'openvote' ); ?></span>
+				<div class="openvote-stat-card__row">
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_count_month ); ?></span>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<div class="openvote-stat-table-wrap">
 		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Ostatnie 10 głosowań (zakończone)', 'openvote' ); ?></h2>
 		<table class="widefat fixed striped">

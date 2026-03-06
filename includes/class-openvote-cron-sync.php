@@ -31,7 +31,7 @@ class Openvote_Cron_Sync {
     public static function reschedule(): void {
         wp_clear_scheduled_hook( self::HOOK_SYNC );
 
-        $schedule = get_option( 'openvote_auto_sync_schedule', 'manual' );
+        $schedule = get_option( 'openvote_auto_sync_schedule', 'first_sunday' );
         if ( $schedule === 'manual' ) {
             return;
         }
@@ -53,7 +53,7 @@ class Openvote_Cron_Sync {
      * Callback crona o 00:00: sprawdza harmonogram i w razie dopasowania startuje job, zapisuje job_id, planuje tick.
      */
     public static function run_scheduled_sync(): void {
-        $schedule = get_option( 'openvote_auto_sync_schedule', 'manual' );
+        $schedule = get_option( 'openvote_auto_sync_schedule', 'first_sunday' );
         if ( $schedule === 'manual' ) {
             return;
         }

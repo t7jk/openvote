@@ -328,23 +328,20 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         <?php submit_button( __( 'Dodaj grupę', 'openvote' ), 'primary', 'submit', false ); ?>
     </form>
 
-    <?php // ─── Synchronizacja grup-miast (na dole strony) ───────────────────── ?>
+    <?php // ─── Synchronizacja grup (na dole strony) ───────────────────── ?>
     <hr>
     <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-        <strong><?php esc_html_e( 'Synchronizacja grup-miast (ver.2.14)', 'openvote' ); ?></strong>
+        <strong><?php esc_html_e( 'Synchronizacja grup (ver.2.14)', 'openvote' ); ?></strong>
         <p class="description" style="margin:4px 0 8px;">
             <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora.', 'openvote' ); ?>
         </p>
         <p style="margin:0 0 8px;">
             <button type="button" id="openvote-sync-all-btn" class="button button-primary">
-                <?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'openvote' ); ?>
-            </button>
-            <button type="button" id="openvote-sync-all-reset-btn" class="button openvote-btn-sync-reset" style="margin-left:8px;background:#b32d2e;border-color:#b32d2e;color:#fff;">
-                <?php esc_html_e( 'Synchronizuj od początku wszystkie grupy-miasta (Nie zalecane)', 'openvote' ); ?>
+                <?php esc_html_e( 'Synchronizuj wszystkie grupy', 'openvote' ); ?>
             </button>
         </p>
         <button type="button" id="openvote-sync-all-stop-btn" class="button" style="display:none;">
-            <?php esc_html_e( 'Zatrzymaj synchronizację grup-miast', 'openvote' ); ?>
+            <?php esc_html_e( 'Zatrzymaj synchronizację grup', 'openvote' ); ?>
         </button>
         <div id="openvote-sync-all-progress" style="margin-top:10px;"></div>
     </div>

@@ -74,15 +74,21 @@ class Openvote_Email_Rate_Limits {
 
 			$new_count = ( $stored_slot === $current_slot ) ? ( $count + $n ) : $n;
 
+			// Use INSERT ... ON DUPLICATE KEY UPDATE so rows are created on first run.
+			// A plain UPDATE silently does nothing when the row does not yet exist.
 			$wpdb->query( $wpdb->prepare(
-				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s",
-				(string) $current_slot,
-				$opt_slot
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload)
+				 VALUES (%s, %s, 'no')
+				 ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+				$opt_slot,
+				(string) $current_slot
 			) );
 			$wpdb->query( $wpdb->prepare(
-				"UPDATE {$wpdb->options} SET option_value = %d WHERE option_name = %s",
-				$new_count,
-				$opt_count
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload)
+				 VALUES (%s, %d, 'no')
+				 ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+				$opt_count,
+				$new_count
 			) );
 		}
 		$wpdb->query( 'COMMIT' );

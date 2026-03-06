@@ -529,6 +529,7 @@ class Openvote_Mailer {
         if ( $test_method === 'sendgrid' ) {
             $result = self::send_via_sendgrid( $recipient, $subject, $message, '', 'text/html' );
             if ( $result['sent'] > 0 ) {
+                self::record_test_email_sent();
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -539,6 +540,7 @@ class Openvote_Mailer {
         if ( $test_method === 'brevo' || $test_method === 'brevo_paid' ) {
             $result = self::send_via_brevo( $recipient, $subject, $message, '', 'text/html' );
             if ( $result['sent'] > 0 ) {
+                self::record_test_email_sent();
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -549,6 +551,7 @@ class Openvote_Mailer {
         if ( $test_method === 'freshmail' ) {
             $result = self::send_via_freshmail( $recipient, $subject, $message, '', '', 'text/html' );
             if ( $result['sent'] > 0 ) {
+                self::record_test_email_sent();
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -559,6 +562,7 @@ class Openvote_Mailer {
         if ( $test_method === 'getresponse' ) {
             $result = self::send_via_getresponse( $recipient, $subject, $message, '', '', 'text/html' );
             if ( $result['sent'] > 0 ) {
+                self::record_test_email_sent();
                 wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
             } else {
                 wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ' ' . $result['error'] ] );
@@ -589,6 +593,7 @@ class Openvote_Mailer {
         }
 
         if ( $sent ) {
+            self::record_test_email_sent();
             wp_send_json_success( [ 'message' => sprintf( __( 'E-mail wysłany pomyślnie na: %s', 'openvote' ), $to ) ] );
         } else {
             global $phpmailer;
@@ -598,5 +603,12 @@ class Openvote_Mailer {
             }
             wp_send_json_error( [ 'message' => __( 'Wysyłka nie powiodła się.', 'openvote' ) . ( $error ? ' ' . $error : '' ) ] );
         }
+    }
+
+    private static function record_test_email_sent(): void {
+        if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+            Openvote_Email_Rate_Limits::increment( 1 );
+        }
+        openvote_increment_emails_sent( 1 );
     }
 }

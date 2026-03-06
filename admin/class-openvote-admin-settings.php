@@ -150,9 +150,9 @@ class Openvote_Admin_Settings {
         $offset = max( -12, min( 12, $offset ) );
         update_option( 'openvote_time_offset_hours', $offset, false );
 
-        $raw_auto_sync = sanitize_key( (string) ( $_POST['openvote_auto_sync_schedule'] ?? 'manual' ) );
+        $raw_auto_sync = sanitize_key( (string) ( $_POST['openvote_auto_sync_schedule'] ?? 'first_sunday' ) );
         $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
-        $auto_sync_schedule = in_array( $raw_auto_sync, $allowed_schedules, true ) ? $raw_auto_sync : 'manual';
+        $auto_sync_schedule = in_array( $raw_auto_sync, $allowed_schedules, true ) ? $raw_auto_sync : 'first_sunday';
         update_option( 'openvote_auto_sync_schedule', $auto_sync_schedule, false );
 
         // Logo i banner usunięte z konfiguracji — używane są Site Icon i Site Title z WordPress.

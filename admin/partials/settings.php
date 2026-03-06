@@ -1047,10 +1047,10 @@ function openvote_settings_select( string $logical, string $current, array $core
             <?php esc_html_e( 'Cron uruchamia proces synchronizacji o 00:00 w strefie czasu WordPress (w niedziele według wybranego harmonogramu).', 'openvote' ); ?>
         </p>
         <?php
-        $auto_sync_schedule = get_option( 'openvote_auto_sync_schedule', 'manual' );
+        $auto_sync_schedule = get_option( 'openvote_auto_sync_schedule', 'first_sunday' );
         $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
         if ( ! in_array( $auto_sync_schedule, $allowed_schedules, true ) ) {
-            $auto_sync_schedule = 'manual';
+            $auto_sync_schedule = 'first_sunday';
         }
         $last_sync_date = get_option( 'openvote_last_cron_sync_date', '' );
         ?>
@@ -1083,6 +1083,122 @@ function openvote_settings_select( string $logical, string $current, array $core
         <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
+
+        <?php // ─── Synchronizacja grup (tylko admin) ──────────────────────── ?>
+        <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
+            <strong><?php esc_html_e( 'Synchronizacja grup (ver.2.14)', 'openvote' ); ?></strong>
+            <p class="description" style="margin:4px 0 8px;">
+                <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora.', 'openvote' ); ?>
+            </p>
+            <p style="margin:0 0 8px;">
+                <button type="button" id="openvote-cfg-sync-all-btn" class="button button-primary">
+                    <?php esc_html_e( 'Synchronizuj wszystkie grupy', 'openvote' ); ?>
+                </button>
+                <button type="button" id="openvote-cfg-sync-all-reset-btn" class="button" style="margin-left:8px;background:#b32d2e;border-color:#b32d2e;color:#fff;">
+                    <?php esc_html_e( 'Synchronizuj od początku wszystkie grupy (Nie zalecane)', 'openvote' ); ?>
+                </button>
+            </p>
+            <button type="button" id="openvote-cfg-sync-all-stop-btn" class="button" style="display:none;">
+                <?php esc_html_e( 'Zatrzymaj synchronizację grup', 'openvote' ); ?>
+            </button>
+            <div id="openvote-cfg-sync-all-progress" style="margin-top:10px;"></div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var syncBtn      = document.getElementById('openvote-cfg-sync-all-btn');
+            var syncResetBtn = document.getElementById('openvote-cfg-sync-all-reset-btn');
+            var syncStopBtn  = document.getElementById('openvote-cfg-sync-all-stop-btn');
+
+            function runCfgSyncAll(resetFromStart) {
+                var container = document.getElementById('openvote-cfg-sync-all-progress');
+                var apiRoot   = (window.openvoteBatch && window.openvoteBatch.apiRoot) ? window.openvoteBatch.apiRoot : '/wp-json/openvote/v1';
+                var nonce     = (window.openvoteBatch && window.openvoteBatch.nonce)   ? window.openvoteBatch.nonce   : '';
+
+                if (syncBtn)      syncBtn.disabled      = true;
+                if (syncResetBtn) syncResetBtn.disabled = true;
+                if (syncStopBtn)  syncStopBtn.style.display = 'inline-block';
+                if (container)    container.innerHTML   = '<p class="openvote-progress-label">Uruchamianie synchronizacji\u2026</p>';
+
+                var logPanel = (typeof openvoteCreateSyncLogPanel === 'function') ? openvoteCreateSyncLogPanel(container) : { update: function(){} };
+
+                function doStart(retries) {
+                    retries = retries || 0;
+                    return fetch(apiRoot + '/groups/sync-all', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+                        body: resetFromStart ? JSON.stringify({ reset: true }) : undefined,
+                    }).then(function (r) {
+                        if (r.status === 503 && retries < 1) {
+                            if (container) container.innerHTML = '<p class="openvote-progress-label">Serwer zaj\u0119ty (503). Ponawiam za 2 s\u2026</p>';
+                            return new Promise(function (res) { setTimeout(res, 2000); }).then(function () { return doStart(retries + 1); });
+                        }
+                        return r.json().then(function (data) {
+                            if (!data.job_id) throw new Error(data.message || 'B\u0142\u0105d uruchamiania zadania.');
+                            return data;
+                        });
+                    });
+                }
+
+                doStart(0).then(function (data) {
+                    if (syncStopBtn) {
+                        syncStopBtn.onclick = function () {
+                            syncStopBtn.disabled = true;
+                            fetch(apiRoot + '/jobs/' + encodeURIComponent(data.job_id) + '/stop', {
+                                method: 'POST', headers: { 'X-WP-Nonce': nonce },
+                            }).finally(function () { syncStopBtn.disabled = false; });
+                        };
+                    }
+                    if (typeof openvoteRunBatchJob === 'function') {
+                        openvoteRunBatchJob(
+                            data.job_id,
+                            function (processed, total, pct, job) {
+                                if (typeof openvoteRenderProgress === 'function') openvoteRenderProgress(container, processed, total, pct, job);
+                                logPanel.update(job);
+                            },
+                            function (job) {
+                                if (container) {
+                                    container.innerHTML = job.status === 'cancelled'
+                                        ? '<p class="openvote-progress-label">Zatrzymano. Przetworzone: ' + job.processed + '</p>'
+                                        : '<p class="openvote-progress-done">\u2713 Synchronizacja zako\u0144czona. Przetworzone grupy: ' + job.processed + '</p>';
+                                }
+                                logPanel.update(job);
+                                if (syncBtn)      syncBtn.disabled      = false;
+                                if (syncResetBtn) syncResetBtn.disabled = false;
+                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                            },
+                            function (err) {
+                                if (container) {
+                                    var p = document.createElement('p');
+                                    p.className   = 'openvote-progress-error';
+                                    p.textContent = 'B\u0142\u0105d: ' + err.message;
+                                    container.innerHTML = '';
+                                    container.appendChild(p);
+                                }
+                                if (syncBtn)      syncBtn.disabled      = false;
+                                if (syncResetBtn) syncResetBtn.disabled = false;
+                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                            },
+                            10000
+                        );
+                    }
+                }).catch(function (err) {
+                    if (container) {
+                        var p = document.createElement('p');
+                        p.className   = 'openvote-progress-error';
+                        p.textContent = 'B\u0142\u0105d: ' + err.message;
+                        container.innerHTML = '';
+                        container.appendChild(p);
+                    }
+                    if (syncBtn)      syncBtn.disabled      = false;
+                    if (syncResetBtn) syncResetBtn.disabled = false;
+                    if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                });
+            }
+
+            if (syncBtn)      syncBtn.addEventListener('click',      function () { runCfgSyncAll(false); });
+            if (syncResetBtn) syncResetBtn.addEventListener('click', function () { runCfgSyncAll(true);  });
+        });
+        </script>
 
         <?php
         $role_screen_map = openvote_get_role_screen_map();

@@ -381,12 +381,29 @@ class Openvote_Batch_Processor {
 
             case 'send_start_emails':
                 $items = self::batch_send_emails( $params, $offset );
+                if ( ! empty( $items ) ) {
+                    if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                        Openvote_Email_Rate_Limits::increment( count( $items ) );
+                    }
+                    openvote_increment_emails_sent( count( $items ) );
+                }
                 break;
 
             case 'send_invitations': {
                 $batch_size = openvote_get_email_batch_size();
                 if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
-                    $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $batch_size );
+                    // Use the actual number of pending emails (capped at batch_size) so the
+                    // check does not trigger when the queue is nearly empty but batch_size is large.
+                    $eq = $wpdb->prefix . 'openvote_email_queue';
+                    $job_id_for_check = sanitize_text_field( $params['job_id'] ?? '' );
+                    $pending_count = $job_id_for_check
+                        ? (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM {$eq} WHERE job_id = %s AND status = 'pending'",
+                            $job_id_for_check
+                          ) )
+                        : $batch_size;
+                    $check_n = min( $batch_size, max( 1, $pending_count ) );
+                    $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $check_n );
                     if ( ! empty( $limit_check['exceeded'] ) ) {
                         $job['status']         = 'limit_exceeded';
                         $job['limit_type']     = $limit_check['limit_type'];
@@ -403,8 +420,11 @@ class Openvote_Batch_Processor {
                         $job['logs'][] = $line;
                     }
                 }
-                if ( ! empty( $items ) && class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
-                    Openvote_Email_Rate_Limits::increment( count( $items ) );
+                if ( ! empty( $items ) ) {
+                    if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                        Openvote_Email_Rate_Limits::increment( count( $items ) );
+                    }
+                    openvote_increment_emails_sent( count( $items ) );
                 }
                 break;
             }
@@ -893,8 +913,7 @@ class Openvote_Batch_Processor {
             if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $user->ID ) ) {
                 continue;
             }
-            if ( is_email( $user->user_email ) ) {
-                wp_mail( $user->user_email, $subject, $message, $headers );
+            if ( is_email( $user->user_email ) && wp_mail( $user->user_email, $subject, $message, $headers ) ) {
                 $sent[] = $user->user_email;
             }
         }

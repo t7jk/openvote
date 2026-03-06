@@ -14,7 +14,7 @@
 
 define('ABSPATH',               dirname(__DIR__) . DIRECTORY_SEPARATOR);
 define('WPINC',                 'wp-includes');
-define('OPENVOTE_VERSION',      '1.2.0');
+define('OPENVOTE_VERSION',      '1.0.20');
 define('OPENVOTE_PLUGIN_DIR',   dirname(__DIR__) . DIRECTORY_SEPARATOR);
 
 // ── Stub classes (must be defined BEFORE autoloader so it never fires) ──────
