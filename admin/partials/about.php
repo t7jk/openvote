@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
                 <tr style="border-bottom:1px solid #f0f0f1;">
                     <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Opis', 'openvote' ); ?></td>
                     <td style="padding:12px 0;font-size:14px;line-height:1.6;">
-                        <?php esc_html_e( 'Wtyczka do przeprowadzania elektronicznych głosowań i ankiet w organizacji. Umożliwia tworzenie głosowań z pytaniami i odpowiedziami, zarządzanie grupami uczestników, wysyłanie zaproszeń e-mail oraz przeglądanie wyników z zachowaniem anonimowości.', 'openvote' ); ?>
+                        <?php esc_html_e( 'Wtyczka do przeprowadzania elektronicznych głosowań i ankiet w organizacji. Głosowania wielopytaniowe z grupami docelowymi i rolą Koordynatora. Zaproszenia e-mail oraz masowa wysyłka wiadomości (Komunikacja) — WordPress, SMTP, SendGrid, Brevo, Freshmail, GetResponse. Ankiety ze stroną zgłoszeń. Wyniki jawne lub anonimowe, eksport do PDF.', 'openvote' ); ?>
                     </td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">
@@ -47,12 +47,26 @@ defined( 'ABSPATH' ) || exit;
                         <strong><?php echo esc_html( OPENVOTE_VERSION ); ?></strong>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Licencja', 'openvote' ); ?></td>
+                <tr style="border-bottom:1px solid #f0f0f1;">
+                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Status', 'openvote' ); ?></td>
                     <td style="padding:12px 0;">
                         <span style="display:inline-block;background:#0073aa;color:#fff;font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:20px;text-transform:uppercase;">
-                            <?php esc_html_e( 'Wersja Darmowa (Free Version)', 'openvote' ); ?>
+                            <?php esc_html_e( 'BETA — może zawierać błędy', 'openvote' ); ?>
                         </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Licencja', 'openvote' ); ?></td>
+                    <td style="padding:12px 0;font-size:14px;">
+                        <a href="https://www.gnu.org/licenses/gpl-2.0.html" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'GPL v2 lub nowsza', 'openvote' ); ?></a>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding:14px 0 0;border-top:1px solid #f0f0f1;vertical-align:top;">
+                        <p style="margin:0;padding:12px 14px;background:#fff8e5;border-left:4px solid #dba617;border-radius:0 4px 4px 0;font-size:13px;line-height:1.6;color:#1d2327;">
+                            <strong><?php esc_html_e( 'Uwaga', 'openvote' ); ?>:</strong>
+                            <?php esc_html_e( 'Wersja beta nie jest zalecana do zastosowań produkcyjnych. Zalecamy wstrzymanie się z wdrożeniem do premiery wersji 1.1.x.', 'openvote' ); ?>
+                        </p>
                     </td>
                 </tr>
             </tbody>

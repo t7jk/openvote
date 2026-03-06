@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Openvote_Activator {
 
-    const DB_VERSION = '4.7.0';
+    const DB_VERSION = '4.8.0';
 
     /** Nazwa grupy testowej (nie można jej usunąć z UI, tylko wyłączyć w Ustawieniach). */
     const TEST_GROUP_NAME = 'Test';
@@ -43,8 +43,10 @@ class Openvote_Activator {
         // Sprawdź czy tabele fizycznie istnieją.
         $eq_table      = $wpdb->prefix . 'openvote_email_queue';
         $surv_table    = $wpdb->prefix . 'openvote_surveys';
+        $messages_table = $wpdb->prefix . 'openvote_messages';
         $table_missing = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $eq_table ) ) !== $eq_table
-                      || $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $surv_table ) ) !== $surv_table;
+                      || $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $surv_table ) ) !== $surv_table
+                      || $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $messages_table ) ) !== $messages_table;
 
         if ( $version_old || $table_missing ) {
             self::create_tables();
@@ -68,6 +70,8 @@ class Openvote_Activator {
         $survey_questions = $wpdb->prefix . 'openvote_survey_questions';
         $survey_responses = $wpdb->prefix . 'openvote_survey_responses';
         $survey_answers   = $wpdb->prefix . 'openvote_survey_answers';
+        $messages        = $wpdb->prefix . 'openvote_messages';
+        $message_queue   = $wpdb->prefix . 'openvote_message_queue';
 
         $sql = "CREATE TABLE {$polls} (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -219,6 +223,34 @@ class Openvote_Activator {
             PRIMARY KEY (id),
             KEY response_id (response_id),
             KEY question_id (question_id)
+        ) {$charset_collate};
+
+        CREATE TABLE {$messages} (
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            title         VARCHAR(512) NOT NULL,
+            body          LONGTEXT NOT NULL,
+            target_groups TEXT,
+            created_by    BIGINT UNSIGNED NOT NULL,
+            created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            sent_at       DATETIME NULL DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY created_at (created_at),
+            KEY sent_at (sent_at)
+        ) {$charset_collate};
+
+        CREATE TABLE {$message_queue} (
+            id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            message_id BIGINT UNSIGNED NOT NULL,
+            user_id    BIGINT UNSIGNED NOT NULL,
+            email      VARCHAR(255) NOT NULL,
+            name       VARCHAR(255) NOT NULL DEFAULT '',
+            status     ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+            error_msg  VARCHAR(512) NULL DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            sent_at    DATETIME NULL DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_message_user (message_id,user_id),
+            KEY message_status (message_id,status)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

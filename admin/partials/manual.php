@@ -41,6 +41,7 @@ $brand = openvote_get_brand_short_name();
         <li><a href="#manual-vote"><?php esc_html_e( 'Jak odbywa się głosowanie (widok uczestnika)', 'openvote' ); ?></a></li>
         <li><a href="#manual-results"><?php esc_html_e( 'Wyniki głosowania', 'openvote' ); ?></a></li>
         <li><a href="#manual-invitations"><?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></a></li>
+        <li><a href="#manual-communication"><?php esc_html_e( 'Komunikacja — masowa wysyłka wiadomości', 'openvote' ); ?></a></li>
         <li><a href="#manual-config"><?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></a></li>
         <li><a href="#manual-fieldmap"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></a></li>
         <li><a href="#manual-surveys"><?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></a></li>
@@ -427,14 +428,48 @@ $brand = openvote_get_brand_short_name();
 <p><?php esc_html_e( 'W Konfiguracji w tabeli „Warunki wysyłki e-maili” można ustawić dla wybranej metody (Brevo darmowy, WordPress, SMTP) maksymalną liczbę e-maili: na 15 minut, na godzinę oraz na dobę. Wartość 0 oznacza brak limitu. Dla metod abonamentowych (SendGrid, Brevo płatny, Freshmail, GetResponse) limity czasowe nie są egzekwowane.', 'openvote' ); ?></p>
 <p><?php esc_html_e( 'Gdy podczas wysyłki zaproszeń zostanie przekroczony ustawiony limit, wysyłka zatrzymuje się. Na ekranie Zaproszenia pojawia się komunikat z informacją, za ile minut można wznowić (dla limitów na 15 min i na godzinę). Przy przekroczeniu limitu dziennego dostępny jest przycisk „Zaplanuj automatyczne wznowienie” — po kliknięciu wysyłka zostanie automatycznie wznowiona o północy w strefie czasu głosowań (Konfiguracja → strefa czasowa).', 'openvote' ); ?></p>
 <div class="openvote-manual__tip">
-    <?php esc_html_e( 'Limity pomagają uniknąć zablokowania przez dostawcę poczty (np. Brevo free, WordPress) przy dużej liczbie odbiorców. Ustaw wartości zgodne z limitami Twojego planu.', 'openvote' ); ?>
+    <?php esc_html_e( 'Limity pomagają uniknąć zablokowania przez dostawcę poczty (np. Brevo free, WordPress) przy dużej liczbie odbiorców. Ustaw wartości zgodne z limitami Twojego planu. Do limitu wliczane są wyłącznie e-maile faktycznie dostarczone (zaakceptowane przez SMTP lub dostawcę); odrzucone próby wysyłki nie zwiększają licznika.', 'openvote' ); ?>
 </div>
 </div>
 
 
-<!-- 9. Konfiguracja -->
+<!-- 9. Komunikacja -->
+<div class="openvote-manual__section" id="manual-communication">
+<h2>9. <?php esc_html_e( 'Komunikacja — masowa wysyłka wiadomości', 'openvote' ); ?></h2>
+<p><?php esc_html_e( 'Moduł Komunikacja (menu Open Vote → Komunikacja) umożliwia tworzenie i wysyłkę masowych wiadomości e-mail do wybranych grup użytkowników — niezależnie od głosowań. Przydatne do ogłoszeń, powiadomień lub newslettera.', 'openvote' ); ?></p>
+
+<h3><?php esc_html_e( 'Tworzenie i wysyłka', 'openvote' ); ?></h3>
+<ol>
+    <li><?php esc_html_e( 'Wpisz tytuł wysyłki i treść wiadomości w sekcji "Nowa wysyłka" (lub edytuj istniejącą w pozycji "Edytuj" na liście).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wybierz grupy docelowe (Ctrl+klik dla wielu). Tylko członkowie tych grup otrzymają wiadomość.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Kliknij "Zapisz", a następnie "Wyślij" przy danej wiadomości — otworzy się ekran wysyłki z podglądem i przyciskiem "Wyślij wiadomości e-mailem".', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wysyłka odbywa się partiami (jak zaproszenia). Postęp i ewentualne błędy są widoczne na ekranie.', 'openvote' ); ?></li>
+</ol>
+
+<h3><?php esc_html_e( 'Kody w treści wiadomości', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'W treści i temacie możesz użyć kodów zastępowanych przy wysyłce:', 'openvote' ); ?></p>
+<ul>
+    <li><code>{Nadawca}</code> — <?php esc_html_e( 'imię i nazwisko autora wiadomości', 'openvote' ); ?></li>
+    <li><code>{Skrót nazwy}</code> — <?php esc_html_e( 'skrót organizacji z Konfiguracji', 'openvote' ); ?></li>
+    <li><code>{moja_grupa}</code> — <?php esc_html_e( 'nazwa grupy odbiorcy (z wybranych grup docelowych)', 'openvote' ); ?></li>
+    <li><code>{grupa_docelowa}</code> — <?php esc_html_e( 'lista wszystkich grup docelowych wysyłki', 'openvote' ); ?></li>
+</ul>
+
+<h3><?php esc_html_e( 'Statusy i akcje na liście', 'openvote' ); ?></h3>
+<ul>
+    <li><strong><?php esc_html_e( 'Szkic', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość nie została jeszcze wysłana. Dostępne: Edytuj, Duplikuj, Kasuj, Wyślij.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Wysłano', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość została wysłana. Dostępne: Podgląd (wyszarzony widok bez edycji), Duplikuj, Kasuj. Link "Wyślij" nie jest wyświetlany.', 'openvote' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'Wysłanej wiadomości nie można już edytować; można ją zduplikować i edytować kopię.', 'openvote' ); ?></p>
+
+<h3><?php esc_html_e( 'Limity i statystyki', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Te same limity co dla zaproszeń (na 15 min, godzinę, dobę) dotyczą wysyłki z modułu Komunikacja. Do limitu i statystyk "Ilość wysłanych e-maili" wliczane są tylko e-maile faktycznie dostarczone do serwera SMTP lub dostawcy; odrzucone adresy (np. nieaktywne) nie zwiększają licznika.', 'openvote' ); ?></p>
+</div>
+
+
+<!-- 10. Konfiguracja -->
 <div class="openvote-manual__section" id="manual-config">
-<h2>9. <?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></h2>
+<h2>10. <?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Dostępna w menu Open Vote → Konfiguracja (tylko Administrator WordPress).', 'openvote' ); ?></p>
 
 <table class="openvote-manual__table">
@@ -469,7 +504,7 @@ $brand = openvote_get_brand_short_name();
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Metoda wysyłki e-mail', 'openvote' ); ?></strong></td>
-        <td><?php esc_html_e( '"WordPress domyślny" używa wbudowanej funkcji wp_mail(). "SMTP zewnętrzny" — wpisz dane serwera pocztowego. "SendGrid API" — wpisz klucz API z konta SendGrid.', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'WordPress (wp_mail), SMTP zewnętrzny, SendGrid API, Brevo (darmowy i płatny), Freshmail API, GetResponse API. Wybór dotyczy zarówno zaproszeń do głosowań, jak i wysyłki z modułu Komunikacja.', 'openvote' ); ?></td>
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Warunki wysyłki e-maili', 'openvote' ); ?></strong></td>
@@ -484,9 +519,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 10. Mapowanie pól -->
+<!-- 11. Mapowanie pól -->
 <div class="openvote-manual__section" id="manual-fieldmap">
-<h2>10. <?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
+<h2>11. <?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Sekcja w Konfiguracji służy do powiązania logicznych nazw pól wtyczki z kluczami meta, pod jakimi Twoja wtyczka rejestracji zapisuje dane użytkownika.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Pola logiczne', 'openvote' ); ?></h3>
@@ -519,9 +554,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 11. Ankiety i strona zgłoszeń -->
+<!-- 12. Ankiety i strona zgłoszeń -->
 <div class="openvote-manual__section" id="manual-surveys">
-<h2>11. <?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></h2>
+<h2>12. <?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Wtyczka umożliwia tworzenie ankiet (formularzy z pytaniami), zbieranie odpowiedzi użytkowników oraz publiczne wyświetlanie zatwierdzonych zgłoszeń na dedykowanej stronie.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Gdzie znajdziesz ankiety', 'openvote' ); ?></h3>
@@ -552,9 +587,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 12. FAQ -->
+<!-- 13. FAQ -->
 <div class="openvote-manual__section" id="manual-faq">
-<h2>12. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'openvote' ); ?></h2>
+<h2>13. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'openvote' ); ?></h2>
 
 <h4><?php esc_html_e( 'Użytkownik widzi "Twój profil jest niekompletny" — co robić?', 'openvote' ); ?></h4>
 <p><?php esc_html_e( 'Sprawdź, które pole jest brakujące (komunikat podaje nazwę pola). Poproś użytkownika o uzupełnienie profilu lub sprawdź w Konfiguracji → Mapowanie pól, czy klucz jest poprawny.', 'openvote' ); ?></p>

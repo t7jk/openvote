@@ -33,6 +33,8 @@ class Openvote {
         require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-admin-surveys.php';
         require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-surveys-list.php';
         require_once OPENVOTE_PLUGIN_DIR . 'models/class-openvote-survey.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'models/class-openvote-message.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'admin/class-openvote-messages-list.php';
 
         $admin = new Openvote_Admin();
         $this->loader->add_action( 'admin_menu', $admin, 'add_menu_pages' );
@@ -45,6 +47,9 @@ class Openvote {
         $this->loader->add_action( 'admin_init', $admin, 'handle_openvote_get_actions', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_polls_action', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'handle_openvote_surveys_get_actions', 5 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_communication_form_submission', 1 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_communication_get_actions', 5 );
+        $this->loader->add_action( 'admin_init', $admin, 'handle_bulk_communication_action', 5 );
         $this->loader->add_action( 'admin_init', $admin, 'redirect_openvote_new' );
         $this->loader->add_action( 'admin_notices', $admin, 'render_brand_header' );
         $this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles' );

@@ -37,7 +37,7 @@ require_once $_tests_dir . '/includes/functions.php';
  * Load the plugin and create schema in the test DB.
  */
 function _openvote_load_plugin(): void {
-    define('OPENVOTE_VERSION', '1.0.20');
+    define('OPENVOTE_VERSION', '1.0.35');
     require_once dirname(__DIR__) . '/openvote.php';
 }
 tests_add_filter('muplugins_loaded', '_openvote_load_plugin');

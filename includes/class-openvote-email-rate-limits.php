@@ -42,9 +42,10 @@ class Openvote_Email_Rate_Limits {
 	}
 
 	/**
-	 * Zwiększa liczniki o $n (po faktycznej wysyłce).
+	 * Zwiększa liczniki o $n — wywoływane wyłącznie po faktycznej wysyłce (gdy SMTP/dostawca zaakceptował).
+	 * Nie zwiększamy przy próbach odrzuconych ani błędach.
 	 *
-	 * @param int $n Liczba wysłanych e-maili.
+	 * @param int $n Liczba e-maili faktycznie dostarczonych do nadawcy (zaakceptowanych).
 	 */
 	public static function increment( int $n ): void {
 		if ( $n <= 0 ) {

@@ -45,6 +45,11 @@ class Openvote_Batch_Processor {
             self::fill_email_queue( $job_id, $params );
         }
 
+        // Dla wysyłki wiadomości (Komunikacja): wypełnij kolejkę w bazie.
+        if ( 'send_mass_message' === $type ) {
+            self::fill_message_queue( $job_id, $params );
+        }
+
         $total = self::count_total( $type, array_merge( $params, [ 'job_id' => $job_id ] ) );
 
         $job_data = [
@@ -97,7 +102,7 @@ class Openvote_Batch_Processor {
                     )
                 ),
             ];
-        } elseif ( 'send_invitations' === $type ) {
+        } elseif ( 'send_invitations' === $type || 'send_mass_message' === $type ) {
             $job_data['logs'] = [
                 gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
                     /* translators: %d: total to process */
@@ -224,6 +229,21 @@ class Openvote_Batch_Processor {
             if ( 'send_invitations' === $job['type'] ) {
                 $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Wysyłka zakończona.', 'openvote' );
             }
+            if ( 'send_mass_message' === $job['type'] ) {
+                $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Wysyłka zakończona.', 'openvote' );
+                $mid = absint( $job['params']['message_id'] ?? 0 );
+                if ( $mid && class_exists( 'Openvote_Message', false ) ) {
+                    global $wpdb;
+                    $msg_table = $wpdb->prefix . 'openvote_messages';
+                    $wpdb->update(
+                        $msg_table,
+                        [ 'sent_at' => current_time( 'mysql' ) ],
+                        [ 'id' => $mid ],
+                        [ '%s' ],
+                        [ '%d' ]
+                    );
+                }
+            }
             if ( 'recalc_inactive' === $job['type'] ) {
                 $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Przeliczanie statystyk nieaktywnych zakończone.', 'openvote' );
             }
@@ -328,6 +348,19 @@ class Openvote_Batch_Processor {
                     )
                 );
 
+            case 'send_mass_message':
+                $message_id_ci = absint( $params['message_id'] ?? 0 );
+                if ( ! $message_id_ci ) {
+                    return 0;
+                }
+                $mq = $wpdb->prefix . 'openvote_message_queue';
+                return (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$mq} WHERE message_id = %d AND status = 'pending'",
+                        $message_id_ci
+                    )
+                );
+
             case 'recalc_inactive':
                 $gm_table = $wpdb->prefix . 'openvote_group_members';
                 return (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$gm_table}" );
@@ -365,6 +398,8 @@ class Openvote_Batch_Processor {
      * @return array{ job: array, items: array }
      */
     private static function run_batch( array &$job ): array {
+        global $wpdb;
+
         $type   = $job['type'];
         $params = $job['params'];
         $offset = $job['offset'];
@@ -420,6 +455,46 @@ class Openvote_Batch_Processor {
                         $job['logs'][] = $line;
                     }
                 }
+                // Liczymy tylko faktycznie wysłane (zaakceptowane przez SMTP/dostawcę), nie próby odrzucone.
+                if ( ! empty( $items ) ) {
+                    if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                        Openvote_Email_Rate_Limits::increment( count( $items ) );
+                    }
+                    openvote_increment_emails_sent( count( $items ) );
+                }
+                break;
+            }
+
+            case 'send_mass_message': {
+                $batch_size = openvote_get_email_batch_size();
+                $mq         = $wpdb->prefix . 'openvote_message_queue';
+                $message_id_mm = absint( $params['message_id'] ?? 0 );
+                if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+                    $pending_count = $message_id_mm
+                        ? (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM {$mq} WHERE message_id = %d AND status = 'pending'",
+                            $message_id_mm
+                        ) )
+                        : $batch_size;
+                    $check_n = min( $batch_size, max( 1, $pending_count ) );
+                    $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $check_n );
+                    if ( ! empty( $limit_check['exceeded'] ) ) {
+                        $job['status']         = 'limit_exceeded';
+                        $job['limit_type']     = $limit_check['limit_type'];
+                        $job['wait_seconds']   = $limit_check['wait_seconds'];
+                        $job['limit_message']  = $limit_check['message'];
+                        $job['limit_max']      = $limit_check['limit_max'];
+                        return [ 'job' => $job, 'items' => [] ];
+                    }
+                }
+                $mass_result = self::batch_send_mass_message( $params );
+                $items       = isset( $mass_result['items'] ) ? $mass_result['items'] : $mass_result;
+                if ( ! empty( $mass_result['extra_logs'] ) && is_array( $mass_result['extra_logs'] ) ) {
+                    foreach ( $mass_result['extra_logs'] as $line ) {
+                        $job['logs'][] = $line;
+                    }
+                }
+                // Liczymy tylko faktycznie wysłane (zaakceptowane przez SMTP/dostawcę), nie próby odrzucone.
                 if ( ! empty( $items ) ) {
                     if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
                         Openvote_Email_Rate_Limits::increment( count( $items ) );
@@ -446,6 +521,12 @@ class Openvote_Batch_Processor {
             $pid_run = absint( $job['params']['poll_id'] ?? 0 );
             $job['offset'] = $pid_run
                 ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$eq} WHERE poll_id = %d AND status != 'pending'", $pid_run ) )
+                : $job['total'];
+        } elseif ( 'send_mass_message' === $job['type'] ) {
+            $mq    = $wpdb->prefix . 'openvote_message_queue';
+            $mid   = absint( $job['params']['message_id'] ?? 0 );
+            $job['offset'] = $mid
+                ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$mq} WHERE message_id = %d AND status != 'pending'", $mid ) )
                 : $job['total'];
         } elseif ( 'sync_all_city_groups' === $job['type'] && Openvote_Field_Map::is_city_disabled() ) {
             // Tryb „Wszyscy”: offset = następna partia użytkowników.
@@ -1251,6 +1332,295 @@ class Openvote_Batch_Processor {
                 $city_value
             )
         );
+    }
+
+    // ─── Wysyłka wiadomości masowych (Komunikacja) ───────────────────────────
+
+    /**
+     * Liczba odbiorców (do limitu): użytkownicy z grup docelowych z e-mailem, z tym samym filtrem co fill_message_queue.
+     * Używane przy starcie zadania do sprawdzenia limitu bez wypełniania kolejki.
+     *
+     * @param int $message_id ID wiadomości.
+     * @return int
+     */
+    public static function get_eligible_count_for_mass_message( int $message_id ): int {
+        global $wpdb;
+        $message = Openvote_Message::get( $message_id );
+        if ( ! $message ) {
+            return 0;
+        }
+        $group_ids = Openvote_Message::get_target_group_ids( $message );
+        if ( empty( $group_ids ) ) {
+            return 0;
+        }
+        $gm_table     = $wpdb->prefix . 'openvote_group_members';
+        $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+        $users        = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT u.ID, u.user_email FROM {$wpdb->users} u
+                 INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                 WHERE gm.group_id IN ({$placeholders}) AND u.user_email != ''
+                 GROUP BY u.ID",
+                ...$group_ids
+            )
+        );
+        if ( empty( $users ) ) {
+            return 0;
+        }
+        $n = 0;
+        foreach ( $users as $u ) {
+            if ( ! is_email( $u->user_email ) ) {
+                continue;
+            }
+            if ( ! function_exists( 'openvote_communication_do_not_skip_inactive' ) || ! openvote_communication_do_not_skip_inactive() ) {
+                if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
+                    continue;
+                }
+            }
+            ++$n;
+        }
+        return $n;
+    }
+
+    /**
+     * Wypełnij kolejkę wp_openvote_message_queue dla danej wiadomości.
+     *
+     * @param string $job_id  ID zadania (nie zapisywane w message_queue).
+     * @param array  $params  ['message_id' => int]
+     */
+    private static function fill_message_queue( string $job_id, array $params ): void {
+        global $wpdb;
+
+        $message_id = absint( $params['message_id'] ?? 0 );
+        if ( ! $message_id ) {
+            return;
+        }
+
+        $message = Openvote_Message::get( $message_id );
+        if ( ! $message ) {
+            return;
+        }
+
+        $mq = $wpdb->prefix . 'openvote_message_queue';
+
+        $group_ids = Openvote_Message::get_target_group_ids( $message );
+
+        if ( ! empty( $group_ids ) ) {
+            $gm_table     = $wpdb->prefix . 'openvote_group_members';
+            $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $users        = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT u.ID, u.user_email, u.display_name
+                     FROM {$wpdb->users} u
+                     INNER JOIN {$gm_table} gm ON u.ID = gm.user_id
+                     WHERE gm.group_id IN ({$placeholders}) AND u.user_email != ''
+                     GROUP BY u.ID",
+                    ...$group_ids
+                )
+            );
+        } else {
+            $users = [];
+        }
+
+        if ( empty( $users ) ) {
+            return;
+        }
+
+        $now    = current_time( 'mysql' );
+        $values = [];
+        $fmt    = [];
+
+        foreach ( $users as $u ) {
+            if ( ! is_email( $u->user_email ) ) {
+                continue;
+            }
+            if ( ! function_exists( 'openvote_communication_do_not_skip_inactive' ) || ! openvote_communication_do_not_skip_inactive() ) {
+                if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
+                    continue;
+                }
+            }
+            $values[] = $message_id;
+            $values[] = (int) $u->ID;
+            $values[] = sanitize_email( $u->user_email );
+            $values[] = sanitize_text_field( $u->display_name ?? '' );
+            $values[] = $now;
+            $fmt[]    = "(%d, %d, %s, %s, %s)";
+        }
+
+        if ( empty( $fmt ) ) {
+            return;
+        }
+
+        $suppress = $wpdb->suppress_errors( true );
+
+        $chunk_size = 500;
+        $chunk_fmt  = array_chunk( $fmt, $chunk_size );
+        $chunk_val  = array_chunk( $values, $chunk_size * 5 );
+
+        foreach ( $chunk_fmt as $idx => $chunk ) {
+            $sql = "INSERT IGNORE INTO {$mq} (message_id, user_id, email, name, created_at) VALUES "
+                   . implode( ',', $chunk );
+            $wpdb->query( $wpdb->prepare( $sql, ...$chunk_val[ $idx ] ) );
+            if ( $wpdb->last_error ) {
+                error_log( 'openvote: fill_message_queue INSERT error: ' . $wpdb->last_error );
+            }
+        }
+
+        $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$mq} SET status = 'pending', error_msg = NULL WHERE message_id = %d AND status = 'failed'",
+                $message_id
+            )
+        );
+
+        $wpdb->suppress_errors( $suppress );
+    }
+
+    /**
+     * Wyślij jedną partię z kolejki dla zadania send_mass_message.
+     *
+     * @param array $params ['message_id' => int]
+     * @return array{ items: array, extra_logs?: array }
+     */
+    private static function batch_send_mass_message( array $params ): array {
+        global $wpdb;
+
+        $message_id = absint( $params['message_id'] ?? 0 );
+        if ( ! $message_id ) {
+            return [ 'items' => [] ];
+        }
+
+        $message = Openvote_Message::get( $message_id );
+        if ( ! $message ) {
+            return [ 'items' => [] ];
+        }
+
+        $batch_size = openvote_get_email_batch_size();
+        $mq         = $wpdb->prefix . 'openvote_message_queue';
+        $groups_table = $wpdb->prefix . 'openvote_groups';
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, user_id, email, name FROM {$mq} WHERE message_id = %d AND status = 'pending' LIMIT %d",
+                $message_id,
+                $batch_size
+            )
+        );
+
+        if ( empty( $rows ) ) {
+            return [ 'items' => [] ];
+        }
+
+        $target_group_names = [];
+        $group_ids = Openvote_Message::get_target_group_ids( $message );
+        if ( ! empty( $group_ids ) ) {
+            $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+            $target_group_names = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT name FROM {$groups_table} WHERE id IN ({$placeholders}) ORDER BY name ASC",
+                    ...$group_ids
+                )
+            );
+            $target_group_names = is_array( $target_group_names ) ? array_map( 'trim', $target_group_names ) : [];
+        }
+
+        $subject_base = $message->title;
+        $body_base    = $message->body ? $message->body : '';
+        $method       = openvote_get_mail_method();
+        $sent         = [];
+        $failed       = [];
+        $extra_logs   = [];
+
+        $from_email = openvote_get_from_email();
+        $from_name  = get_bloginfo( 'name' );
+
+        foreach ( $rows as $row ) {
+            $recipient_user_id = (int) ( $row->user_id ?? 0 );
+            $replaced = function_exists( 'openvote_replace_message_placeholders' )
+                ? openvote_replace_message_placeholders( $body_base, $subject_base, $recipient_user_id, $message, $target_group_names )
+                : [ 'body' => $body_base, 'subject' => $subject_base ];
+            $subject = $replaced['subject'];
+            $body   = $replaced['body'];
+
+            $ok = false;
+            if ( 'sendgrid' === $method ) {
+                $result = Openvote_Mailer::send_via_sendgrid( [ [ 'email' => $row->email, 'name' => $row->name ] ], $subject, $body, '', 'text/html' );
+                $ok = ( $result['sent'] === 1 );
+                if ( ! $ok && ! empty( $result['error'] ) ) {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            } elseif ( 'brevo' === $method || 'brevo_paid' === $method ) {
+                $result = Openvote_Mailer::send_via_brevo( [ [ 'email' => $row->email, 'name' => $row->name ] ], $subject, $body, '', 'text/html' );
+                $ok = ( $result['sent'] === 1 );
+                if ( ! $ok && ! empty( $result['error'] ) ) {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            } elseif ( 'freshmail' === $method ) {
+                $result = Openvote_Mailer::send_via_freshmail( [ [ 'email' => $row->email, 'name' => $row->name ] ], $subject, $body, '', '', 'text/html' );
+                $ok = ( $result['sent'] === 1 );
+                if ( ! $ok && ! empty( $result['error'] ) ) {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            } elseif ( 'getresponse' === $method ) {
+                $result = Openvote_Mailer::send_via_getresponse( [ [ 'email' => $row->email, 'name' => $row->name ] ], $subject, $body, '', '', 'text/html' );
+                $ok = ( $result['sent'] === 1 );
+                if ( ! $ok && ! empty( $result['error'] ) ) {
+                    $failed[ $row->id ] = $result['error'];
+                }
+            } else {
+                $headers = [
+                    'Content-Type: text/html; charset=UTF-8',
+                    'From: ' . $from_name . ' <' . $from_email . '>',
+                ];
+                $ok = wp_mail( $row->email, $subject, $body, $headers );
+                if ( ! $ok ) {
+                    $failed[ $row->id ] = 'wp_mail error';
+                }
+            }
+
+            if ( $ok ) {
+                $sent[] = $row->email;
+            }
+        }
+
+        if ( ! empty( $failed ) ) {
+            $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację.', 'openvote' );
+            $first_err = is_array( $failed ) ? reset( $failed ) : '';
+            if ( $first_err !== '' && $first_err !== false ) {
+                $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Szczegóły:', 'openvote' ) . ' ' . $first_err;
+            }
+        }
+
+        $now = current_time( 'mysql' );
+
+        if ( ! empty( $sent ) ) {
+            $sent_ids = array_column(
+                array_filter( $rows, fn( $r ) => in_array( $r->email, $sent, true ) ),
+                'id'
+            );
+            if ( $sent_ids ) {
+                $placeholders = implode( ',', array_fill( 0, count( $sent_ids ), '%d' ) );
+                $wpdb->query( $wpdb->prepare(
+                    "UPDATE {$mq} SET status = 'sent', sent_at = %s WHERE id IN ({$placeholders})",
+                    array_merge( [ $now ], $sent_ids )
+                ) );
+            }
+        }
+
+        foreach ( $failed as $row_id => $error_msg ) {
+            $wpdb->update(
+                $mq,
+                [ 'status' => 'failed', 'error_msg' => mb_substr( $error_msg, 0, 512 ) ],
+                [ 'id' => $row_id ],
+                [ '%s', '%s' ],
+                [ '%d' ]
+            );
+        }
+
+        return [
+            'items'      => $sent,
+            'extra_logs' => $extra_logs,
+        ];
     }
 
 }

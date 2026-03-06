@@ -41,6 +41,15 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
+            __( 'Komunikacja', 'openvote' ),
+            __( 'Komunikacja', 'openvote' ),
+            'read',
+            'openvote-communication',
+            [ $this, 'render_communication_page' ]
+        );
+
+        add_submenu_page(
+            'openvote',
             __( 'Grupy', 'openvote' ),
             __( 'Grupy', 'openvote' ),
             'read',
@@ -157,7 +166,7 @@ class Openvote_Admin {
     }
 
     /** Slugi ekranów objętych mapowaniem roli (menu + dostęp). */
-    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings', 'openvote-manual', 'openvote-statistics' ];
+    private const SCREEN_SLUGS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-settings', 'openvote-manual', 'openvote-statistics', 'openvote-communication' ];
 
     /**
      * Slugi podstron, które mają być wyłączone (kursywa, brak kliku) według mapy roli.
@@ -590,6 +599,147 @@ class Openvote_Admin {
         }
     }
 
+    /**
+     * Bulk actions (POST) na liście Komunikacja — w admin_init.
+     */
+    public function handle_bulk_communication_action(): void {
+        if ( ! isset( $_GET['page'] ) || 'openvote-communication' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+        $list_table = new Openvote_Messages_List();
+        $list_table->process_bulk_action();
+    }
+
+    /**
+     * Akcje GET na stronie Komunikacja (delete, duplicate, edit→preview) — w admin_init, przed jakimkolwiek outputem.
+     */
+    public function handle_communication_get_actions(): void {
+        if ( ! isset( $_GET['page'] ) || 'openvote-communication' !== sanitize_text_field( $_GET['page'] ) ) {
+            return;
+        }
+
+        $action     = sanitize_text_field( $_GET['action'] ?? '' );
+        $message_id = isset( $_GET['message_id'] ) ? absint( $_GET['message_id'] ) : 0;
+
+        // Przekieruj edycję wysłanej wiadomości na podgląd — zanim cokolwiek się wyświetli (unika "headers already sent").
+        if ( $message_id && 'edit' === $action && openvote_user_can_access_screen( get_current_user_id(), 'openvote-communication' ) ) {
+            $message = Openvote_Message::get( $message_id );
+            if ( $message && ! empty( $message->sent_at ) ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=preview&message_id=' . $message_id ) . '#openvote-communication-form' );
+                exit;
+            }
+        }
+
+        if ( ! $message_id || ! in_array( $action, [ 'delete', 'duplicate' ], true ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( self::CAP ) && ! self::user_can_access_coordinators() ) {
+            return;
+        }
+
+        if ( 'delete' === $action ) {
+            check_admin_referer( 'openvote_delete_message_' . $message_id );
+            $message = Openvote_Message::get( $message_id );
+            $title   = $message && isset( $message->title ) ? $message->title : '';
+            Openvote_Message::delete( $message_id );
+            if ( function_exists( 'openvote_messages_audit_log_append' ) && $title !== '' ) {
+                openvote_messages_audit_log_append( get_current_user_id(), sprintf( __( 'usunął wysyłkę %s', 'openvote' ), $title ) );
+            }
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&deleted=1' ) );
+            exit;
+        }
+
+        if ( 'duplicate' === $action ) {
+            check_admin_referer( 'openvote_duplicate_message_' . $message_id );
+            $message = Openvote_Message::get( $message_id );
+            $title   = $message && isset( $message->title ) ? $message->title : '';
+            $new_id  = Openvote_Message::duplicate( $message_id );
+            if ( false !== $new_id ) {
+                if ( function_exists( 'openvote_messages_audit_log_append' ) && $title !== '' ) {
+                    openvote_messages_audit_log_append( get_current_user_id(), sprintf( __( 'zduplikował wysyłkę %s', 'openvote' ), $title ) );
+                }
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&duplicated=1' ) . '#openvote-communication-form' );
+                exit;
+            }
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&duplicate_error=1' ) );
+            exit;
+        }
+    }
+
+    /**
+     * Obsługa zapisu formularza Komunikacja (POST) — w admin_init.
+     */
+    public function handle_communication_form_submission(): void {
+        if ( ! isset( $_POST['openvote_communication_action'] ) || 'save' !== sanitize_text_field( $_POST['openvote_communication_action'] ) ) {
+            return;
+        }
+
+        if ( ! isset( $_POST['openvote_save_message_nonce'] ) ||
+             ! wp_verify_nonce( sanitize_text_field( $_POST['openvote_save_message_nonce'] ), 'openvote_save_message' ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( self::CAP ) && ! self::user_can_access_coordinators() ) {
+            return;
+        }
+
+        $message_id = isset( $_POST['openvote_message_id'] ) ? absint( $_POST['openvote_message_id'] ) : 0;
+        $title      = isset( $_POST['openvote_message_title'] ) ? sanitize_text_field( $_POST['openvote_message_title'] ) : '';
+        $body       = isset( $_POST['openvote_message_body'] ) ? wp_kses_post( $_POST['openvote_message_body'] ) : '';
+        $raw_groups = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
+        $target_groups = array_values( array_filter( $raw_groups ) );
+
+        $save_fallback = [
+            'message_id'    => $message_id,
+            'title'         => $title,
+            'body'          => $body,
+            'target_groups' => $target_groups,
+        ];
+        $transient_key = 'openvote_communication_save_fallback_' . get_current_user_id();
+
+        if ( '' === $title ) {
+            set_transient( $transient_key, $save_fallback, 120 );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+            exit;
+        }
+
+        if ( $message_id ) {
+            $message = Openvote_Message::get( $message_id );
+            if ( ! $message || $message->sent_at ) {
+                set_transient( $transient_key, $save_fallback, 120 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+                exit;
+            }
+            $ok = Openvote_Message::update( $message_id, [
+                'title'         => $title,
+                'body'          => $body,
+                'target_groups' => $target_groups,
+            ] );
+            if ( $ok ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $message_id . '&saved=1' ) . '#openvote-communication-form' );
+            } else {
+                set_transient( $transient_key, $save_fallback, 120 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+            }
+            exit;
+        }
+
+        $new_id = Openvote_Message::create( [
+            'title'         => $title,
+            'body'          => $body,
+            'target_groups' => $target_groups,
+        ] );
+
+        if ( false !== $new_id ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&saved=1' ) . '#openvote-communication-form' );
+        } else {
+            set_transient( $transient_key, $save_fallback, 120 );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+        }
+        exit;
+    }
+
     public function render_surveys_page(): void {
         if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-surveys' ) ) {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
@@ -861,6 +1011,54 @@ class Openvote_Admin {
         include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-form.php';
     }
 
+    public function render_communication_page(): void {
+        if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-communication' ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
+        }
+
+        $action     = sanitize_text_field( $_GET['action'] ?? '' );
+        $message_id = isset( $_GET['message_id'] ) ? absint( $_GET['message_id'] ) : 0;
+
+        if ( 'send' === $action && $message_id ) {
+            $message = Openvote_Message::get( $message_id );
+            if ( $message ) {
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/message-send.php';
+                return;
+            }
+        }
+
+        $list_table = new Openvote_Messages_List();
+        $list_table->prepare_items();
+
+        $message    = null;
+        $is_preview = false;
+        if ( isset( $_GET['save_error'] ) ) {
+            $transient_key = 'openvote_communication_save_fallback_' . get_current_user_id();
+            $fallback      = get_transient( $transient_key );
+            if ( is_array( $fallback ) && ! empty( $fallback ) ) {
+                delete_transient( $transient_key );
+                $message = (object) [
+                    'id'            => isset( $fallback['message_id'] ) ? (int) $fallback['message_id'] : 0,
+                    'title'         => isset( $fallback['title'] ) ? $fallback['title'] : '',
+                    'body'          => isset( $fallback['body'] ) ? $fallback['body'] : '',
+                    'target_groups' => isset( $fallback['target_groups'] ) && is_array( $fallback['target_groups'] )
+                        ? wp_json_encode( array_values( $fallback['target_groups'] ) )
+                        : '[]',
+                ];
+            }
+        }
+        if ( null === $message && $message_id ) {
+            if ( 'preview' === $action ) {
+                $message    = Openvote_Message::get( $message_id );
+                $is_preview = $message && ! empty( $message->sent_at );
+            } elseif ( 'edit' === $action ) {
+                $message = Openvote_Message::get( $message_id );
+            }
+        }
+
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/communication-page.php';
+    }
+
     public function render_groups_page(): void {
         if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-groups' ) ) {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
@@ -995,6 +1193,22 @@ class Openvote_Admin {
                 'apiRoot'    => esc_url_raw( rest_url( 'openvote/v1' ) ),
                 'nonce'      => wp_create_nonce( 'wp_rest' ),
                 'emailDelay' => openvote_get_email_batch_delay(),
+            ] );
+        }
+
+        // Edytor treści (wp_editor) na stronie Komunikacja.
+        if ( str_contains( $hook, 'openvote-communication' ) ) {
+            wp_enqueue_editor();
+            wp_enqueue_media();
+            wp_enqueue_script(
+                'openvote-communication-editor',
+                OPENVOTE_PLUGIN_URL . 'assets/js/communication-editor.js',
+                [ 'jquery' ],
+                OPENVOTE_VERSION,
+                true
+            );
+            wp_localize_script( 'openvote-communication-editor', 'openvoteCommunicationEditor', [
+                'defaultBody' => openvote_get_default_message_body(),
             ] );
         }
 

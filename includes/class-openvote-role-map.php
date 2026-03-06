@@ -13,7 +13,7 @@ class Openvote_Role_Map {
     const ROLES = [ 'subscriber', 'administrator', 'openvote_coordinator' ];
 
     /** Dozwolone slugi ekranów (kolumny tabeli). Konfiguracja jako ostatnia. */
-    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-statistics', 'openvote-settings' ];
+    const SCREENS = [ 'openvote', 'openvote-surveys', 'openvote-groups', 'openvote-roles', 'openvote-manual', 'openvote-statistics', 'openvote-communication', 'openvote-settings' ];
 
     /** Domyślna mapa: tylko Administrator (wszystko) i Koordynator (wszystko oprócz Konfiguracji). Subscriber — brak dostępu. */
     const DEFAULT_MAP = [
@@ -24,6 +24,7 @@ class Openvote_Role_Map {
             'openvote-roles'    => 1,
             'openvote-manual'   => 1,
             'openvote-statistics' => 1,
+            'openvote-communication' => 1,
             'openvote-settings' => 1,
         ],
         'subscriber'          => [
@@ -33,6 +34,7 @@ class Openvote_Role_Map {
             'openvote-roles'    => 0,
             'openvote-manual'   => 0,
             'openvote-statistics' => 0,
+            'openvote-communication' => 0,
             'openvote-settings' => 0,
         ],
         'openvote_coordinator' => [
@@ -42,6 +44,7 @@ class Openvote_Role_Map {
             'openvote-roles'    => 1,
             'openvote-manual'   => 1,
             'openvote-statistics' => 1,
+            'openvote-communication' => 1,
             'openvote-settings' => 0,
         ],
     ];

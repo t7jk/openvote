@@ -293,6 +293,8 @@ class Openvote_Admin_Settings {
         if ( $months >= 1 && $months <= 24 ) {
             update_option( 'openvote_stat_months_inactive', $months, false );
         }
+        $do_not_skip = isset( $_POST['openvote_communication_do_not_skip_inactive'] ) && $_POST['openvote_communication_do_not_skip_inactive'] === '1' ? 1 : 0;
+        update_option( 'openvote_communication_do_not_skip_inactive', $do_not_skip, false );
 
         Openvote_Cron_Sync::reschedule();
 

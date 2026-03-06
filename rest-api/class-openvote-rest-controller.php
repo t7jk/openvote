@@ -65,6 +65,16 @@ class Openvote_Rest_Controller {
             ],
         ] );
 
+        // Send mass message (Komunikacja) — start batch job.
+        register_rest_route( self::NAMESPACE, '/messages/(?P<id>\d+)/send', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'send_mass_message' ],
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators(),
+            'args'                => [
+                'id' => [ 'sanitize_callback' => 'absint' ],
+            ],
+        ] );
+
         // Zaplanuj automatyczne wznowienie wysyłki zaproszeń o północy (gdy limit dzienny).
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/schedule-email-resume', [
             'methods'             => WP_REST_Server::CREATABLE,
@@ -262,8 +272,11 @@ class Openvote_Rest_Controller {
 
         $batch_size = function_exists( 'openvote_get_email_batch_size' ) ? openvote_get_email_batch_size() : 100;
         if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
-            $limit_check = Openvote_Email_Rate_Limits::would_exceed_limits( $batch_size );
-            if ( ! empty( $limit_check['exceeded'] ) ) {
+            $check_n = self::email_limit_check_n( $batch_size );
+            $limit_check = ( $check_n <= 0 )
+                ? Openvote_Email_Rate_Limits::would_exceed_limits( 1 )
+                : Openvote_Email_Rate_Limits::would_exceed_limits( $check_n );
+            if ( $check_n <= 0 || ! empty( $limit_check['exceeded'] ) ) {
                 return new WP_Error(
                     'rate_limit_exceeded',
                     $limit_check['message'],
@@ -294,6 +307,63 @@ class Openvote_Rest_Controller {
             return new WP_Error(
                 'job_error',
                 __( 'Wystąpił błąd podczas uruchamiania wysyłki zaproszeń.', 'openvote' ),
+                [ 'status' => 500 ]
+            );
+        }
+
+        $wpdb->suppress_errors( $suppress );
+
+        return new WP_REST_Response( [ 'job_id' => $job_id ], 200 );
+    }
+
+    /**
+     * POST /messages/{id}/send
+     * Uruchamia zadanie wsadowej wysyłki wiadomości (Komunikacja) i zwraca job_id.
+     */
+    public function send_mass_message( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        $message_id = absint( $request->get_param( 'id' ) );
+        $message    = Openvote_Message::get( $message_id );
+
+        if ( ! $message ) {
+            return new WP_Error( 'not_found', __( 'Wiadomość nie została znaleziona.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
+        $batch_size = function_exists( 'openvote_get_email_batch_size' ) ? openvote_get_email_batch_size() : 100;
+        if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+            $check_n = self::email_limit_check_n( $batch_size );
+            $limit_check = ( $check_n <= 0 )
+                ? Openvote_Email_Rate_Limits::would_exceed_limits( 1 )
+                : Openvote_Email_Rate_Limits::would_exceed_limits( $check_n );
+            if ( $check_n <= 0 || ! empty( $limit_check['exceeded'] ) ) {
+                return new WP_Error(
+                    'rate_limit_exceeded',
+                    $limit_check['message'],
+                    [
+                        'status'       => 429,
+                        'limit_type'   => $limit_check['limit_type'],
+                        'wait_seconds' => $limit_check['wait_seconds'],
+                    ]
+                );
+            }
+        }
+
+        global $wpdb;
+        $suppress = $wpdb->suppress_errors( true );
+
+        try {
+            $job_id = Openvote_Batch_Processor::start_job( 'send_mass_message', [ 'message_id' => $message_id ] );
+            $actor_id = get_current_user_id();
+            if ( $actor_id && isset( $message->title ) && $message->title !== '' && function_exists( 'openvote_messages_audit_log_append' ) ) {
+                openvote_messages_audit_log_append( $actor_id, sprintf( __( 'wysłał wiadomość %s', 'openvote' ), $message->title ) );
+            }
+        } catch ( \Throwable $e ) {
+            $wpdb->suppress_errors( $suppress );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'Openvote send_mass_message: ' . $e->getMessage() );
+            }
+            return new WP_Error(
+                'job_error',
+                __( 'Wystąpił błąd podczas uruchamiania wysyłki wiadomości.', 'openvote' ),
                 [ 'status' => 500 ]
             );
         }
@@ -467,5 +537,34 @@ class Openvote_Rest_Controller {
             'ok'      => true,
             'message' => __( 'Pole jest zmapowane. Używane w ankietach zgodnie z ustawieniem „Wymagane do ankiety” w tabeli Mapowanie pól.', 'openvote' ),
         ];
+    }
+
+    /**
+     * Liczba do sprawdzenia limitu: min(batch_size, wolne miejsce w każdym oknie).
+     * Limity i statystyki opierają się wyłącznie na faktycznie wysłanych e-mailach (zaakceptowanych przez SMTP/dostawcę).
+     *
+     * @param int $batch_size Maks. rozmiar partii.
+     * @return int
+     */
+    private static function email_limit_check_n( int $batch_size ): int {
+        if ( $batch_size <= 0 || ! class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
+            return $batch_size;
+        }
+        $counts   = Openvote_Email_Rate_Limits::get_counts();
+        $limit_15 = function_exists( 'openvote_get_email_limit_per_15min' ) ? openvote_get_email_limit_per_15min() : 0;
+        $limit_h  = function_exists( 'openvote_get_email_limit_per_hour' ) ? openvote_get_email_limit_per_hour() : 0;
+        $limit_d  = function_exists( 'openvote_get_email_limit_per_day' ) ? openvote_get_email_limit_per_day() : 0;
+
+        $check_n = $batch_size;
+        if ( $limit_15 > 0 ) {
+            $check_n = min( $check_n, max( 0, $limit_15 - $counts['count_15'] ) );
+        }
+        if ( $limit_h > 0 ) {
+            $check_n = min( $check_n, max( 0, $limit_h - $counts['count_hour'] ) );
+        }
+        if ( $limit_d > 0 ) {
+            $check_n = min( $check_n, max( 0, $limit_d - $counts['count_day'] ) );
+        }
+        return max( 0, $check_n );
     }
 }

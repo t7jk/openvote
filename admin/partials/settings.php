@@ -730,45 +730,6 @@ function openvote_settings_select( string $logical, string $current, array $core
                                class="small-text" min="1" max="100000" placeholder="500" />
                     </td>
                 </tr>
-                <tr>
-                    <td colspan="7" style="background:#f0f0f1;font-weight:600;padding:8px 10px;"><?php esc_html_e( 'Abonamentowe usługi:', 'openvote' ); ?></td>
-                </tr>
-                <tr>
-                    <td><strong><?php esc_html_e( 'BREVO (płatne)', 'openvote' ); ?></strong></td>
-                    <td><?php esc_html_e( 'Zawsze dostępne (limity zależne od planu Brevo).', 'openvote' ); ?></td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                </tr>
-                <tr>
-                    <td><strong><?php esc_html_e( 'Freshmail API', 'openvote' ); ?></strong></td>
-                    <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API i sekretu).', 'openvote' ); ?></td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                </tr>
-                <tr>
-                    <td><strong><?php esc_html_e( 'GetResponse API', 'openvote' ); ?></strong></td>
-                    <td><?php esc_html_e( 'Wymaga dodatku Transactional (np. GetResponse MAX).', 'openvote' ); ?></td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                </tr>
-                <tr>
-                    <td><strong><?php esc_html_e( 'SendGrid API', 'openvote' ); ?></strong></td>
-                    <td><?php esc_html_e( 'Zawsze dostępne (wymaga klucza API).', 'openvote' ); ?></td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                </tr>
             </tbody>
         </table>
         </div>
@@ -1222,6 +1183,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             'openvote-roles'    => __( 'Koordynatorzy', 'openvote' ),
             'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
             'openvote-statistics' => __( 'Statystyka', 'openvote' ),
+            'openvote-communication' => __( 'Komunikacja', 'openvote' ),
             'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
         ];
         $screen_labels_en = [
@@ -1231,6 +1193,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             'openvote-roles'    => 'Coordinators',
             'openvote-manual'   => 'Manual',
             'openvote-statistics' => 'Statistics',
+            'openvote-communication' => 'Communication',
             'openvote-settings' => 'Configuration',
         ];
         // Kolumny = role (pierwsza kolumna = Koordynator), wiersze = ekrany.
@@ -1474,15 +1437,16 @@ function openvote_settings_select( string $logical, string $current, array $core
 
         <hr style="margin-top:32px;margin-bottom:24px;">
 
-        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Progi nieaktywności', 'openvote' ); ?></h2>
-        <p class="description">
-            <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać powiadomień o nowych głosowaniach.', 'openvote' ); ?>
-        </p>
-        <p class="description">
-            <?php esc_html_e( 'Ustawienie wartości maksymalnej (24) powoduje wyłączenie oznaczania użytkowników jako nieaktywnych.', 'openvote' ); ?>
-        </p>
+        <?php
+        $communication_do_not_skip_inactive = (int) get_option( 'openvote_communication_do_not_skip_inactive', 0 ) === 1;
+        ?>
+        <div class="openvote-inactivity-thresholds-block" style="background:#f6f7f7;padding:20px 24px;border-radius:8px;border:1px solid #c3c4c7;margin-bottom:24px;">
+        <h2 class="title" style="margin-top:0;"><?php esc_html_e( 'Progi nieaktywności', 'openvote' ); ?></h2>
         <p class="description">
             <?php esc_html_e( 'Wystarczy aby jeden z wyżej ustawionych warunków został spełniony.', 'openvote' ); ?>
+        </p>
+        <p class="description">
+            <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać powiadomień o nowych głosowaniach i wiadomości masowych (newsletter).', 'openvote' ); ?>
         </p>
 
         <table class="form-table" role="presentation">
@@ -1502,6 +1466,16 @@ function openvote_settings_select( string $logical, string $current, array $core
                     <p class="description"><?php esc_html_e( 'Ilość miesięcy, ile musi minąć od ostatniego głosowania, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
                 </td>
             </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Komunikacja', 'openvote' ); ?></th>
+                <td>
+                    <label for="openvote_communication_do_not_skip_inactive">
+                        <input type="checkbox" name="openvote_communication_do_not_skip_inactive" id="openvote_communication_do_not_skip_inactive" value="1" <?php checked( $communication_do_not_skip_inactive ); ?>>
+                        <?php esc_html_e( 'Nie pomijaj nieaktywnych', 'openvote' ); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Komunikacja trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani zgodnie z regułami powyższych suwaków.', 'openvote' ); ?></p>
+                </td>
+            </tr>
         </table>
 
         <?php if ( current_user_can( 'manage_options' ) ) : ?>
@@ -1517,6 +1491,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             <div id="openvote-clear-counters-result" style="display:none;margin-top:8px;"></div>
         </div>
         <?php endif; ?>
+        </div>
 
         <p class="openvote-settings-save-wrap" style="margin-top:16px;">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>

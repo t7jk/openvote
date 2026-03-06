@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
- * Description:       Organisation polls and surveys: create votes with questions, manage groups, send invitations, view results (with optional anonymity).
- * Version:           1.0.20
+ * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
+ * Version:           1.0.35
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -13,11 +13,25 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       openvote
  * Domain Path:       /languages
+ *
+ * Copyright (C) 2024-2025 Tomasz Kalinowski
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * @see https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.20' );
+define( 'OPENVOTE_VERSION', '1.0.35' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -333,6 +347,60 @@ function openvote_surveys_audit_log_get(): array {
 	return $log;
 }
 
+/** Maks. wpisów w logu audytu wysyłek (Komunikacja). */
+const OPENVOTE_MESSAGES_AUDIT_LOG_MAX = 200;
+
+/** Wpisów w logu wysyłek nie przechowujemy dłużej niż 365 dni. */
+const OPENVOTE_MESSAGES_AUDIT_LOG_MAX_DAYS = 365;
+
+/**
+ * Dopisuje wpis do logu audytu wysyłek (wysłanie, usunięcie, duplikat).
+ *
+ * @param int    $actor_id ID użytkownika wykonującego akcję.
+ * @param string $line     Treść wpisu (np. "wysłał wiadomość Tytuł").
+ */
+function openvote_messages_audit_log_append( int $actor_id, string $line ): void {
+	$log = get_option( 'openvote_messages_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_MESSAGES_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$log       = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	$entry = [
+		't'     => current_time( 'Y-m-d H:i:s' ),
+		'actor' => openvote_get_user_nickname( $actor_id ),
+		'line'  => is_string( $line ) ? $line : '',
+	];
+	array_unshift( $log, $entry );
+	$log = array_slice( $log, 0, OPENVOTE_MESSAGES_AUDIT_LOG_MAX );
+	update_option( 'openvote_messages_audit_log', $log, false );
+}
+
+/**
+ * Zwraca wpisy logu audytu wysyłek (najnowsze pierwsze).
+ *
+ * @return array<int, array{t: string, actor: string, line: string}>
+ */
+function openvote_messages_audit_log_get(): array {
+	$log = get_option( 'openvote_messages_audit_log', [] );
+	if ( ! is_array( $log ) ) {
+		return [];
+	}
+	$cutoff_ts = current_time( 'timestamp' ) - ( OPENVOTE_MESSAGES_AUDIT_LOG_MAX_DAYS * DAY_IN_SECONDS );
+	$cutoff    = wp_date( 'Y-m-d H:i:s', $cutoff_ts );
+	$original  = $log;
+	$log        = array_values( array_filter( $log, function ( $e ) use ( $cutoff ) {
+		return isset( $e['t'] ) && $e['t'] >= $cutoff;
+	} ) );
+	if ( count( $log ) !== count( $original ) ) {
+		update_option( 'openvote_messages_audit_log', $log, false );
+	}
+	return $log;
+}
+
 // ─── Licznik wysłanych e-maili (per miesiąc) ────────────────────────────────
 
 /**
@@ -341,6 +409,80 @@ function openvote_surveys_audit_log_get(): array {
  *
  * @param int $count Liczba wysłanych wiadomości do dodania.
  */
+/**
+ * Domyślna treść nowej wiadomości (Komunikacja).
+ *
+ * @return string
+ */
+function openvote_get_default_message_body(): string {
+	return "Szanowni Państwo,<br><br><br><br><br><br><br><br><br><br>Z poważaniem<br>{Nadawca}<br>{Skrót nazwy}";
+}
+
+/**
+ * Zastępuje kody w treści i temacie wiadomości (Komunikacja) wartościami dla danego odbiorcy.
+ *
+ * @param string $body                Treść wiadomości (HTML).
+ * @param string $subject             Temat wiadomości.
+ * @param int    $recipient_user_id   ID użytkownika WordPress (odbiorcy).
+ * @param object $message             Obiekt wiadomości (created_by, target_groups).
+ * @param array  $target_group_names  Lista nazw grup docelowych wysyłki (kolejność dowolna).
+ * @return array{body: string, subject: string}
+ */
+function openvote_replace_message_placeholders( string $body, string $subject, int $recipient_user_id, object $message, array $target_group_names ): array {
+	$author_id = (int) ( $message->created_by ?? 0 );
+	$author_user = $author_id ? get_userdata( $author_id ) : null;
+	$author_name = '—';
+	if ( $author_user instanceof WP_User ) {
+		$first = trim( (string) Openvote_Field_Map::get_user_value( $author_user, 'first_name' ) );
+		$last  = trim( (string) Openvote_Field_Map::get_user_value( $author_user, 'last_name' ) );
+		$author_name = trim( $first . ' ' . $last ) !== '' ? trim( $first . ' ' . $last ) : $author_user->display_name;
+		if ( $author_name === '' ) {
+			$author_name = openvote_get_user_nickname( $author_id );
+		}
+	}
+
+	$recipient_user  = $recipient_user_id ? get_userdata( $recipient_user_id ) : null;
+	$recipient_groups = [];
+	if ( $recipient_user instanceof WP_User ) {
+		$group_ids = Openvote_Message::get_target_group_ids( $message );
+		if ( ! empty( $group_ids ) ) {
+			global $wpdb;
+			$gm_table     = $wpdb->prefix . 'openvote_group_members';
+			$groups_table = $wpdb->prefix . 'openvote_groups';
+			$placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+			$recipient_groups = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT g.name FROM {$groups_table} g
+					 INNER JOIN {$gm_table} gm ON g.id = gm.group_id
+					 WHERE gm.user_id = %d AND g.id IN ({$placeholders})",
+					array_merge( [ $recipient_user_id ], $group_ids )
+				)
+			);
+			$recipient_groups = is_array( $recipient_groups ) ? array_map( 'trim', $recipient_groups ) : [];
+		}
+	}
+
+	$grupa_docelowa = $target_group_names;
+	sort( $grupa_docelowa, SORT_STRING );
+	$grupa_docelowa = implode( ', ', $grupa_docelowa );
+	$moja_grupa    = implode( ', ', $recipient_groups );
+
+	// Zachowaj podział na linie w e-mailu: w HTML zwykłe \n nie dają łamania, więc zamieniamy na <br>.
+	$body = nl2br( $body, false );
+
+	$replace = [
+		'{Nadawca}'        => $author_name,
+		'{Skrót nazwy}'    => openvote_get_brand_short_name(),
+		'{moja_grupa}'     => $moja_grupa,
+		'{grupa_docelowa}' => $grupa_docelowa,
+	];
+
+	$body_out = str_replace( array_keys( $replace ), array_values( $replace ), $body );
+	$subject_out = str_replace( array_keys( $replace ), array_values( $replace ), $subject );
+
+	return [ 'body' => $body_out, 'subject' => $subject_out ];
+}
+
 function openvote_increment_emails_sent( int $count = 1 ): void {
 	if ( $count <= 0 ) {
 		return;
@@ -403,6 +545,16 @@ function openvote_get_stat_missed_votes(): int {
 function openvote_get_stat_months_inactive(): int {
 	$v = (int) get_option( 'openvote_stat_months_inactive', OPENVOTE_STAT_MONTHS_DEFAULT );
 	return max( 1, min( 24, $v ) );
+}
+
+/**
+ * Czy w module Komunikacja nie pomijać użytkowników nieaktywnych (wysyłać do wszystkich z grupy).
+ * Opcja „Nie pomijaj nieaktywnych” w Konfiguracji → Progi nieaktywności.
+ *
+ * @return bool True = wysyłaj do wszystkich, false = pomijaj nieaktywnych zgodnie z suwakami.
+ */
+function openvote_communication_do_not_skip_inactive(): bool {
+	return (int) get_option( 'openvote_communication_do_not_skip_inactive', 0 ) === 1;
 }
 
 /**
@@ -506,6 +658,19 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 		++$count;
 	}
 	update_user_meta( $user_id, 'openvote_missed_polls_count', $count );
+
+	// Przywróć datę ostatniego głosu z tabeli głosów (po „Wyczyść liczniki” przeliczenie uzupełnia last_voted_at).
+	$last_voted = $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT MAX(voted_at) FROM {$votes_table} WHERE user_id = %d",
+			$user_id
+		)
+	);
+	if ( $last_voted && is_string( $last_voted ) ) {
+		update_user_meta( $user_id, 'openvote_last_voted_at', $last_voted );
+	} else {
+		delete_user_meta( $user_id, 'openvote_last_voted_at' );
+	}
 }
 
 /**

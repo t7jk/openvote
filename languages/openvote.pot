@@ -60,6 +60,10 @@ msgstr ""
 msgid "📖 Podręcznik"
 msgstr ""
 
+#: admin/class-openvote-admin.php:90
+msgid "Podręcznik"
+msgstr ""
+
 #: admin/class-evoting-admin.php:80 admin/partials/law.php:10
 #: blocks/evoting-voting-tabs/render.php:120
 #: includes/class-evoting-law-page.php:108 public/views/vote-page-theme.php:69
@@ -514,6 +518,46 @@ msgstr ""
 msgid "Wersja Darmowa (Free Version)"
 msgstr ""
 
+#: admin/partials/about.php:5
+msgid "O OpenVote"
+msgstr ""
+
+#: admin/partials/about.php:14
+msgid "Open Vote"
+msgstr ""
+
+#: admin/partials/about.php:26
+msgid "X (Twitter)"
+msgstr ""
+
+#: admin/partials/about.php:32
+msgid "GitHub"
+msgstr ""
+
+#: admin/partials/about.php:38
+msgid "Darowizna"
+msgstr ""
+
+#: admin/partials/about.php:53
+msgid "BETA — może zawierać błędy"
+msgstr ""
+
+#: admin/partials/about.php:58
+msgid "GPL v2 lub nowsza"
+msgstr ""
+
+#: admin/partials/about.php:66
+msgid "Uwaga"
+msgstr ""
+
+#: admin/partials/about.php:67
+msgid "Wersja beta nie jest zalecana do zastosowań produkcyjnych. Zalecamy wstrzymanie się z wdrożeniem do premiery wersji 1.1.x."
+msgstr ""
+
+#: admin/partials/about.php:19
+msgid "Wtyczka do przeprowadzania elektronicznych głosowań i ankiet w organizacji. Głosowania wielopytaniowe z grupami docelowymi i rolą Koordynatora. Zaproszenia e-mail oraz masowa wysyłka wiadomości (Komunikacja) — WordPress, SMTP, SendGrid, Brevo, Freshmail, GetResponse. Ankiety ze stroną zgłoszeń. Wyniki jawne lub anonimowe, eksport do PDF."
+msgstr ""
+
 #: admin/partials/groups.php:38
 msgid "Nazwa grupy jest wymagana."
 msgstr ""
@@ -710,6 +754,63 @@ msgstr ""
 
 #: admin/partials/groups.php:401
 msgid "Synchronizuj wszystkie grupy-miasta"
+msgstr ""
+
+#: admin/partials/groups.php:334
+msgid "Synchronizacja grup (ver.2.14)"
+msgstr ""
+
+#: admin/partials/groups.php:336
+msgid "Odkrywa unikalne wartości pola \"miasto\" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora."
+msgstr ""
+
+#: admin/partials/groups.php:340
+msgid "Synchronizuj wszystkie grupy"
+msgstr ""
+
+#: admin/partials/groups.php:344
+msgid "Zatrzymaj synchronizację grup"
+msgstr ""
+
+#: admin/partials/groups.php:361
+msgid "Log zmian grup i członków"
+msgstr ""
+
+#: admin/partials/groups.php:363
+msgid "Kto i kiedy utworzył lub usunął grupę, dodał lub usunął członka, uruchomił synchronizację. Lista niekasowalna, w celach bezpieczeństwa."
+msgstr ""
+
+#: admin/class-openvote-admin.php:235
+#, php-format
+msgid "utworzył grupę %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:255
+#, php-format
+msgid "usunął grupę %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:276 admin/class-openvote-admin.php:327
+#, php-format
+msgid "dodał %s do %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:290
+#, php-format
+msgid "usunął %s z %s"
+msgstr ""
+
+#: rest-api/class-openvote-groups-rest-controller.php:317
+msgid "synchronizacja wszystkie grupy"
+msgstr ""
+
+#: rest-api/class-openvote-groups-rest-controller.php:317
+msgid "synchronizacja od początku grupy"
+msgstr ""
+
+#: admin/partials/groups.php:245
+#, php-format
+msgid "Wybierz użytkownika z listy (max %d)."
 msgstr ""
 
 #: admin/partials/manual.php:7
@@ -1971,6 +2072,10 @@ msgstr ""
 msgid "Wróć do listy"
 msgstr ""
 
+#: admin/partials/poll-form.php:306
+msgid "Zapisz zmiany czasu trwania"
+msgstr ""
+
 #: admin/partials/poll-form.php:288
 msgid "Zobacz wyniki"
 msgstr ""
@@ -2017,8 +2122,42 @@ msgstr ""
 msgid "Wyślij zaproszenia"
 msgstr ""
 
+#: admin/partials/poll-invitations.php:95 admin/partials/poll-invitations.php:314
+msgid "Wyślij zaproszenia e-mailem"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:99
+msgid "Wyślij 1 zaproszenie do głosowania"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:101
+#, php-format
+msgid "Wyślij %d zaproszenia do głosowania"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:103
+#, php-format
+msgid "Wyślij %d zaproszeń do głosowania"
+msgstr ""
+
 #: admin/partials/poll-invitations.php:73
 msgid "Wszystkie zaproszenia zostały wysłane."
+msgstr ""
+
+#: admin/partials/poll-invitations.php:131
+msgid "Możesz skopiować treść zaproszenia do schowka i wkleić je samodzielnie na mediach społecznościowych lub w innym kanale (np. komunikator, forum)."
+msgstr ""
+
+#: admin/partials/poll-invitations.php:134
+msgid "Skopiuj treść zaproszenia"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:143
+msgid "Skopiowano do schowka."
+msgstr ""
+
+#: admin/partials/poll-invitations.php:156
+msgid "Skopiuj ręcznie (Ctrl+C)."
 msgstr ""
 
 #: admin/partials/poll-invitations.php:81
@@ -2118,6 +2257,27 @@ msgstr ""
 msgid "Autostart wysyłki zaproszeń…"
 msgstr ""
 
+#: admin/partials/poll-invitations.php:314
+msgid "Wznowienie za"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:314
+msgid "min"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:316 admin/partials/poll-invitations.php:325
+#: admin/partials/poll-results.php:405
+msgid "Zaplanuj automatyczne wznowienie"
+msgstr ""
+
+#: admin/partials/poll-invitations.php:321 admin/partials/poll-results.php:401
+msgid "Zaplanowano. E-maile zostaną automatycznie wznowione o północy (strefa głosowań)."
+msgstr ""
+
+#: admin/partials/poll-invitations.php:323 admin/partials/poll-results.php:404
+msgid "Błąd zapisu."
+msgstr ""
+
 #: admin/partials/poll-list.php:14
 msgid "Przepisy prawne obowiązujące w głosowaniach"
 msgstr ""
@@ -2158,6 +2318,106 @@ msgstr ""
 
 #: admin/partials/poll-results.php:104
 msgid "Błąd startu:"
+msgstr ""
+
+#: admin/partials/statistics.php:154
+msgid "Statystyka"
+msgstr ""
+
+#: admin/partials/statistics.php:165
+msgid "Statystyki nieaktywnych przeliczone."
+msgstr ""
+
+#: admin/partials/statistics.php:173
+msgid "Grupy i członkowie"
+msgstr ""
+
+#: admin/partials/statistics.php:176
+msgid "Ilość grup"
+msgstr ""
+
+#: admin/partials/statistics.php:180
+msgid "Ilość członków"
+msgstr ""
+
+#: admin/partials/statistics.php:184
+msgid "Aktywność"
+msgstr ""
+
+#: admin/partials/statistics.php:187
+msgid "Członkowie aktywni"
+msgstr ""
+
+#: admin/partials/statistics.php:191
+msgid "Członkowie nieaktywni"
+msgstr ""
+
+#: admin/partials/statistics.php:195
+msgid "Głosowania i ankiety"
+msgstr ""
+
+#: admin/partials/statistics.php:198
+msgid "Liczba wykonanych głosowań"
+msgstr ""
+
+#: admin/partials/statistics.php:202
+msgid "Ilość uruchomionych ankiet"
+msgstr ""
+
+#: admin/partials/statistics.php:206
+msgid "Ilość wypełnionych ankiet"
+msgstr ""
+
+#: admin/partials/statistics.php:210
+msgid "Ilość wyświetleń wszystkich ankiet"
+msgstr ""
+
+#: admin/partials/statistics.php:221
+msgid "Ilość wysłanych e-maili"
+msgstr ""
+
+#: admin/partials/statistics.php:225
+msgid "W ciągu ostatnich 15 minut"
+msgstr ""
+
+#: admin/partials/statistics.php:230
+msgid "Ilość e-maili"
+msgstr ""
+
+#: admin/partials/statistics.php:235
+msgid "W ciągu ostatniej godziny"
+msgstr ""
+
+#: admin/partials/statistics.php:244
+msgid "W ciągu doby"
+msgstr ""
+
+#: admin/partials/statistics.php:253
+msgid "W ciągu miesiąca"
+msgstr ""
+
+#: admin/partials/statistics.php:257
+msgid "Ostatnie 10 głosowań (zakończone)"
+msgstr ""
+
+#: admin/partials/statistics.php:260
+msgid "Ilość uprawnionych do głosowania"
+msgstr ""
+
+#: admin/partials/statistics.php:261
+msgid "Ilość głosujących"
+msgstr ""
+
+#: admin/partials/statistics.php:266
+msgid "Brak zakończonych głosowań."
+msgstr ""
+
+#: admin/partials/statistics.php:286
+msgid "Frekwencja (ostatnie 10 głosowań)"
+msgstr ""
+
+#: admin/partials/statistics.php:311
+msgid "Oś X: numer głosowania (1 = ostatnie, 11 = średnia). Oś Y: frekwencja w %."
 msgstr ""
 
 #: admin/partials/poll-results.php:116 blocks/evoting-voting-tabs/render.php:47
@@ -2357,6 +2617,326 @@ msgstr ""
 
 #: admin/partials/roles.php:149
 msgid "Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Koordynatorów."
+msgstr ""
+
+#: admin/partials/roles.php:83
+msgid "Obecni koordynatorzy"
+msgstr ""
+
+#: admin/partials/roles.php:145
+msgid "Dodaj koordynatora"
+msgstr ""
+
+#: admin/partials/roles.php:152
+msgid "Użytkownicy"
+msgstr ""
+
+#: admin/partials/roles.php:153
+#, php-format
+msgid "Wybierz użytkownika (max %d)."
+msgstr ""
+
+#: admin/partials/roles.php:161
+msgid "Dodaj >>"
+msgstr ""
+
+#: admin/partials/roles.php:180
+msgid "Dodaj koordynatora po adresie e-mail"
+msgstr ""
+
+#: admin/partials/roles.php:182
+msgid "Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i grupy, następnie kliknij Dodaj >>."
+msgstr ""
+
+#: admin/partials/roles.php:194
+msgid "Wpisz adres e-mail lub fragment..."
+msgstr ""
+
+#: admin/partials/roles.php:189
+msgid "Szukaj po e-mailu"
+msgstr ""
+
+#: admin/partials/roles.php:233
+msgid "Log zmian koordynatorów"
+msgstr ""
+
+#: admin/partials/roles.php:235
+msgid "Kto i kiedy promował lub odbierał koordynatora której grupy. Lista niekasowalna, widoczna w celach bezpieczeństwa."
+msgstr ""
+
+#: admin/partials/roles.php:247
+msgid "Brak wpisów."
+msgstr ""
+
+#: admin/partials/roles.php:257
+msgid "dodanie"
+msgstr ""
+
+#: admin/partials/roles.php:258
+msgid "usunięcie"
+msgstr ""
+
+#: admin/partials/roles.php:263
+#, php-format
+msgid "Strona %1$d z %2$d (%3$d wpisów)"
+msgstr ""
+
+#: admin/partials/roles.php:267
+msgid "Poprzedni"
+msgstr ""
+
+#: admin/partials/roles.php:269
+msgid "Następny"
+msgstr ""
+
+#: admin/partials/communication-page.php:21 admin/class-openvote-admin.php:44
+msgid "Komunikacja"
+msgstr ""
+
+#: admin/partials/communication-page.php:63
+msgid "Szukaj wiadomości"
+msgstr ""
+
+#: admin/class-openvote-messages-list.php:32
+msgid "Utworzono"
+msgstr ""
+
+#: admin/class-openvote-messages-list.php:33 admin/class-openvote-messages-list.php:205
+msgid "Wysłano"
+msgstr ""
+
+#: admin/partials/communication-page.php:75
+msgid "Nowa wysyłka"
+msgstr ""
+
+#: admin/partials/communication-page.php:75
+msgid "Edytuj wysyłkę"
+msgstr ""
+
+#: admin/partials/communication-page.php:72
+msgid "Podgląd wysyłki"
+msgstr ""
+
+#: admin/partials/communication-form.php:31 admin/partials/communication-form.php:65
+msgid "Tytuł wysyłki"
+msgstr ""
+
+#: admin/partials/communication-form.php:35 admin/partials/communication-form.php:71
+msgid "Treść wiadomości"
+msgstr ""
+
+#: admin/partials/communication-form.php:43 admin/partials/communication-form.php:102
+msgid "Grupa docelowa"
+msgstr ""
+
+#: admin/partials/communication-form.php:50 admin/partials/communication-form.php:93
+msgid "Obsługiwane kody (zostaną zastąpione przy wysyłce):"
+msgstr ""
+
+#: admin/partials/communication-form.php:95
+msgid "imię i nazwisko osoby zalogowanej, autor"
+msgstr ""
+
+#: admin/partials/communication-form.php:96
+msgid "skrót nazwy organizacji (z Konfiguracji)"
+msgstr ""
+
+#: admin/partials/communication-form.php:97
+msgid "nazwa grupy odbiorcy (z listy grup docelowych)"
+msgstr ""
+
+#: admin/partials/communication-form.php:98
+msgid "lista nazw wszystkich grup docelowych wysyłki (alfabetycznie, po przecinku)"
+msgstr ""
+
+#: admin/partials/message-send.php:79
+#, php-format
+msgid "Wysyłka: %s"
+msgstr ""
+
+#: admin/partials/message-send.php:82
+msgid "Lista wysyłek"
+msgstr ""
+
+#: admin/partials/message-send.php:86
+msgid "Podgląd przed wysyłką"
+msgstr ""
+
+#: admin/partials/message-send.php:98
+msgid "Wszystkie wiadomości wysłane"
+msgstr ""
+
+#: admin/partials/message-send.php:99
+msgid "Wyślij wiadomości e-mailem"
+msgstr ""
+
+#: admin/partials/message-send.php:103
+msgid "Wyślij wiadomości"
+msgstr ""
+
+#: admin/partials/message-send.php:105
+msgid "Wyślij 1 wiadomość"
+msgstr ""
+
+#: admin/partials/message-send.php:107 admin/partials/message-send.php:109
+#, php-format
+msgid "Wyślij %d wiadomości"
+msgstr ""
+
+#: admin/partials/message-send.php:116
+msgid "Brak odbiorców w wybranych grupach (grupy puste lub bez adresu e-mail). Wybierz inne grupy lub dodaj użytkowników z e-mailem."
+msgstr ""
+
+#: admin/partials/message-send.php:131
+msgid "Wszystkie wiadomości zostały wysłane."
+msgstr ""
+
+#: admin/partials/message-send.php:143
+msgid "Żadne wiadomości nie zostały jeszcze wysłane dla tej wysyłki."
+msgstr ""
+
+#: admin/class-openvote-admin.php:660
+#, php-format
+msgid "zduplikował wysyłkę %s"
+msgstr ""
+
+#: rest-api/class-openvote-rest-controller.php:357
+#, php-format
+msgid "wysłał wiadomość %s"
+msgstr ""
+
+#: admin/partials/message-send.php:258 admin/partials/communication-page.php:93
+msgid "Log wysyłki"
+msgstr ""
+
+#: admin/partials/message-send.php:258 admin/partials/communication-page.php:94
+msgid "Kto i kiedy uruchomił wysyłkę lub wykonał inne działania na wysyłkach. Lista niekasowalna, w celach bezpieczeństwa."
+msgstr ""
+
+#: admin/partials/communication-page.php:37
+msgid "Wiadomość została zapisana."
+msgstr ""
+
+#: admin/partials/communication-page.php:44
+msgid "Utworzono kopię wiadomości. Możesz ją edytować poniżej."
+msgstr ""
+
+#: admin/partials/communication-page.php:31
+msgid "Wiadomość została usunięta."
+msgstr ""
+
+#: admin/partials/communication-page.php:49
+msgid "Nie udało się zduplikować wiadomości."
+msgstr ""
+
+#: admin/partials/communication-page.php:55
+msgid "Zapis nie powiódł się. Sprawdź tytuł i czy wiadomość nie została już wysłana."
+msgstr ""
+
+#: admin/class-openvote-messages-list.php:61
+msgid "Wysłane"
+msgstr ""
+
+#: admin/class-openvote-messages-list.php:18
+msgid "wiadomość"
+msgstr ""
+
+#: admin/class-openvote-messages-list.php:19
+msgid "wiadomości"
+msgstr ""
+
+#: admin/partials/survey-list.php:56
+msgid "Ankiety:"
+msgstr ""
+
+#: admin/partials/survey-list.php:60
+msgid "Zgłoszenia:"
+msgstr ""
+
+#: admin/partials/survey-list.php:96
+msgid "Log czynności ankiet"
+msgstr ""
+
+#: admin/partials/survey-list.php:97
+msgid "Kto i kiedy utworzył, edytował, wystartował, zakończył, zduplikował lub usunął ankietę. Lista niekasowalna, w celach bezpieczeństwa."
+msgstr ""
+
+#: admin/class-openvote-admin-surveys.php:46 admin/class-openvote-admin-surveys.php:62
+#, php-format
+msgid "wystartował ankietę %s"
+msgstr ""
+
+#: admin/class-openvote-admin-surveys.php:48
+#, php-format
+msgid "edytował ankietę %s"
+msgstr ""
+
+#: admin/class-openvote-admin-surveys.php:59
+#, php-format
+msgid "utworzył ankietę %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:540
+#, php-format
+msgid "zakończył ankietę %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:556
+#, php-format
+msgid "usunął ankietę %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:572
+#, php-format
+msgid "zduplikował ankietę %s"
+msgstr ""
+
+#: admin/partials/poll-list.php:97 admin/partials/poll-invitations.php:456
+#: admin/partials/poll-results.php:601 admin/partials/poll-form.php:351
+#: admin/class-openvote-admin.php:969
+msgid "Log czynności głosowań"
+msgstr ""
+
+#: admin/partials/poll-list.php:98 admin/partials/poll-invitations.php:457
+#: admin/partials/poll-results.php:602 admin/partials/poll-form.php:352
+#: admin/class-openvote-admin.php:970
+msgid "Kto i kiedy utworzył, edytował, wystartował, zakończył, skopiował lub usunął głosowanie albo wysłał zaproszenia. Lista niekasowalna, w celach bezpieczeństwa."
+msgstr ""
+
+#: admin/class-openvote-admin-polls.php:102 admin/class-openvote-admin-polls.php:122
+#: admin/class-openvote-admin.php:494
+#, php-format
+msgid "wystartował głosowanie %s"
+msgstr ""
+
+#: admin/class-openvote-admin-polls.php:104
+#, php-format
+msgid "edytował głosowanie %s"
+msgstr ""
+
+#: admin/class-openvote-admin-polls.php:119
+#, php-format
+msgid "utworzył głosowanie %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:474
+#, php-format
+msgid "zakończył głosowanie %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:454
+#, php-format
+msgid "usunął głosowanie %s"
+msgstr ""
+
+#: rest-api/class-openvote-rest-controller.php:300
+#, php-format
+msgid "zaprosił na głosowanie %s"
+msgstr ""
+
+#: admin/class-openvote-admin.php:508
+#, php-format
+msgid "skopiował głosowanie %s"
 msgstr ""
 
 #: admin/partials/settings.php:24
@@ -3061,6 +3641,10 @@ msgstr ""
 
 #: admin/partials/survey-form.php:176
 msgid "Wystartuj ankietę"
+msgstr ""
+
+#: admin/class-openvote-admin.php:1237 admin/partials/survey-form.php:222
+msgid "Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie."
 msgstr ""
 
 #: admin/partials/survey-list.php:11
