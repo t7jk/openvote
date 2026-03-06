@@ -502,7 +502,7 @@ msgid ""
 "Umożliwia tworzenie głosowań z pytaniami i odpowiedziami, zarządzanie "
 "grupami uczestników, wysyłanie zaproszeń e-mail oraz przeglądanie wyników z "
 "zachowaniem anonimowości."
-msgstr ""
+msgstr "A plugin for conducting electronic polls and surveys within an organization. Enables creating polls with questions and answers, managing participant groups, sending email invitations, and viewing results while preserving anonymity."
 
 #: admin/partials/about.php:23
 msgid "Autor"
@@ -752,7 +752,7 @@ msgid ""
 "Odkrywa unikalne wartości pola \"miasto\" w bazie użytkowników, tworzy "
 "brakujące grupy i przypisuje do nich użytkowników automatycznie (partiami po "
 "100)."
-msgstr ""
+msgstr "Discovers unique \"city\" field values in the user database, creates missing groups, and automatically assigns users to them (in batches of 100)."
 
 #: admin/partials/groups.php:401
 msgid "Synchronizuj wszystkie grupy-miasta"
@@ -892,7 +892,7 @@ msgstr "Questions and answers"
 msgid ""
 "każde głosowanie zawiera 1–24 pytania, każde pytanie ma 3–12 odpowiedzi. "
 "Ostatnia odpowiedź to zawsze \"Wstrzymuję się\"."
-msgstr ""
+msgstr "each poll contains 1–24 questions, each question has 3–12 answers. The last answer is always \"Abstain\"."
 
 #: admin/partials/manual.php:64
 msgid ""
@@ -934,7 +934,7 @@ msgstr "Administrator (or Coordinator) creates a poll, selects target groups and
 msgid ""
 "Kliknięcie \"Wystartuj głosowanie\" zmienia status na Rozpoczęte i wysyła "
 "zaproszenia e-mail."
-msgstr ""
+msgstr "Clicking \"Start poll\" changes the status to Started and sends email invitations."
 
 #: admin/partials/manual.php:74
 msgid ""
@@ -946,7 +946,7 @@ msgstr "Eligible users log in, go to the voting page and cast their vote."
 msgid ""
 "Po zakończeniu głosowania wyniki są dostępne w zakładce \"Zakończone "
 "głosowania\"."
-msgstr ""
+msgstr "After the poll ends, results are available in the \"Completed polls\" tab."
 
 #: admin/partials/manual.php:83
 msgid "Wtyczka rozróżnia role WordPress i własne role wtyczki."
@@ -1016,7 +1016,7 @@ msgstr "How to assign the Coordinator role"
 
 #: admin/partials/manual.php:117
 msgid "Przejdź do menu E-głosowania → Koordynatorzy."
-msgstr ""
+msgstr "Go to the E-voting menu → Coordinators."
 
 #: admin/partials/manual.php:118
 msgid "W lewej kolumnie znajdź użytkownika (wpisz imię lub nazwisko)."
@@ -1028,7 +1028,7 @@ msgstr "In the right column select the group (or groups)."
 
 #: admin/partials/manual.php:120
 msgid "Kliknij \"Dodaj\". Użytkownik stanie się Koordynatorem wybranych grup."
-msgstr ""
+msgstr "Click \"Add\". The user will become a Coordinator of the selected groups."
 
 #: admin/partials/manual.php:128
 msgid ""
@@ -1043,11 +1043,11 @@ msgstr "Creating a group"
 
 #: admin/partials/manual.php:132
 msgid "Przejdź do menu E-głosowania → Grupy."
-msgstr ""
+msgstr "Go to the E-voting menu → Groups."
 
 #: admin/partials/manual.php:133
 msgid "Kliknij \"Dodaj grupę\", wpisz nazwę (np. nazwę miasta lub oddziału)."
-msgstr ""
+msgstr "Click \"Add group\", enter a name (e.g. city or branch name)."
 
 #: admin/partials/manual.php:134
 msgid "Zapisz. Grupa pojawi się na liście."
@@ -1069,18 +1069,18 @@ msgstr "Manually"
 msgid ""
 "na ekranie Grupy wyszukaj użytkownika, wybierz grupę (lub kilka) i kliknij "
 "\"Dodaj\"."
-msgstr ""
+msgstr "on the Groups screen, search for a user, select a group (or several) and click \"Add\"."
 
 #: admin/partials/manual.php:141
 msgid "Automatycznie (przycisk \"Auto\")"
-msgstr ""
+msgstr "Automatically (the \"Auto\" button)"
 
 #: admin/partials/manual.php:141
 msgid ""
 "system przeszukuje wszystkich użytkowników z wypełnionym polem \"Miasto\" i "
 "przypisuje ich do grupy o tej samej nazwie. Grupy, które nie istnieją, "
 "zostaną automatycznie utworzone."
-msgstr ""
+msgstr "the system searches all users with a filled \"City\" field and assigns them to the group with the same name. Groups that do not exist will be created automatically."
 
 #: admin/partials/manual.php:142
 msgid "Przez rejestrację"
@@ -1091,14 +1091,14 @@ msgid ""
 "gdy nowy użytkownik się rejestruje lub uzupełnia profil, wtyczka "
 "automatycznie sprawdza czy pasuje do aktywnych głosowań z trybem dołączania "
 "\"Otwarte\" i dodaje go do odpowiedniej grupy."
-msgstr ""
+msgstr "when a new user registers or completes their profile, the plugin automatically checks whether they match active polls with \"Open\" joining mode and adds them to the appropriate group."
 
 #: admin/partials/manual.php:146
 msgid ""
 "Jeśli użytkownik ma \"(brak)\" jako miasto i zostanie ręcznie przypisany do "
 "dokładnie jednej grupy, wtyczka automatycznie zaktualizuje jego pole "
 "\"Miasto\" nazwą tej grupy."
-msgstr ""
+msgstr "If a user has \"(none)\" as their city and is manually assigned to exactly one group, the plugin will automatically update their \"City\" field with that group's name."
 
 #: admin/partials/manual.php:154
 msgid ""
@@ -1118,7 +1118,7 @@ msgstr "Adding"
 msgid ""
 "wybierz użytkownika z lewej listy, grupę (grupy) z prawej listy, kliknij "
 "\"Dodaj\"."
-msgstr ""
+msgstr "select a user from the left list, a group (or groups) from the right list, click \"Add\"."
 
 #: admin/partials/manual.php:159
 msgid "Odłączenie od wszystkich grup"
@@ -1126,7 +1126,7 @@ msgstr "Remove from all groups"
 
 #: admin/partials/manual.php:159
 msgid "kliknij \"Odłącz wszystko\" przy danym koordynatorze na liście."
-msgstr ""
+msgstr "click \"Disconnect all\" next to the coordinator on the list."
 
 #: admin/partials/manual.php:160
 msgid "Odłączenie od konkretnej grupy"
@@ -1150,7 +1150,7 @@ msgstr "Creating a new poll"
 
 #: admin/partials/manual.php:175
 msgid "Przejdź do E-głosowania → Głosowania → Dodaj nowe."
-msgstr ""
+msgstr "Go to E-voting → Polls → Add new."
 
 #: admin/partials/manual.php:176
 msgid "Wypełnij formularz (opis pól poniżej)."
@@ -1158,7 +1158,7 @@ msgstr "Fill in the form (field descriptions below)."
 
 #: admin/partials/manual.php:177
 msgid "Kliknij \"Zapisz jako szkic\" lub \"Wystartuj głosowanie\"."
-msgstr ""
+msgstr "Click \"Save as draft\" or \"Start poll\"."
 
 #: admin/partials/manual.php:180
 msgid "Opis pól formularza głosowania"
@@ -1185,7 +1185,7 @@ msgstr "Start date and time"
 msgid ""
 "Automatycznie ustawiana na moment kliknięcia \"Wystartuj głosowanie\". Nie "
 "wymaga ręcznego ustawiania."
-msgstr ""
+msgstr "Automatically set to the moment \"Start poll\" is clicked. No manual setting required."
 
 #: admin/partials/manual.php:200
 msgid "Czas trwania"
@@ -1195,7 +1195,7 @@ msgstr "Duration"
 msgid ""
 "Wybierz z listy: 1 godz., 6 godz., 1 dzień, 2 dni itd. Data zakończenia jest "
 "obliczana automatycznie."
-msgstr ""
+msgstr "Select from the list: 1 hr., 6 hrs., 1 day, 2 days, etc. The end date is calculated automatically."
 
 #: admin/partials/manual.php:204
 msgid "Tryb dołączania"
@@ -1206,7 +1206,7 @@ msgid ""
 "\"Otwarte\" — nowi użytkownicy, którzy zarejestrują się w trakcie "
 "głosowania, mogą automatycznie dołączyć. \"Zamknięte\" — tylko osoby z listy "
 "snapshot w momencie startu."
-msgstr ""
+msgstr "\"Open\" — new users who register during the poll may join automatically. \"Closed\" — only people on the snapshot list at the time of start."
 
 #: admin/partials/manual.php:208
 msgid "Tryb głosowania"
@@ -1217,7 +1217,7 @@ msgid ""
 "\"Jawne\" — w wynikach widać (częściowo zanonimizowane) dane głosujących. "
 "\"Anonimowe\" — w wynikach widać tylko liczby, zero danych osobowych. Uwaga: "
 "nie można zmienić po starcie."
-msgstr ""
+msgstr "\"Public\" — voter data (partially anonymized) is visible in results. \"Anonymous\" — only numbers are shown, no personal data. Note: cannot be changed after start."
 
 #: admin/partials/manual.php:212 admin/partials/poll-form.php:140
 msgid "Grupy docelowe"
@@ -1244,7 +1244,7 @@ msgid ""
 "Dodawaj pytania przyciskiem \"+ Dodaj pytanie\". Każde pytanie ma min. 2 "
 "odpowiedzi (plus automatyczna \"Wstrzymuję się\" na końcu, której nie można "
 "usunąć)."
-msgstr ""
+msgstr "Add questions using the \"+ Add question\" button. Each question has at least 2 answers (plus an automatic \"Abstain\" at the end, which cannot be removed)."
 
 #: admin/partials/manual.php:226
 msgid "Statusy głosowania"
@@ -1269,7 +1269,7 @@ msgstr "Active. Participants can vote. Email invitations have been sent."
 msgid ""
 "Czas minął lub admin ręcznie zakończył. Widoczne w zakładce \"Zakończone "
 "głosowania\" z pełnymi wynikami."
-msgstr ""
+msgstr "Time elapsed or the admin manually ended it. Visible in the \"Completed polls\" tab with full results."
 
 #: admin/partials/manual.php:249
 msgid "Walidacja przed startem"
@@ -1280,7 +1280,7 @@ msgid ""
 "Przycisk \"Wystartuj głosowanie\" jest nieaktywny jeśli: brak tytułu, brak "
 "opisu, brak grupy docelowej, brak pytań, puste odpowiedzi lub czas trwania "
 "przekracza 1 miesiąc."
-msgstr ""
+msgstr "The \"Start poll\" button is inactive if: no title, no description, no target group, no questions, empty answers, or duration exceeds 1 month."
 
 #: admin/partials/manual.php:258
 msgid ""
@@ -1318,7 +1318,7 @@ msgstr "Log in to WordPress."
 
 #: admin/partials/manual.php:267
 msgid "Wejdź na stronę głosowania i wybierz zakładkę \"Trwające głosowania\"."
-msgstr ""
+msgstr "Go to the voting page and select the \"Active polls\" tab."
 
 #: admin/partials/manual.php:268
 msgid "Odpowiedz na wszystkie pytania (wybierz jedną odpowiedź na pytanie)."
@@ -1329,13 +1329,13 @@ msgid ""
 "Wybierz sposób oddania głosu: \"Jawnie\" (Twoje dane pojawią się w wynikach, "
 "częściowo zanonimizowane) lub \"Anonimowo\" (widoczna tylko Twoja nazwa "
 "użytkownika)."
-msgstr ""
+msgstr "Choose your voting method: \"Publicly\" (your data will appear in results, partially anonymized) or \"Anonymously\" (only your username is visible)."
 
 #: admin/partials/manual.php:270
 msgid ""
 "Kliknij \"Oddaj głos\". Przycisk jest nieaktywny dopóki nie wypełnisz "
 "wszystkich pól."
-msgstr ""
+msgstr "Click \"Cast vote\". The button is inactive until all fields are filled in."
 
 #: admin/partials/manual.php:271
 msgid ""
@@ -1353,7 +1353,7 @@ msgstr "A user can vote only if they meet all of the following conditions:"
 
 #: admin/partials/manual.php:277
 msgid "Głosowanie ma status \"Rozpoczęte\"."
-msgstr ""
+msgstr "The poll has \"Started\" status."
 
 #: admin/partials/manual.php:278
 msgid "Obecna data mieści się między datą startu a datą zakończenia."
@@ -1368,7 +1368,7 @@ msgid ""
 "Profil jest kompletny — wypełnione wszystkie pola oznaczone jako "
 "\"Wymagane\" w Konfiguracji (Imię, Nazwisko, Nickname, E-mail — zawsze; plus "
 "dowolne inne zaznaczone przez admina)."
-msgstr ""
+msgstr "Profile is complete — all fields marked as \"Required\" in Configuration are filled in (First name, Last name, Nickname, Email — always required; plus any others selected by the admin)."
 
 #: admin/partials/manual.php:281
 msgid "Użytkownik należy do grupy docelowej głosowania."
@@ -1382,7 +1382,7 @@ msgstr "The user has not voted yet."
 msgid ""
 "Jeśli tryb dołączania to \"Zamknięte\" — użytkownik musi być na liście "
 "snapshot z momentu startu."
-msgstr ""
+msgstr "If the joining mode is \"Closed\" — the user must be on the snapshot list from the time of start."
 
 #: admin/partials/manual.php:292
 msgid "Widok uczestnika (zakładka Zakończone)"
@@ -1411,7 +1411,7 @@ msgstr "Green bar = leading result, grey = others, yellow = abstention."
 
 #: admin/partials/manual.php:299
 msgid "Dla administratorów: przycisk \"Pobierz wyniki (PDF)\"."
-msgstr ""
+msgstr "For administrators: the \"Download results (PDF)\" button."
 
 #: admin/partials/manual.php:302
 msgid "Widok admina"
@@ -1420,7 +1420,7 @@ msgstr "Admin view"
 #: admin/partials/manual.php:303
 msgid ""
 "W panelu admina (E-głosowania → kliknij głosowanie → Wyniki) dostępne są:"
-msgstr ""
+msgstr "In the admin panel (E-voting → click poll → Results) the following are available:"
 
 #: admin/partials/manual.php:305
 msgid ""
@@ -1455,7 +1455,7 @@ msgid ""
 "Procenty są obliczane względem liczby głosów faktycznie oddanych, a nie "
 "względem wszystkich uprawnionych. Osoby nieobecne nie są wliczane do "
 "\"wstrzymujących się\"."
-msgstr ""
+msgstr "Percentages are calculated relative to the number of votes actually cast, not relative to all eligible voters. Absent persons are not counted as \"abstaining\"."
 
 #: admin/partials/manual.php:323
 msgid ""
@@ -1471,7 +1471,7 @@ msgstr "Invitations screen"
 msgid ""
 "Dostępny w liście głosowań pod linkiem \"Zaproszenia\" przy każdym "
 "głosowaniu. Pokazuje:"
-msgstr ""
+msgstr "Available in the poll list under the \"Invitations\" link for each poll. Shows:"
 
 #: admin/partials/manual.php:328
 msgid "Ile e-maili zostało wysłanych, ile oczekuje, ile nie udało się wysłać."
@@ -1484,19 +1484,19 @@ msgstr "Sending progress bar."
 #: admin/partials/manual.php:330
 msgid ""
 "Przycisk \"Wyślij zaproszenia\" / \"Wyślij ponownie\" (dla niezwysłanych)."
-msgstr ""
+msgstr "The \"Send invitations\" / \"Resend\" button (for unsent ones)."
 
 #: admin/partials/manual.php:331
 msgid ""
 "Gdy wszyscy zostali powiadomieni, przycisk zmienia się na szary \"Wszyscy "
 "powiadomieni\"."
-msgstr ""
+msgstr "When everyone has been notified, the button turns grey: \"All notified\"."
 
 #: admin/partials/manual.php:335
 msgid ""
 "\"Wyślij ponownie\" wysyła TYLKO do osób, które jeszcze nie otrzymały "
 "zaproszenia (status \"oczekuje\" lub \"błąd\"). Nie tworzy duplikatów."
-msgstr ""
+msgstr "\"Resend\" sends ONLY to people who have not yet received an invitation (status \"pending\" or \"error\"). No duplicates are created."
 
 #: admin/partials/manual.php:338
 msgid "Konfiguracja e-mail"
@@ -1526,7 +1526,7 @@ msgstr "Optionally: sending via SendGrid API (API key in Configuration)."
 #: admin/partials/manual.php:352
 msgid ""
 "Dostępna w menu E-głosowania → Konfiguracja (tylko Administrator WordPress)."
-msgstr ""
+msgstr "Available in the E-voting menu → Configuration (WordPress Administrator only)."
 
 #: admin/partials/manual.php:356
 msgid "Opcja"
@@ -1534,13 +1534,13 @@ msgstr "Option"
 
 #: admin/partials/manual.php:361
 msgid "Slug strony głosowania"
-msgstr ""
+msgstr "Poll page slug"
 
 #: admin/partials/manual.php:362
 msgid ""
 "Adres URL strony głosowania, np. \"glosowanie\". Po zmianie odśwież "
 "permalinki (Ustawienia → Bezpośrednie odnośniki → Zapisz)."
-msgstr ""
+msgstr "URL of the voting page, e.g. \"vote\". After changing, refresh permalinks (Settings → Permalinks → Save)."
 
 #: admin/partials/manual.php:365
 msgid "Dodaj podstronę"
@@ -1571,7 +1571,7 @@ msgid ""
 "Slug strony z ankietami (np. \"ankieta\"). Strona powinna zawierać blok "
 "\"Ankiety (E-głosowania)\". Przyciski \"Utwórz stronę ankiet\" i "
 "\"Zaktualizuj stronę ankiet (dodaj blok)\" tworzą lub uzupełniają stronę."
-msgstr ""
+msgstr "Survey page slug (e.g. \"survey\"). The page should contain the \"Surveys (E-voting)\" block. The \"Create survey page\" and \"Update survey page (add block)\" buttons create or update the page."
 
 #: admin/partials/manual.php:377 admin/partials/settings.php:449
 msgid "URL strony zgłoszeń"
@@ -1585,7 +1585,7 @@ msgid ""
 "pytania — wartości pól uznanych za wrażliwe (E-mail, Miasto, Telefon, PESEL "
 "itd.) są ukrywane. Przyciski \"Utwórz stronę zgłoszeń\" i \"Zaktualizuj "
 "stronę zgłoszeń (dodaj blok)\" ułatwiają konfigurację."
-msgstr ""
+msgstr "Slug of the page with survey submissions marked as \"Not spam\" (e.g. \"submissions\"). The page contains the \"Submissions (E-voting)\" block. Only first and last name and answers to questions are shown publicly — values of fields considered sensitive (Email, City, Phone, National ID, etc.) are hidden. The \"Create submissions page\" and \"Update submissions page (add block)\" buttons make configuration easier."
 
 #: admin/partials/manual.php:381 admin/partials/settings.php:112
 msgid "E-mail nadawcy"
@@ -1605,11 +1605,11 @@ msgid ""
 "\"WordPress domyślny\" używa wbudowanej funkcji wp_mail(). \"Zewnętrzny "
 "SMTP\" — wpisz dane serwera pocztowego. \"SendGrid API\" — wpisz klucz API z "
 "konta SendGrid."
-msgstr ""
+msgstr "\"WordPress default\" uses the built-in wp_mail() function. \"External SMTP\" — enter your mail server details. \"SendGrid API\" — enter the API key from your SendGrid account."
 
 #: admin/partials/manual.php:389
 msgid "Odinstaluj"
-msgstr ""
+msgstr "Uninstall"
 
 #: admin/partials/manual.php:390
 msgid ""
@@ -1626,7 +1626,7 @@ msgstr "The Configuration section is used to map the plugin’s logical field na
 
 #: admin/partials/manual.php:402
 msgid "Pola logiczne"
-msgstr ""
+msgstr "Boolean fields"
 
 #: admin/partials/manual.php:405 admin/partials/settings.php:587
 msgid "Pole logiczne"
@@ -1681,7 +1681,7 @@ msgstr "Phone number"
 #: admin/partials/manual.php:415
 msgid ""
 "Opcjonalne. Ustaw na klucz z Twojej wtyczki lub zostaw \"nie określone\"."
-msgstr ""
+msgstr "Optional. Set to the key from your plugin or leave as \"not specified\"."
 
 #: admin/partials/manual.php:416
 msgid "Numer PESEL"
@@ -1714,18 +1714,18 @@ msgstr "Town"
 #: admin/partials/manual.php:420
 msgid ""
 "Opcjonalne. Oddzielne od \"Miasta / miejsca spotkania\" używanego do grup."
-msgstr ""
+msgstr "Optional. Separate from the \"City / meeting place\" used for groups."
 
 #: admin/partials/manual.php:424
 msgid "Kolumna \"Wymagane do głosowania\""
-msgstr ""
+msgstr "The \"Required for voting\" column"
 
 #: admin/partials/manual.php:425
 msgid ""
 "Checkbox przy każdym polu oznacza, że użytkownik MUSI mieć wypełnione to "
 "pole, aby móc oddać głos. Pola \"zawsze\" (Imię, Nazwisko, Nickname, E-mail) "
 "nie mogą zostać odznaczone."
-msgstr ""
+msgstr "The checkbox next to each field means the user MUST have this field filled in to cast a vote. The \"always\" fields (First name, Last name, Nickname, Email) cannot be unchecked."
 
 #: admin/partials/manual.php:427
 msgid "Dane wrażliwe na stronie zgłoszeń"
@@ -1740,14 +1740,14 @@ msgid ""
 "Miejscowość. Aby dana odpowiedź w ankiecie była na stronie zgłoszeń ukryta "
 "(pokazywane jest „—\"), przy tworzeniu lub edycji ankiety należy przypisać "
 "do tego pytania odpowiednie „Pole profilu\" w sekcji pól ankiety."
-msgstr ""
+msgstr "On the public submissions page (/submissions or another configured slug) the plugin does not display values of fields considered sensitive. These are fields from the mapping list: Email, City / meeting place, Phone number, National ID number, ID card number, Street and house number, Postal code, City/Town. To hide a survey answer on the submissions page (shown as \"—\"), assign the appropriate \"Profile field\" to that question in the survey fields section when creating or editing the survey."
 
 #: admin/partials/manual.php:431
 msgid ""
 "Przykład: jeśli zaznaczysz PESEL jako wymagany, ale klucz pozostanie \"nie "
 "określone\", żaden użytkownik nie będzie mógł głosować (pole zawsze puste). "
 "Najpierw ustaw poprawny klucz meta, dopiero potem zaznacz jako wymagane."
-msgstr ""
+msgstr "Example: if you mark National ID as required but the key remains \"not specified\", no user will be able to vote (field always empty). First set the correct meta key, then mark it as required."
 
 #: admin/partials/manual.php:439
 msgid ""
@@ -1764,7 +1764,7 @@ msgstr "Where to find surveys"
 msgid ""
 "Lista ankiet: E-głosowania → Ankiety (lub z menu listy głosowań — opcja "
 "\"Ankiety\")."
-msgstr ""
+msgstr "Survey list: E-voting → Surveys (or from the poll list menu — \"Surveys\" option)."
 
 #: admin/partials/manual.php:444
 msgid ""
@@ -1776,7 +1776,7 @@ msgstr "Creating and editing: title, description, duration, survey fields (label
 msgid ""
 "Dla każdej ankiety: lista zgłoszeń ze statusem (oczekuje / nie spam / spam), "
 "przycisk \"To nie spam\" do zatwierdzania zgłoszeń."
-msgstr ""
+msgstr "For each survey: a list of submissions with status (pending / not spam / spam), and a \"Not spam\" button for approving submissions."
 
 #: admin/partials/manual.php:448
 msgid "Pole profilu przy pytaniach ankiety"
@@ -1788,7 +1788,7 @@ msgid ""
 "wybór z listy (Imię, Nazwisko, E-mail, Miasto, Numer telefonu, PESEL, Ulica, "
 "Kod pocztowy, Miejscowość itd.). To powiązanie służy stronie publicznej "
 "zgłoszeń:"
-msgstr ""
+msgstr "Each survey field (question) can have an optional \"Profile field\" set: chosen from a list (First name, Last name, Email, City, Phone number, National ID, Street, Postal code, Town, etc.). This mapping is used by the public submissions page:"
 
 #: admin/partials/manual.php:451
 msgid ""
@@ -1801,7 +1801,7 @@ msgid ""
 "Jeśli wybierzesz pole uznane za wrażliwe (E-mail, Miasto, Telefon, PESEL, "
 "Dowód, Ulica, Kod pocztowy, Miejscowość), wartość tej odpowiedzi na stronie "
 "zgłoszeń zostanie zastąpiona znakiem „—\", aby nie ujawniać danych osobowych."
-msgstr ""
+msgstr "If you select a field considered sensitive (Email, City, Phone, National ID, ID card, Street, Postal code, Town), the answer value on the submissions page will be replaced with \"—\" to avoid disclosing personal data."
 
 #: admin/partials/manual.php:454
 msgid ""
@@ -1821,7 +1821,7 @@ msgid ""
 "\" (evoting/survey-responses). Możesz utworzyć ją ręcznie w edytorze lub "
 "użyć przycisków w Konfiguracji: „Utwórz stronę zgłoszeń\" lub „Zaktualizuj "
 "stronę zgłoszeń (dodaj blok)\"."
-msgstr ""
+msgstr "Set the page slug in Configuration under \"Submissions page URL\". The page should contain the Gutenberg block \"Submissions (E-voting)\" (evoting/survey-responses). You can create it manually in the editor or use the buttons in Configuration: \"Create submissions page\" or \"Update submissions page (add block)\"."
 
 #: admin/partials/manual.php:458
 msgid ""
@@ -1829,29 +1829,29 @@ msgid ""
 "każdego zgłoszenia widać: tytuł ankiety, imię i nazwisko oraz listę pytań z "
 "odpowiedziami. Odpowiedzi powiązane z wrażliwymi polami profilu są ukrywane "
 "(„—\")."
-msgstr ""
+msgstr "The page shows only submissions with \"Not spam\" status. For each submission you can see: survey title, first and last name, and a list of questions with answers. Answers linked to sensitive profile fields are hidden (\"—\")."
 
 #: admin/partials/manual.php:459
 msgid ""
 "Dostęp do listy zgłoszeń ma każdy, kto może wyświetlić stronę. Aby "
 "ograniczyć dostęp (np. tylko dla zalogowanych lub wybranej roli), umieść "
 "blok na stronie chronionej hasłem lub ustaw widoczność strony na „Prywatna\"."
-msgstr ""
+msgstr "Access to the submissions list is available to anyone who can view the page. To restrict access (e.g. logged-in users only or a specific role), place the block on a password-protected page or set the page visibility to \"Private\"."
 
 #: admin/partials/manual.php:462
 msgid "Strona ankiet"
-msgstr ""
+msgstr "Survey page"
 
 #: admin/partials/manual.php:463
 msgid ""
 "Osobna opcja w Konfiguracji to „URL strony ankiet\" — strona z blokiem "
 "„Ankiety (E-głosowania)\", na której użytkownicy wypełniają ankiety. Slug "
 "możesz ustawić np. na \"ankieta\"."
-msgstr ""
+msgstr "A separate option in Configuration is \"Survey page URL\" — a page with the \"Surveys (E-voting)\" block where users fill in surveys. You can set the slug to e.g. \"survey\"."
 
 #: admin/partials/manual.php:472
 msgid "Użytkownik widzi \"Twój profil jest niekompletny\" — co robić?"
-msgstr ""
+msgstr "A user sees \"Your profile is incomplete\" — what to do?"
 
 #: admin/partials/manual.php:473
 msgid ""
@@ -1863,7 +1863,7 @@ msgstr "Check which field is missing (the message gives the field name). Ask the
 #: admin/partials/manual.php:475
 msgid ""
 "Głosowanie nie pojawia się w zakładce \"Trwające\" pomimo że jest aktywne."
-msgstr ""
+msgstr "The poll does not appear in the \"Active\" tab even though it is active."
 
 #: admin/partials/manual.php:476
 msgid ""
@@ -1880,7 +1880,7 @@ msgid ""
 "Sprawdź: (1) Ekran Zaproszenia — czy status to \"wysłano\" czy \"błąd\"? (2) "
 "Konfiguracja → ustawienia e-mail — czy skonfigurowany jest SMTP lub "
 "SendGrid? (3) Sprawdź folder SPAM u odbiorcy."
-msgstr ""
+msgstr "Check: (1) Invitations screen — is the status \"sent\" or \"error\"? (2) Configuration → email settings — is SMTP or SendGrid configured? (3) Check the recipient's SPAM folder."
 
 #: admin/partials/manual.php:481
 msgid "Strona głosowania pokazuje błąd lub przekierowuje w pętli."
@@ -1891,7 +1891,7 @@ msgid ""
 "Przejdź do Konfiguracji i kliknij \"Zaktualizuj stronę głosowania\" jeśli "
 "pojawia się ostrzeżenie. Następnie odśwież permalinki w Ustawienia → "
 "Bezpośrednie odnośniki."
-msgstr ""
+msgstr "Go to Configuration and click \"Update voting page\" if a warning appears. Then refresh permalinks in Settings → Permalinks."
 
 #: admin/partials/manual.php:484
 msgid "Jak zmienić nazwę witryny w nagłówku i PDF?"
@@ -1915,14 +1915,14 @@ msgstr "The plugin uses the WordPress site icon (Appearance → Customize → Si
 
 #: admin/partials/manual.php:490
 msgid "Co to jest tryb \"Nie używaj miast\"?"
-msgstr ""
+msgstr "What is the \"Do not use cities\" mode?"
 
 #: admin/partials/manual.php:491
 msgid ""
 "Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników "
 "traktuje jako należących do jednej grupy \"Wszyscy\". Przydatne gdy nie "
 "chcesz grupować uczestników według lokalizacji."
-msgstr ""
+msgstr "When you select this option in the City field mapping, all users are treated as belonging to one group \"Everyone\". Useful when you do not want to group participants by location."
 
 #: admin/partials/manual.php:496
 #, php-format
@@ -1931,7 +1931,7 @@ msgstr "Documentation version: %s"
 
 #: admin/partials/poll-form.php:12 admin/partials/survey-form.php:17
 msgid "1h"
-msgstr ""
+msgstr "1h"
 
 #: admin/partials/poll-form.php:13 admin/partials/survey-form.php:18
 msgid "1 dzień"
@@ -1939,11 +1939,11 @@ msgstr "1 day"
 
 #: admin/partials/poll-form.php:14 admin/partials/survey-form.php:19
 msgid "2 dni"
-msgstr ""
+msgstr "2 days"
 
 #: admin/partials/poll-form.php:15 admin/partials/survey-form.php:20
 msgid "3 dni"
-msgstr ""
+msgstr "3 days"
 
 #: admin/partials/poll-form.php:16 admin/partials/survey-form.php:21
 msgid "7 dni"
@@ -1989,7 +1989,7 @@ msgstr "Max 512 characters."
 msgid ""
 "Zawsze „teraz”. Przy „Wystartuj głosowanie” data startu ustawiana jest na "
 "bieżący moment."
-msgstr ""
+msgstr "Always \"now\". When \"Start poll\" is clicked, the start date is set to the current moment."
 
 #: admin/partials/poll-form.php:129
 msgid "Czas trwania głosowania"
@@ -2035,7 +2035,7 @@ msgstr "1–24 questions, 3–12 answers per question"
 msgid ""
 "Ostatnia odpowiedź każdego pytania to obowiązkowe \"Wstrzymuję się\" "
 "(doliczane do nieuczestniczących)."
-msgstr ""
+msgstr "The last answer of each question is the mandatory \"Abstain\" (counted towards non-participants)."
 
 #: admin/partials/poll-form.php:187 admin/partials/poll-form.php:226
 msgid "Treść pytania"
@@ -2287,7 +2287,7 @@ msgstr "Legal provisions for voting"
 #: admin/partials/poll-list.php:15 blocks/evoting-voting-tabs/render.php:121
 #: public/views/vote-page-theme.php:70
 msgid "Przepisy"
-msgstr ""
+msgstr "Regulations"
 
 #: admin/partials/poll-list.php:41
 msgid "Data rozpoczęcia"
@@ -2308,7 +2308,7 @@ msgstr "No polls."
 #: admin/partials/poll-results.php:15
 #, php-format
 msgid "Wyniki: %s"
-msgstr ""
+msgstr "Results: %s"
 
 #: admin/partials/poll-results.php:63
 msgid "Wysyłka zakończona!"
@@ -2316,11 +2316,11 @@ msgstr "Sending complete!"
 
 #: admin/partials/poll-results.php:80
 msgid "Wznów wysyłkę"
-msgstr ""
+msgstr "Resume sending"
 
 #: admin/partials/poll-results.php:104
 msgid "Błąd startu:"
-msgstr ""
+msgstr "Start error:"
 
 #: admin/partials/statistics.php:154
 msgid "Statystyka"
@@ -2431,61 +2431,61 @@ msgstr "Turnout"
 #: admin/partials/poll-results.php:119
 #: includes/class-evoting-results-pdf.php:79
 msgid "Status:"
-msgstr ""
+msgstr "Status:"
 
 #: admin/partials/poll-results.php:121
 #: includes/class-evoting-results-pdf.php:80
 msgid "Okres:"
-msgstr ""
+msgstr "Period:"
 
 #: admin/partials/poll-results.php:128 blocks/evoting-voting-tabs/render.php:48
 #: includes/class-evoting-results-pdf.php:94
 #: includes/class-evoting-vote-page.php:121 public/class-evoting-public.php:41
 msgid "Uprawnionych do głosowania"
-msgstr ""
+msgstr "Eligible to vote"
 
 #: admin/partials/poll-results.php:136 blocks/evoting-voting-tabs/render.php:49
 #: includes/class-evoting-results-pdf.php:99
 #: includes/class-evoting-vote-page.php:122 public/class-evoting-public.php:42
 msgid "Uczestniczyło w głosowaniu"
-msgstr ""
+msgstr "Participated in poll"
 
 #: admin/partials/poll-results.php:144
 msgid "Nie uczestniczyło (liczone jako abstencja)"
-msgstr ""
+msgstr "Did not participate (counted as abstention)"
 
 #: admin/partials/poll-results.php:157
 #: includes/class-evoting-results-pdf.php:112
 msgid "Wyniki pytań"
-msgstr ""
+msgstr "Question results"
 
 #: admin/partials/poll-results.php:166
 #: includes/class-evoting-results-pdf.php:123
 msgid "Odpowiedź"
-msgstr ""
+msgstr "Answer"
 
 #: admin/partials/poll-results.php:167
 #: includes/class-evoting-results-pdf.php:124
 msgid "Głosy"
-msgstr ""
+msgstr "Votes"
 
 #: admin/partials/poll-results.php:168
 #: includes/class-evoting-results-pdf.php:91
 #: includes/class-evoting-results-pdf.php:125
 msgid "Procent"
-msgstr ""
+msgstr "Percentage"
 
 #: admin/partials/poll-results.php:169
 msgid "Wykres"
-msgstr ""
+msgstr "Chart"
 
 #: admin/partials/poll-results.php:182
 msgid "(inc. brak głosu)"
-msgstr ""
+msgstr "(incl. no vote)"
 
 #: admin/partials/poll-results.php:198
 msgid "Brak pytań w tym głosowaniu."
-msgstr ""
+msgstr "No questions in this poll."
 
 #: admin/partials/poll-results.php:208
 #: includes/class-evoting-results-pdf.php:154
@@ -2497,12 +2497,12 @@ msgstr "List of voters (%d)"
 msgid ""
 "Widoczne: imię i nazwisko oraz zanonimizowany adres e-mail. Pozostałe dane "
 "są utajnione. Wyświetlanie partiami po 100."
-msgstr ""
+msgstr "Visible: first and last name and anonymized email address. Other data is hidden. Displayed in batches of 100."
 
 #: admin/partials/poll-results.php:213
 #: includes/class-evoting-results-pdf.php:165
 msgid "Imię i Nazwisko"
-msgstr ""
+msgstr "Full Name"
 
 #: admin/partials/poll-results.php:214
 #: includes/class-evoting-results-pdf.php:166
@@ -2512,7 +2512,7 @@ msgstr "E-mail (anonymized)"
 #: admin/partials/poll-results.php:215
 #: includes/class-evoting-results-pdf.php:167
 msgid "Data głosowania"
-msgstr ""
+msgstr "Vote date"
 
 #: admin/partials/poll-results.php:238 admin/partials/poll-results.php:288
 #, php-format
@@ -2525,7 +2525,7 @@ msgstr "Show from start"
 
 #: admin/partials/poll-results.php:252
 msgid "Nikt jeszcze nie głosował."
-msgstr ""
+msgstr "No one has voted yet."
 
 #: admin/partials/poll-results.php:262
 #: includes/class-evoting-results-pdf.php:184
@@ -2537,20 +2537,20 @@ msgstr "Did not vote (%d)"
 msgid ""
 "Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane. "
 "Wyświetlanie partiami po 100."
-msgstr ""
+msgstr "Eligible users who did not cast a vote. Usernames anonymized. Displayed in batches of 100."
 
 #: admin/partials/poll-results.php:267
 msgid "Pseudonim (zanonimizowany)"
-msgstr ""
+msgstr "Username (anonymized)"
 
 #: admin/partials/poll-results.php:302
 msgid "Nie głosowali (0)"
-msgstr ""
+msgstr "Did not vote (0)"
 
 #: admin/partials/poll-results.php:303
 #: includes/class-evoting-results-pdf.php:209
 msgid "Wszyscy uprawnieni użytkownicy oddali głos."
-msgstr ""
+msgstr "All eligible users have voted."
 
 #: admin/partials/poll-results.php:310
 #: blocks/evoting-voting-tabs/render.php:241
@@ -2560,35 +2560,35 @@ msgstr "Download results (PDF)"
 
 #: admin/partials/poll-results.php:315
 msgid "Aby pobrać wyniki w PDF, uruchom w katalogu wtyczki: composer install"
-msgstr ""
+msgstr "To download results as PDF, run in the plugin directory: composer install"
 
 #: admin/partials/poll-results.php:386
 msgid "Wysyłanie zakończone. Odśwież stronę, aby zobaczyć wyniki."
-msgstr ""
+msgstr "Sending complete. Refresh the page to see the results."
 
 #: admin/partials/poll-results.php:393
 msgid "Błąd wysyłki:"
-msgstr ""
+msgstr "Send error:"
 
 #: admin/partials/poll-results.php:419
 msgid "Błąd."
-msgstr ""
+msgstr "Error."
 
 #: admin/partials/poll-results.php:452
 msgid "Oczekujących w kolejce"
-msgstr ""
+msgstr "Pending in queue"
 
 #: admin/partials/poll-results.php:456
 msgid "Wznów wysyłkę przyciskiem powyżej"
-msgstr ""
+msgstr "Resume sending using the button above"
 
 #: admin/partials/poll-results.php:466 admin/partials/poll-results.php:518
 msgid "Pokaż błędy"
-msgstr ""
+msgstr "Show errors"
 
 #: admin/partials/poll-results.php:517
 msgid "Ukryj błędy"
-msgstr ""
+msgstr "Hide errors"
 
 #: admin/partials/roles.php:25
 msgid ""
@@ -2943,19 +2943,19 @@ msgstr "copied poll %s"
 
 #: admin/partials/settings.php:24
 msgid "— nie określone —"
-msgstr ""
+msgstr "— not specified —"
 
 #: admin/partials/settings.php:30
 msgid "Nie używaj miast (wszyscy w grupie Wszyscy)"
-msgstr ""
+msgstr "Do not use cities (everyone in the Everyone group)"
 
 #: admin/partials/settings.php:34
 msgid "Pola wbudowane WordPress (wp_users)"
-msgstr ""
+msgstr "Built-in WordPress fields (wp_users)"
 
 #: admin/partials/settings.php:45
 msgid "Własne pola użytkownika (usermeta)"
-msgstr ""
+msgstr "Custom user fields (usermeta)"
 
 #: admin/partials/settings.php:64
 msgid "Konfiguracja została zapisana."
@@ -3003,7 +3003,7 @@ msgstr "Short name"
 
 #: admin/partials/settings.php:108
 msgid "Do 6 znaków. Domyślnie: EP-RWL."
-msgstr ""
+msgstr "Up to 6 characters. Default: EP-RWL."
 
 #: admin/partials/settings.php:119
 msgid ""
@@ -3017,7 +3017,7 @@ msgstr "Sending method"
 
 #: admin/partials/settings.php:138
 msgid "WordPress (php mail)"
-msgstr ""
+msgstr "WordPress (php mail)"
 
 #: admin/partials/settings.php:139
 msgid "Bez konfiguracji, zalecane do ~50 odbiorców."
@@ -3025,7 +3025,7 @@ msgstr "No configuration needed, recommended for up to ~50 recipients."
 
 #: admin/partials/settings.php:145
 msgid "Zewnętrzny serwer SMTP"
-msgstr ""
+msgstr "External SMTP server"
 
 #: admin/partials/settings.php:146
 msgid "Gmail, Outlook itp. — zalecane do ~500 odbiorców."
@@ -3037,63 +3037,63 @@ msgstr "SendGrid API"
 
 #: admin/partials/settings.php:153
 msgid "HTTP API, port 443 — zalecane dla 500–10 000+ odbiorców."
-msgstr ""
+msgstr "HTTP API, port 443 — recommended for 500–10,000+ recipients."
 
 #: admin/partials/settings.php:161
 msgid "Konfiguracja serwera SMTP"
-msgstr ""
+msgstr "SMTP server configuration"
 
 #: admin/partials/settings.php:164
 msgid "Serwer SMTP (host)"
-msgstr ""
+msgstr "SMTP server (host)"
 
 #: admin/partials/settings.php:169
 msgid "Np. smtp.gmail.com, smtp.office365.com"
-msgstr ""
+msgstr "E.g. smtp.gmail.com, smtp.office365.com"
 
 #: admin/partials/settings.php:173
 msgid "Port"
-msgstr ""
+msgstr "Port"
 
 #: admin/partials/settings.php:178
 msgid "Najczęstsze: 587 (TLS/STARTTLS), 465 (SSL), 25 (bez szyfrowania)"
-msgstr ""
+msgstr "Common values: 587 (TLS/STARTTLS), 465 (SSL), 25 (no encryption)"
 
 #: admin/partials/settings.php:182
 msgid "Szyfrowanie"
-msgstr ""
+msgstr "Encryption"
 
 #: admin/partials/settings.php:185
 msgid "TLS / STARTTLS (zalecane, port 587)"
-msgstr ""
+msgstr "TLS / STARTTLS (recommended, port 587)"
 
 #: admin/partials/settings.php:186
 msgid "SSL (port 465)"
-msgstr ""
+msgstr "SSL (port 465)"
 
 #: admin/partials/settings.php:187
 msgid "Brak szyfrowania (niezalecane)"
-msgstr ""
+msgstr "No encryption (not recommended)"
 
 #: admin/partials/settings.php:192
 msgid "Użytkownik (login)"
-msgstr ""
+msgstr "Username (login)"
 
 #: admin/partials/settings.php:197
 msgid "np. noreply@twojadomena.pl"
-msgstr ""
+msgstr "e.g. noreply@yourdomain.com"
 
 #: admin/partials/settings.php:201
 msgid "Hasło"
-msgstr ""
+msgstr "Password"
 
 #: admin/partials/settings.php:206
 msgid "Użyj dedykowanego hasła aplikacji (np. dla Gmail/Outlook)."
-msgstr ""
+msgstr "Use a dedicated app password (e.g. for Gmail/Outlook)."
 
 #: admin/partials/settings.php:210 admin/partials/settings.php:240
 msgid "Test połączenia"
-msgstr ""
+msgstr "Test connection"
 
 #: admin/partials/settings.php:213 admin/partials/settings.php:243
 msgid "Wyślij testowy e-mail"
@@ -3102,21 +3102,21 @@ msgstr "Send test email"
 #: admin/partials/settings.php:217 admin/partials/settings.php:247
 #, php-format
 msgid "Testowy e-mail zostanie wysłany na: %s"
-msgstr ""
+msgstr "A test email will be sent to: %s"
 
 #: admin/partials/settings.php:226
 msgid "Konfiguracja SendGrid API"
-msgstr ""
+msgstr "SendGrid API configuration"
 
 #: admin/partials/settings.php:229
 msgid "Klucz API SendGrid"
-msgstr ""
+msgstr "SendGrid API key"
 
 #: admin/partials/settings.php:235
 msgid ""
 "Utwórz klucz w panelu SendGrid → Settings → API Keys → Full Access lub Mail "
 "Send."
-msgstr ""
+msgstr "Create a key in the SendGrid panel → Settings → API Keys → Full Access or Mail Send."
 
 #: admin/partials/settings.php:255
 msgid "Parametry wysyłki masowej"
@@ -3147,7 +3147,7 @@ msgstr "Waiting time between batches in the admin browser."
 
 #: admin/partials/settings.php:325 admin/partials/settings.php:351
 msgid "Błąd połączenia."
-msgstr ""
+msgstr "Connection error."
 
 #: admin/partials/settings.php:359
 msgid "URL strony głosowania"
@@ -3157,11 +3157,11 @@ msgstr "Voting page URL"
 msgid ""
 "Adres ma postać: adres instalacji + ? + parametr (np. glosuj). Użytkownicy "
 "wchodzą pod link pokazany poniżej."
-msgstr ""
+msgstr "The address is: installation URL + ? + parameter (e.g. vote). Users access it via the link shown below."
 
 #: admin/partials/settings.php:365
 msgid "Nazwa parametru"
-msgstr ""
+msgstr "Parameter name"
 
 #: admin/partials/settings.php:373
 msgid "Strona WordPress (możesz ją edytować w Gutenberg):"
@@ -3180,7 +3180,7 @@ msgstr "Edit in Gutenberg"
 msgid ""
 "Adres publicznej strony z ankietami. Najlepiej stwórz stronę WordPress i "
 "wstaw blok \"Ankiety (E-głosowania)\", aby korzystać z edytora Gutenberg."
-msgstr ""
+msgstr "URL of the public survey page. Best practice: create a WordPress page and insert the \"Surveys (E-voting)\" block to use the Gutenberg editor."
 
 #: admin/partials/settings.php:400
 msgid "Strona ankiet została utworzona."
@@ -3210,7 +3210,7 @@ msgstr "Update surveys page (add block)"
 msgid ""
 "Adres publicznej strony ze zgłoszeniami oznaczonymi jako „Nie spam”. Stwórz "
 "stronę i wstaw blok „Zgłoszenia (E-głosowania)” lub użyj przycisków poniżej."
-msgstr ""
+msgstr "URL of the public page with submissions marked as \"Not spam\". Create a page and insert the \"Submissions (E-voting)\" block or use the buttons below."
 
 #: admin/partials/settings.php:455
 msgid "Strona zgłoszeń została utworzona."
@@ -3253,7 +3253,7 @@ msgstr "0 (no change)"
 
 #: admin/partials/settings.php:520
 msgid "%+d h"
-msgstr ""
+msgstr "%+d h"
 
 #: admin/partials/settings.php:527
 msgid "Czas na serwerze"
@@ -3282,7 +3282,7 @@ msgstr "Map the plugin's logical fields to actual keys in the WordPress database
 
 #: admin/partials/settings.php:554
 msgid "Wymagana wtyczka do rozszerzonych pól profilu"
-msgstr ""
+msgstr "Required plugin for extended profile fields"
 
 #: admin/partials/settings.php:558
 msgid ""
@@ -3309,7 +3309,7 @@ msgstr "under any key (meta_key) — enter that key in the column below."
 msgid ""
 "Jeśli dana wtyczka zapisuje numer telefonu jako „user_gsm\", wpisz "
 "„user_gsm\" jako klucz dla pola Telefon."
-msgstr ""
+msgstr "If a plugin stores the phone number as \"user_gsm\", enter \"user_gsm\" as the key for the Phone field."
 
 #: admin/partials/settings.php:588
 msgid "Klucz w bazie danych WordPress"
@@ -3449,7 +3449,7 @@ msgstr "{brand_short} ({from_email})"
 msgid ""
 "Nazwa wyświetlana jako nadawca w kliencie pocztowym. Adres e-mail pochodzi z "
 "pola \"E-mail nadawcy\" powyżej."
-msgstr ""
+msgstr "Name displayed as the sender in the email client. The email address comes from the \"Sender email\" field above."
 
 #: admin/partials/settings.php:741
 msgid "Treść"
@@ -3480,11 +3480,11 @@ msgstr "How does it work?"
 msgid ""
 "Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie pola "
 "oznaczone jako \"Wymagane\" są wypełnione."
-msgstr ""
+msgstr "A user is eligible to vote only if all fields marked as \"Required\" are filled in."
 
 #: admin/partials/settings.php:785
 msgid "Pole \"Nazwa miasta\" służy do definiowania grup docelowych głosowania."
-msgstr ""
+msgstr "The \"City name\" field is used to define target groups for polls."
 
 #: admin/partials/settings.php:786
 msgid "Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users."
@@ -3548,8 +3548,8 @@ msgstr "Content"
 #, php-format
 msgid "%d rekord"
 msgid_plural "%d rekordów"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d record"
+msgstr[1] "%d records"
 
 #: admin/partials/settings.php:848
 msgid "Koordynatorzy (usermeta)"
@@ -3559,8 +3559,8 @@ msgstr "Coordinators (usermeta)"
 #, php-format
 msgid "%d użytkownik"
 msgid_plural "%d użytkowników"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d user"
+msgstr[1] "%d users"
 
 #: admin/partials/settings.php:852
 msgid "Opcje konfiguracyjne wtyczki"
@@ -3582,7 +3582,7 @@ msgstr "Uninstall plugin"
 
 #: admin/partials/survey-form.php:24
 msgid "30 dni"
-msgstr ""
+msgstr "30 days"
 
 #: admin/partials/survey-form.php:57
 msgid "Podgląd ankiety"
@@ -3752,30 +3752,30 @@ msgstr "Cancel"
 #: blocks/evoting-poll/render.php:28
 #, php-format
 msgid "Aby zobaczyć dostępne głosowania i oddać głos, %s."
-msgstr ""
+msgstr "To see available polls and cast your vote, %s."
 
 #: blocks/evoting-poll/render.php:29 blocks/evoting-voting-tabs/render.php:134
 #: public/views/vote-page.php:63 public/views/vote-page-theme.php:84
 msgid "zaloguj się"
-msgstr ""
+msgstr "log in"
 
 #. translators: 1: end date/time, 2: link text
 #: blocks/evoting-poll/render.php:74
 #, php-format
 msgid "Głosowanie dobiegło końca dnia %1$s, %2$s."
-msgstr ""
+msgstr "The poll ended on %1$s, %2$s."
 
 #: blocks/evoting-poll/render.php:76
 msgid "zobacz wyniki"
-msgstr ""
+msgstr "view results"
 
 #: blocks/evoting-poll/render.php:81
 msgid "Ładowanie wyników…"
-msgstr ""
+msgstr "Loading results…"
 
 #: blocks/evoting-poll/render.php:95
 msgid "Nie możesz brać udziału w żadnym obecnie trwającym głosowaniu."
-msgstr ""
+msgstr "You cannot participate in any currently active poll."
 
 #: blocks/evoting-survey-form/render.php:40
 #: includes/class-evoting-survey-page.php:114
@@ -3785,80 +3785,80 @@ msgstr "Saving…"
 #: blocks/evoting-survey-form/render.php:41
 #: includes/class-evoting-survey-page.php:115
 msgid "Szkic zapisany."
-msgstr ""
+msgstr "Draft saved."
 
 #: blocks/evoting-survey-form/render.php:42
 msgid "Odpowiedź zapisana jako Gotowa. Dziękujemy!"
-msgstr ""
+msgstr "Response saved as Ready. Thank you!"
 
 #: blocks/evoting-survey-form/render.php:43
 #: blocks/evoting-voting-tabs/render.php:44
 #: includes/class-evoting-survey-page.php:117
 #: includes/class-evoting-vote-page.php:117 public/class-evoting-public.php:37
 msgid "Wystąpił błąd. Spróbuj ponownie."
-msgstr ""
+msgstr "An error occurred. Please try again."
 
 #: blocks/evoting-survey-form/render.php:44
 msgid "Uzupełnij profil, aby wypełnić ankietę."
-msgstr ""
+msgstr "Complete your profile to fill in the survey."
 
 #: blocks/evoting-survey-form/render.php:61
 msgid "Zaloguj się, aby wypełnić ankietę."
-msgstr ""
+msgstr "Log in to fill in the survey."
 
 #: blocks/evoting-survey-form/render.php:63
 msgid "Zaloguj się"
-msgstr ""
+msgstr "Log in"
 
 #: blocks/evoting-survey-form/render.php:71
 msgid "Aktualnie nie ma żadnych aktywnych ankiet."
-msgstr ""
+msgstr "There are currently no active surveys."
 
 #: blocks/evoting-survey-form/render.php:99
 #, php-format
 msgid "Ankieta aktywna do: %s"
-msgstr ""
+msgstr "Survey active until: %s"
 
 #: blocks/evoting-survey-form/render.php:120
 msgid "Twoja odpowiedź: Gotowa (możesz ją edytować do zakończenia ankiety)."
-msgstr ""
+msgstr "Your response: Ready (you can edit it until the survey ends)."
 
 #: blocks/evoting-survey-form/render.php:121
 msgid "Twoja odpowiedź: Szkic — tylko Ty ją widzisz."
-msgstr ""
+msgstr "Your response: Draft — only you can see it."
 
 #: blocks/evoting-survey-form/render.php:135
 msgid "Dane z Twojego profilu"
-msgstr ""
+msgstr "Data from your profile"
 
 #: blocks/evoting-survey-form/render.php:136
 msgid "Poniższe dane są zapisane w systemie i nie można ich tutaj edytować."
-msgstr ""
+msgstr "The following data is stored in the system and cannot be edited here."
 
 #: blocks/evoting-survey-form/render.php:144
 msgid "Wymagane do ankiety"
-msgstr ""
+msgstr "Required for survey"
 
 #: blocks/evoting-survey-form/render.php:162
 msgid "Proszę o uzupełnienie."
-msgstr ""
+msgstr "Please fill in."
 
 #: blocks/evoting-survey-form/render.php:203
 #, php-format
 msgid "Max %d znaków"
-msgstr ""
+msgstr "Max %d characters"
 
 #: blocks/openvote-survey-form/render.php:220
 msgid "Zapisz zmiany i aplikuj"
-msgstr ""
+msgstr "Save changes and apply"
 
 #: blocks/evoting-survey-responses/render.php:26
 msgid "Zgłoszenia ankiet"
-msgstr ""
+msgstr "Survey submissions"
 
 #: blocks/evoting-survey-responses/render.php:28
 msgid "Brak zgłoszeń zatwierdzonych."
-msgstr ""
+msgstr "No approved submissions."
 
 #: blocks/evoting-voting-tabs/render.php:43
 #: includes/class-evoting-vote-page.php:116 public/class-evoting-public.php:36
@@ -3870,78 +3870,78 @@ msgstr "Your vote has been recorded. Thank you!"
 #: includes/class-evoting-vote-page.php:118 models/class-evoting-vote.php:120
 #: public/class-evoting-public.php:38
 msgid "Odpowiedz na wszystkie pytania."
-msgstr ""
+msgstr "Answer all questions."
 
 #: blocks/evoting-voting-tabs/render.php:46
 #: includes/class-evoting-vote-page.php:119 public/class-evoting-public.php:39
 msgid "Wybierz sposób oddania głosu (jawnie lub anonimowo)."
-msgstr ""
+msgstr "Choose your voting method (publicly or anonymously)."
 
 #: blocks/evoting-voting-tabs/render.php:50
 #: includes/class-evoting-results-pdf.php:104
 #: includes/class-evoting-vote-page.php:123 public/class-evoting-public.php:43
 msgid "Nie uczestniczyło"
-msgstr ""
+msgstr "Did not participate"
 
 #: blocks/evoting-voting-tabs/render.php:51
 #: includes/class-evoting-vote-page.php:124 public/class-evoting-public.php:44
 msgid "inc. brak głosu"
-msgstr ""
+msgstr "incl. no vote"
 
 #: blocks/evoting-voting-tabs/render.php:52
 #: includes/class-evoting-vote-page.php:125 public/class-evoting-public.php:45
 msgid "Głosujący (anonimowo):"
-msgstr ""
+msgstr "Voters (anonymous):"
 
 #: blocks/evoting-voting-tabs/render.php:53
 #: includes/class-evoting-vote-page.php:126 public/class-evoting-public.php:46
 msgid "Pokaż głosujących"
-msgstr ""
+msgstr "Show voters"
 
 #: blocks/evoting-voting-tabs/render.php:54
 #: includes/class-evoting-vote-page.php:127 public/class-evoting-public.php:47
 msgid "Ukryj głosujących"
-msgstr ""
+msgstr "Hide voters"
 
 #: blocks/evoting-voting-tabs/render.php:55
 #: includes/class-evoting-vote-page.php:128 public/class-evoting-public.php:48
 msgid "Nieobecni (nie głosowali):"
-msgstr ""
+msgstr "Absent (did not vote):"
 
 #: blocks/evoting-voting-tabs/render.php:56
 #: includes/class-evoting-vote-page.php:129 public/class-evoting-public.php:49
 msgid "Pokaż nieobecnych"
-msgstr ""
+msgstr "Show absent"
 
 #: blocks/evoting-voting-tabs/render.php:57
 #: includes/class-evoting-vote-page.php:130 public/class-evoting-public.php:50
 msgid "Ukryj nieobecnych"
-msgstr ""
+msgstr "Hide absent"
 
 #: blocks/evoting-voting-tabs/render.php:58
 #: includes/class-evoting-vote-page.php:131 public/class-evoting-public.php:51
 msgid "d"
-msgstr ""
+msgstr "d"
 
 #: blocks/evoting-voting-tabs/render.php:59
 #: includes/class-evoting-vote-page.php:132 public/class-evoting-public.php:52
 msgid "godz."
-msgstr ""
+msgstr "hr."
 
 #: blocks/evoting-voting-tabs/render.php:60
 #: includes/class-evoting-vote-page.php:133 public/class-evoting-public.php:53
 msgid "min."
-msgstr ""
+msgstr "min."
 
 #: blocks/evoting-voting-tabs/render.php:61
 #: includes/class-evoting-vote-page.php:134 public/class-evoting-public.php:54
 msgid "sek."
-msgstr ""
+msgstr "sec."
 
 #: blocks/evoting-voting-tabs/render.php:62
 #: includes/class-evoting-vote-page.php:135 public/class-evoting-public.php:55
 msgid "Głosowanie zakończone"
-msgstr ""
+msgstr "Poll ended"
 
 #. translators: %s: login link with text "zaloguj się"
 #. translators: %s: link to login page
@@ -3949,55 +3949,55 @@ msgstr ""
 #: public/views/vote-page-theme.php:82
 #, php-format
 msgid "Aby głosować, %s."
-msgstr ""
+msgstr "To vote, %s."
 
 #: blocks/evoting-voting-tabs/render.php:143
 #: public/views/vote-page-theme.php:108
 msgid "Brak trwających głosowań w tym momencie."
-msgstr ""
+msgstr "There are no active polls at this time."
 
 #: blocks/evoting-voting-tabs/render.php:158
 #: public/views/vote-page-theme.php:123
 msgid "Nie brałeś/aś udziału w żadnym zakończonym głosowaniu."
-msgstr ""
+msgstr "You have not participated in any completed poll."
 
 #: blocks/evoting-voting-tabs/render.php:184
 #: public/views/vote-page-theme.php:144
 msgid "Głosowałeś/aś"
-msgstr ""
+msgstr "You voted"
 
 #: blocks/evoting-voting-tabs/render.php:184
 #: public/views/vote-page-theme.php:144
 msgid "Nie głosowałeś/aś"
-msgstr ""
+msgstr "You did not vote"
 
 #: blocks/evoting-voting-tabs/render.php:187
 #: public/views/vote-page-theme.php:147
 #, php-format
 msgid "Zakończono: %s"
-msgstr ""
+msgstr "Ended: %s"
 
 #: blocks/evoting-voting-tabs/render.php:192
 #: includes/evoting-render-poll.php:33 public/views/vote-page-theme.php:152
 msgid "Tytuł:"
-msgstr ""
+msgstr "Title:"
 
 #: blocks/evoting-voting-tabs/render.php:196
 #: includes/evoting-render-poll.php:34 public/views/vote-page-theme.php:156
 msgid "Opis:"
-msgstr ""
+msgstr "Description:"
 
 #: blocks/evoting-voting-tabs/render.php:202
 #: public/views/vote-page-theme.php:161
 #, php-format
 msgid "Frekwencja: %1$d%% · głosowało %2$d z %3$d uprawnionych"
-msgstr ""
+msgstr "Turnout: %1$d%% · %2$d of %3$d eligible voted"
 
 #: blocks/evoting-voting-tabs/render.php:214
 #: public/views/vote-page-theme.php:171
 #, php-format
 msgid "Pytanie %d:"
-msgstr ""
+msgstr "Question %d:"
 
 #: evoting.php:63
 msgid "Ustawienia"
@@ -4005,23 +4005,23 @@ msgstr "Settings"
 
 #: includes/class-evoting-eligibility.php:42
 msgid "Głosowanie jest jeszcze w przygotowaniu."
-msgstr ""
+msgstr "The poll is still being prepared."
 
 #: includes/class-evoting-eligibility.php:45 models/class-evoting-vote.php:103
 msgid "Głosowanie nie jest aktywne."
-msgstr ""
+msgstr "The poll is not active."
 
 #. translators: %s: data i godzina rozpoczęcia
 #: includes/class-evoting-eligibility.php:57
 #, php-format
 msgid "Głosowanie rozpocznie się %s."
-msgstr ""
+msgstr "The poll will start on %s."
 
 #. translators: %s: data i godzina zakończenia
 #: includes/class-evoting-eligibility.php:67
 #, php-format
 msgid "Głosowanie zakończyło się %s."
-msgstr ""
+msgstr "The poll ended on %s."
 
 #: includes/class-evoting-eligibility.php:75
 msgid "Musisz być zalogowany, aby wziąć udział w głosowaniu."
@@ -4041,16 +4041,16 @@ msgstr "Your profile is incomplete. Missing: %s."
 msgid ""
 "To głosowanie jest dostępne tylko dla wybranych grup. Twoje konto nie należy "
 "do żadnej z nich."
-msgstr ""
+msgstr "This poll is available only to selected groups. Your account does not belong to any of them."
 
 #: includes/class-evoting-eligibility.php:130
 #: includes/evoting-render-poll.php:43
 msgid "Już oddałeś głos w tym głosowaniu. Dziękujemy!"
-msgstr ""
+msgstr "You have already voted in this poll. Thank you!"
 
 #: includes/class-evoting-mailer.php:82
 msgid "Brak klucza API SendGrid."
-msgstr ""
+msgstr "SendGrid API key is missing."
 
 #: includes/class-evoting-mailer.php:102
 msgid "Brak prawidłowych adresów e-mail."
@@ -4058,15 +4058,15 @@ msgstr "No valid email addresses."
 
 #: includes/class-evoting-mailer.php:156
 msgid "Podaj klucz API SendGrid."
-msgstr ""
+msgstr "Enter your SendGrid API key."
 
 #: includes/class-evoting-mailer.php:160
 msgid "Test SendGrid — E-Voting"
-msgstr ""
+msgstr "SendGrid Test — E-Voting"
 
 #: includes/class-evoting-mailer.php:161
 msgid "To jest testowy e-mail weryfikujący konfigurację SendGrid w E-Voting."
-msgstr ""
+msgstr "This is a test email verifying the SendGrid configuration in E-Voting."
 
 #. translators: %s: email address
 #: includes/class-evoting-mailer.php:173 includes/class-evoting-mailer.php:249
@@ -4080,42 +4080,42 @@ msgstr "Sending failed."
 
 #: includes/class-evoting-mailer.php:206
 msgid "Test SMTP — EP-RWL E-Voting"
-msgstr ""
+msgstr "SMTP Test — EP-RWL E-Voting"
 
 #: includes/class-evoting-mailer.php:207
 msgid ""
 "To jest testowy e-mail weryfikujący konfigurację SMTP w EP-RWL E-Voting."
-msgstr ""
+msgstr "This is a test email verifying the SMTP configuration in EP-RWL E-Voting."
 
 #: includes/class-evoting-results-pdf.php:34
 msgid ""
 "Generowanie PDF wymaga zainstalowanych zależności Composer (composer "
 "install)."
-msgstr ""
+msgstr "PDF generation requires Composer dependencies to be installed (composer install)."
 
 #: includes/class-evoting-results-pdf.php:66
 msgid "Raport wyników głosowania"
-msgstr ""
+msgstr "Poll results report"
 
 #: includes/class-evoting-results-pdf.php:76
 msgid "Wyniki:"
-msgstr ""
+msgstr "Results:"
 
 #: includes/class-evoting-results-pdf.php:89
 msgid "Kategoria"
-msgstr ""
+msgstr "Category"
 
 #: includes/class-evoting-results-pdf.php:90
 msgid "Liczba"
-msgstr ""
+msgstr "Count"
 
 #: includes/class-evoting-results-pdf.php:159
 msgid "Imię i nazwisko oraz zanonimizowany e-mail. Pozostałe dane utajnione."
-msgstr ""
+msgstr "First and last name and anonymized email. Other data is hidden."
 
 #: includes/class-evoting-results-pdf.php:178
 msgid "Nikt nie głosował."
-msgstr ""
+msgstr "No one voted."
 
 #: includes/class-evoting-results-pdf.php:189
 msgid ""
@@ -4124,7 +4124,7 @@ msgstr "Eligible users who did not vote. Nicknames anonymized."
 
 #: includes/class-evoting-results-pdf.php:220
 msgid "Wygenerowano:"
-msgstr ""
+msgstr "Generated:"
 
 #: includes/class-evoting-role-manager.php:135
 msgid "Grupa „Administratorzy” nie istnieje. Utwórz ją w sekcji Grupy."
@@ -4138,30 +4138,30 @@ msgstr "Only users from the \"Administrators\" group can become WordPress admini
 
 #: includes/class-evoting-role-manager.php:142
 msgid "Operacja w toku. Spróbuj za chwilę."
-msgstr ""
+msgstr "Operation in progress. Please try again in a moment."
 
 #. translators: 1: limit, 2: names
 #: includes/class-evoting-role-manager.php:154
 #, php-format
 msgid "Limit Administratorów WordPress (%1$d) osiągnięty. Zajmują: %2$s."
-msgstr ""
+msgstr "WordPress Administrator limit (%1$d) reached. Currently occupied by: %2$s."
 
 #: includes/class-evoting-role-manager.php:163
 msgid "Nieprawidłowy użytkownik."
-msgstr ""
+msgstr "Invalid user."
 
 #: includes/class-evoting-role-manager.php:179
 msgid "Nie można usunąć ostatniego Administratora WordPress."
-msgstr ""
+msgstr "Cannot remove the last WordPress Administrator."
 
 #: includes/class-evoting-role-manager.php:183
 msgid "Ten użytkownik nie jest administratorem WordPress."
-msgstr ""
+msgstr "This user is not a WordPress administrator."
 
 #: includes/class-evoting-role-manager.php:187
 #: includes/class-evoting-role-manager.php:345
 msgid "Nie masz uprawnień do usunięcia tej roli."
-msgstr ""
+msgstr "You do not have permission to remove this role."
 
 #: includes/class-evoting-role-manager.php:218
 msgid ""
@@ -4173,7 +4173,7 @@ msgstr "Only a user from the \"Administrators\" group can be a WordPress adminis
 #: includes/class-evoting-role-manager.php:302
 #, php-format
 msgid "Limit Koordynatorów (%1$d) osiągnięty. Zajmują: %2$s."
-msgstr ""
+msgstr "Coordinator limit (%1$d) reached. Currently occupied by: %2$s."
 
 #: includes/class-evoting-role-manager.php:323
 msgid "Koordynator musi mieć przypisaną co najmniej jedną grupę."
@@ -4181,7 +4181,7 @@ msgstr "Coordinator must be assigned to at least one group."
 
 #: includes/class-evoting-role-manager.php:406
 msgid "Nie masz uprawnień do tej operacji."
-msgstr ""
+msgstr "You do not have permission to perform this operation."
 
 #: includes/class-evoting-role-manager.php:409
 msgid "Ten użytkownik nie jest koordynatorem."
@@ -4191,31 +4191,31 @@ msgstr "This user is not a coordinator."
 #: includes/class-evoting-role-manager.php:438
 #, php-format
 msgid "Maks. %1$d Administratorów WordPress. Zajmują: %2$s."
-msgstr ""
+msgstr "Max. %1$d WordPress Administrators. Currently occupied by: %2$s."
 
 #: includes/class-evoting-survey-page.php:116
 msgid "Odpowiedź gotowa! Dziękujemy."
-msgstr ""
+msgstr "Response ready! Thank you."
 
 #: includes/evoting-law-content.php:10
 msgid "Jak obywatele mogą głosować i decydować lokalnie?"
-msgstr ""
+msgstr "How can citizens vote and make decisions locally?"
 
 #: includes/evoting-render-poll.php:29 includes/evoting-render-poll.php:30
 msgid "— nie podano."
-msgstr ""
+msgstr "— not provided."
 
 #: includes/evoting-render-poll.php:38
 msgid "Głosowanie zakończone. Ładowanie wyników…"
-msgstr ""
+msgstr "Poll ended. Loading results…"
 
 #: includes/evoting-render-poll.php:46
 msgid "Głosowanie kończy się: "
-msgstr ""
+msgstr "Poll ends: "
 
 #: includes/evoting-render-poll.php:70
 msgid "Pozostało: "
-msgstr ""
+msgstr "Remaining: "
 
 #. translators: 1: full name, 2: city in parentheses, 3: masked email
 #: includes/evoting-render-poll.php:105
@@ -4225,20 +4225,20 @@ msgstr "Vote publicly — results will show %1$s (%2$s) %3$s."
 
 #: includes/evoting-render-poll.php:111
 msgid "Głosuj jawnie - wyniki będą zawierać imię nazwisko (miasto) email."
-msgstr ""
+msgstr "Vote publicly - results will include first name, last name (city) email."
 
 #: includes/evoting-render-poll.php:115
 #, php-format
 msgid "Głosuj Anonimowo - wyniki zawierają tylko nazwę: %s."
-msgstr ""
+msgstr "Vote Anonymously - results contain only the username: %s."
 
 #: includes/evoting-render-poll.php:116
 msgid "Głosuj Anonimowo - wyniki zawierają tylko nazwę: —."
-msgstr ""
+msgstr "Vote Anonymously - results contain only the username: —."
 
 #: includes/evoting-render-poll.php:119
 msgid "Sposób oddania głosu"
-msgstr ""
+msgstr "Voting method"
 
 #: includes/evoting-render-poll.php:130
 msgid "Oddaj głos"
@@ -4248,34 +4248,34 @@ msgstr "Cast vote"
 #: includes/evoting-render-poll.php:140
 #, php-format
 msgid "Głosowanie rozpocznie się: %s"
-msgstr ""
+msgstr "Poll will start: %s"
 
 #: models/class-evoting-survey.php:186
 msgid "(kopia)"
-msgstr ""
+msgstr "(copy)"
 
 #: models/class-evoting-vote.php:99
 #: rest-api/class-evoting-rest-controller.php:87
 #: rest-api/class-evoting-rest-controller.php:161
 #: rest-api/class-evoting-rest-controller.php:214
 msgid "Głosowanie nie zostało znalezione."
-msgstr ""
+msgstr "Poll not found."
 
 #: models/class-evoting-vote.php:112 models/class-evoting-vote.php:163
 msgid "Już oddałeś głos w tym głosowaniu."
-msgstr ""
+msgstr "You have already voted in this poll."
 
 #: models/class-evoting-vote.php:131
 msgid "Nieprawidłowe pytanie."
-msgstr ""
+msgstr "Invalid question."
 
 #: models/class-evoting-vote.php:145
 msgid "Nieprawidłowa odpowiedź."
-msgstr ""
+msgstr "Invalid answer."
 
 #: models/class-evoting-vote.php:165
 msgid "Nie udało się zapisać głosu. Spróbuj ponownie."
-msgstr ""
+msgstr "Failed to save your vote. Please try again."
 
 #: models/class-evoting-vote.php:302 models/class-evoting-vote.php:462
 msgid "Anonimowy"
@@ -4313,7 +4313,7 @@ msgstr "Group does not exist."
 
 #: rest-api/class-evoting-groups-rest-controller.php:177
 msgid "Synchronizacja automatyczna działa tylko dla grup typu \"city\"."
-msgstr ""
+msgstr "Automatic synchronization only works for groups of type \"city\"."
 
 #: rest-api/class-evoting-groups-rest-controller.php:189
 msgid "Synchronizacja uruchomiona."
