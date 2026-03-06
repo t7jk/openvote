@@ -622,7 +622,7 @@ class Openvote_Admin {
 
         if ( 'new' === $action ) {
             $survey = null;
-            include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-form.php';
+            include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
             return;
         }
 
@@ -630,7 +630,7 @@ class Openvote_Admin {
             $survey = Openvote_Survey::get( $survey_id );
             if ( $survey ) {
                 $is_read_only = false;
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-form.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
                 return;
             }
         }
@@ -639,7 +639,7 @@ class Openvote_Admin {
             $survey = Openvote_Survey::get( $survey_id );
             if ( $survey ) {
                 $is_read_only = true;
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-form.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
                 return;
             }
         }
@@ -647,18 +647,18 @@ class Openvote_Admin {
         if ( 'responses' === $action && $survey_id ) {
             $survey = Openvote_Survey::get( $survey_id );
             if ( $survey ) {
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-responses.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-responses.php';
                 return;
             }
         }
 
         if ( 'all_responses' === $action ) {
             $survey = null;
-            include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-responses.php';
+            include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-responses.php';
             return;
         }
 
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-list.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-list.php';
     }
 
     public function render_surveys_new_page(): void {
@@ -667,7 +667,7 @@ class Openvote_Admin {
         }
         $survey = null;
         $is_read_only = false;
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-form.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
     }
 
     public function render_surveys_responses_page(): void {
@@ -675,7 +675,7 @@ class Openvote_Admin {
             wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
         }
         $survey = null; // widok zbiorczy wszystkich zamkniętych ankiet
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/survey-responses.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-responses.php';
     }
 
     public function render_polls_page(): void {
@@ -688,14 +688,14 @@ class Openvote_Admin {
 
         if ( 'new' === $action ) {
             $poll = null;
-            include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-form.php';
+            include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-form.php';
             return;
         }
 
         if ( 'edit' === $action && $poll_id ) {
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll && 'draft' === $poll->status ) {
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-form.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-form.php';
                 return;
             }
         }
@@ -704,7 +704,7 @@ class Openvote_Admin {
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll && in_array( $poll->status, [ 'open', 'closed' ], true ) ) {
                 $is_read_only = true;
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-form.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-form.php';
                 return;
             }
         }
@@ -719,7 +719,7 @@ class Openvote_Admin {
                 $non_voters_offset = isset( $_GET['non_voters_offset'] ) ? max( 0, absint( $_GET['non_voters_offset'] ) ) : 0;
                 $voters           = Openvote_Vote::get_voters_admin( $poll_id, $voters_page_size, $voters_offset );
                 $non_voters_list  = Openvote_Vote::get_non_voters( $poll_id, $non_voters_page_size, $non_voters_offset );
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-results.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-results.php';
                 return;
             }
         }
@@ -727,7 +727,7 @@ class Openvote_Admin {
         if ( 'invitations' === $action && $poll_id ) {
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll ) {
-                include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-invitations.php';
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-invitations.php';
                 return;
             }
         }
@@ -878,7 +878,7 @@ class Openvote_Admin {
         }
 
         $poll = null;
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/poll-form.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/poll-form.php';
     }
 
     public function render_groups_page(): void {
@@ -886,7 +886,7 @@ class Openvote_Admin {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/groups.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/groups.php';
     }
 
     public function render_roles_page(): void {
@@ -894,14 +894,14 @@ class Openvote_Admin {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/roles.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/roles.php';
     }
 
     public function render_statistics_page(): void {
         if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-statistics' ) ) {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/statistics.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/statistics.php';
     }
 
     public function render_settings_page(): void {
@@ -909,18 +909,18 @@ class Openvote_Admin {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
 
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/settings.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/settings.php';
     }
 
     public function render_manual_page(): void {
         if ( ! openvote_user_can_access_screen( get_current_user_id(), 'openvote-manual' ) && ! current_user_can( self::CAP_MGR ) ) {
             wp_die( esc_html__( 'Brak uprawnień do tego ekranu.', 'openvote' ) );
         }
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/manual.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/manual.php';
     }
 
     public function render_about_page(): void {
-        include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/about.php';
+        include OPENVOTE_PLUGIN_DIR . 'admin/partials/about.php';
     }
 
     public function render_brand_header(): void {
@@ -961,7 +961,7 @@ class Openvote_Admin {
 
         wp_enqueue_style(
             'openvote-admin',
-            OPENVOTE_PLUGIN_URL . 'src/admin/css/openvote-admin.css',
+            OPENVOTE_PLUGIN_URL . 'admin/css/openvote-admin.css',
             [],
             OPENVOTE_VERSION
         );
@@ -973,13 +973,13 @@ class Openvote_Admin {
     public function enqueue_menu_restrict_script( string $hook ): void {
         wp_enqueue_style(
             'openvote-admin',
-            OPENVOTE_PLUGIN_URL . 'src/admin/css/openvote-admin.css',
+            OPENVOTE_PLUGIN_URL . 'admin/css/openvote-admin.css',
             [],
             OPENVOTE_VERSION
         );
         wp_enqueue_script(
             'openvote-menu',
-            OPENVOTE_PLUGIN_URL . 'src/admin/js/openvote-menu.js',
+            OPENVOTE_PLUGIN_URL . 'admin/js/openvote-menu.js',
             [],
             OPENVOTE_VERSION,
             true
@@ -996,7 +996,7 @@ class Openvote_Admin {
 
         wp_enqueue_script(
             'openvote-admin',
-            OPENVOTE_PLUGIN_URL . 'src/admin/js/openvote-admin.js',
+            OPENVOTE_PLUGIN_URL . 'admin/js/openvote-admin.js',
             [],
             OPENVOTE_VERSION,
             true
@@ -1006,7 +1006,7 @@ class Openvote_Admin {
         if ( str_contains( $hook, 'openvote' ) ) {
             wp_enqueue_script(
                 'openvote-batch-progress',
-                OPENVOTE_PLUGIN_URL . 'src/assets/js/batch-progress.js',
+                OPENVOTE_PLUGIN_URL . 'assets/js/batch-progress.js',
                 [],
                 OPENVOTE_VERSION,
                 true
@@ -1022,7 +1022,7 @@ class Openvote_Admin {
         if ( str_contains( $hook, 'openvote-surveys' ) ) {
             wp_enqueue_script(
                 'openvote-survey-admin',
-                OPENVOTE_PLUGIN_URL . 'src/assets/js/survey-admin.js',
+                OPENVOTE_PLUGIN_URL . 'assets/js/survey-admin.js',
                 [],
                 OPENVOTE_VERSION,
                 true

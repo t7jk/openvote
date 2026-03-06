@@ -7,12 +7,12 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-require_once OPENVOTE_PLUGIN_DIR . 'src/includes/openvote-render-poll.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/openvote-render-poll.php';
 
 // Załaduj style i JS głosowania gdy blok jest na stronie.
 wp_enqueue_style(
     'openvote-public',
-    OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
+    OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
     [],
     OPENVOTE_VERSION
 );
@@ -31,7 +31,7 @@ wp_add_inline_style( 'openvote-public', sprintf(
 ) );
 wp_enqueue_script(
     'openvote-public',
-    OPENVOTE_PLUGIN_URL . 'src/public/js/openvote-public.js',
+    OPENVOTE_PLUGIN_URL . 'public/js/openvote-public.js',
     [],
     OPENVOTE_VERSION,
     true
@@ -93,7 +93,7 @@ if ( $is_logged ) {
 if ( ! empty( $poll_missing_fields ) ) {
     wp_enqueue_script(
         'openvote-profile-complete',
-        OPENVOTE_PLUGIN_URL . 'src/public/js/profile-complete.js',
+        OPENVOTE_PLUGIN_URL . 'public/js/profile-complete.js',
         [],
         OPENVOTE_VERSION,
         true
@@ -149,7 +149,7 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
             $context        = 'poll';
             $missing_fields = $poll_missing_fields;
             $nonce          = wp_create_nonce( 'wp_rest' );
-            include OPENVOTE_PLUGIN_DIR . 'src/public/views/partials/profile-complete.php';
+            include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
             ?>
         <?php elseif ( empty( $polls_active ) ) : ?>
             <p class="openvote-poll__no-polls">

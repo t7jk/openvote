@@ -74,7 +74,7 @@ usort( $groups, function ( $a, $b ) use ( $test_group_name ) {
 // Parametry AJAX przekazane do JS.
 wp_enqueue_script(
     'openvote-batch-progress',
-    OPENVOTE_PLUGIN_URL . 'src/assets/js/batch-progress.js',
+    OPENVOTE_PLUGIN_URL . 'assets/js/batch-progress.js',
     [],
     OPENVOTE_VERSION,
     true

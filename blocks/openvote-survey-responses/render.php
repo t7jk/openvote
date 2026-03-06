@@ -7,7 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 wp_enqueue_style(
     'openvote-public',
-    OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
+    OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
     [],
     OPENVOTE_VERSION
 );

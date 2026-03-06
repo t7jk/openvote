@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-require_once OPENVOTE_PLUGIN_DIR . 'src/includes/openvote-render-poll.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/openvote-render-poll.php';
 
 $is_logged = is_user_logged_in();
 $user_id   = $is_logged ? get_current_user_id() : 0;

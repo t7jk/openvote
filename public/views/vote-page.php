@@ -22,14 +22,14 @@ if ( $is_logged ) {
 if ( ! empty( $poll_missing_fields ) ) {
     wp_enqueue_script(
         'openvote-profile-complete',
-        OPENVOTE_PLUGIN_URL . 'src/public/js/profile-complete.js',
+        OPENVOTE_PLUGIN_URL . 'public/js/profile-complete.js',
         [],
         OPENVOTE_VERSION,
         true
     );
     wp_enqueue_style(
         'openvote-public',
-        OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
+        OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
         [],
         OPENVOTE_VERSION
     );
@@ -88,7 +88,7 @@ if ( ! empty( $poll_missing_fields ) ) {
         $context        = 'poll';
         $missing_fields = $poll_missing_fields;
         $nonce          = wp_create_nonce( 'wp_rest' );
-        include OPENVOTE_PLUGIN_DIR . 'src/public/views/partials/profile-complete.php';
+        include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
         ?>
     <?php elseif ( empty( $polls_for_user ) ) : ?>
         <p class="openvote-poll__no-polls"><?php esc_html_e( 'Brak głosowań w tym momencie.', 'openvote' ); ?></p>

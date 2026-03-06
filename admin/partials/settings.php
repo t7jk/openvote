@@ -1594,6 +1594,6 @@ function openvote_settings_select( string $logical, string $current, array $core
 
     <hr style="margin-top:32px;margin-bottom:20px;">
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'openvote' ); ?></h2>
-    <?php include OPENVOTE_PLUGIN_DIR . 'src/admin/partials/uninstall.php'; ?>
+    <?php include OPENVOTE_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
 
     </div>

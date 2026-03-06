@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-SRC="/home/t7jk/Code/openvote/"
+SRC="/home/t7jk/Code/openvote/src/"
 DST="/var/www/html/wordpress/wp-content/plugins/openvote/"
 
 [[ ! -d "$DST" ]] && sudo mkdir -p "$DST" && sudo chown apache:apache "$DST"

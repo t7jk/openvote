@@ -10,14 +10,14 @@ defined( 'ABSPATH' ) || exit;
 // Załaduj style i JS ankiety.
 wp_enqueue_style(
     'openvote-public',
-    OPENVOTE_PLUGIN_URL . 'src/public/css/openvote-public.css',
+    OPENVOTE_PLUGIN_URL . 'public/css/openvote-public.css',
     [],
     OPENVOTE_VERSION
 );
 
 wp_enqueue_script(
     'openvote-survey-public',
-    OPENVOTE_PLUGIN_URL . 'src/public/js/survey-public.js',
+    OPENVOTE_PLUGIN_URL . 'public/js/survey-public.js',
     [],
     OPENVOTE_VERSION,
     true
@@ -25,7 +25,7 @@ wp_enqueue_script(
 
 wp_enqueue_script(
     'openvote-profile-complete',
-    OPENVOTE_PLUGIN_URL . 'src/public/js/profile-complete.js',
+    OPENVOTE_PLUGIN_URL . 'public/js/profile-complete.js',
     [],
     OPENVOTE_VERSION,
     true
@@ -113,7 +113,7 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                     <?php
                     $context = 'survey';
                     $nonce   = wp_create_nonce( 'wp_rest' );
-                    include OPENVOTE_PLUGIN_DIR . 'src/public/views/partials/profile-complete.php';
+                    include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
                     ?>
                 <?php elseif ( $logged_in ) : ?>
 
