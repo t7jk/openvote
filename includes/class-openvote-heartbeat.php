@@ -46,7 +46,7 @@ class Openvote_Heartbeat {
 	/** Polecenie do wklejenia w cPanel → Zadania Cron (co 15 minut). */
 	public static function get_cron_command(): string {
 		$script = wp_normalize_path( OPENVOTE_PLUGIN_DIR . 'cron/openvote-cron.php' );
-		return '/usr/local/bin/php -q ' . $script . ' >/dev/null 2>&1';
+		return '/usr/local/bin/php84 -q ' . $script . ' >/dev/null 2>&1';
 	}
 
 	// ─── REST (tylko administrator) ─────────────────────────────────────────

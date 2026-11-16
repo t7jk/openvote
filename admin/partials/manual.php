@@ -456,7 +456,7 @@ $brand = openvote_get_brand_short_name();
 <ol>
     <li><?php esc_html_e( 'Wejdź w Konfiguracja → zakładka „Cron” i skopiuj gotową komendę (przycisk „Kopiuj”).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W panelu hostingu (cPanel) otwórz „Zadania Cron” (Cron Jobs), w „Ustawieniach zwykłych” wybierz „Co 15 minut”.', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'W polu „Polecenie” wklej komendę z zakładki Cron (zaczyna się od „/usr/local/bin/php -q”). Jeśli PHP jest na serwerze w innym miejscu, zamień ścieżkę (np. na /usr/bin/php). Nie są potrzebne ani wget, ani curl, ani żaden klucz. Każde uruchomienie dopisuje do pliku cron/cron-log.php w katalogu wtyczki datę, wersję PHP i wynik — po pierwszym uruchomieniu sprawdź ten plik przez FTP. Wtyczka wymaga PHP 8.1 lub nowszego; przy starszej wersji cron tylko zapisze błąd w logu.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W polu „Polecenie” wklej komendę z zakładki Cron (zaczyna się od „/usr/local/bin/php84 -q”). Nie używaj samego /usr/local/bin/php ani php8 — na wielu serwerach to stare PHP 7.4 / 8.0, a wtyczka wymaga PHP 8.1 lub nowszego. Nie są potrzebne ani wget, ani curl, ani żaden klucz. Każde uruchomienie dopisuje do pliku cron/cron-log.php w katalogu wtyczki datę, wersję PHP i wynik — po pierwszym uruchomieniu sprawdź ten plik przez FTP. Przy zbyt starym PHP cron tylko zapisze błąd i listę nowszych wersji PHP znalezionych na serwerze.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Po kilkunastu minutach zakładka „Cron” pokaże zielony znacznik „Działa”. Przycisk „Uruchom teraz” pozwala sprawdzić działanie od ręki.', 'openvote' ); ?></li>
 </ol>
 <div class="openvote-manual__tip">

@@ -1715,7 +1715,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             <textarea id="openvote-cron-cmd" rows="3" readonly aria-label="<?php echo esc_attr__( 'Polecenie crona (PHP)', 'openvote' ); ?>"><?php echo esc_textarea( $openvote_hb_cmd ); ?></textarea>
             <button type="button" class="button" data-copy="openvote-cron-cmd"><?php esc_html_e( 'Kopiuj', 'openvote' ); ?></button>
         </div>
-        <p class="description" style="margin-top:10px;"><?php esc_html_e( 'Polecenie używa ścieżki /usr/local/bin/php (standard cPanel). Jeśli na Twoim serwerze PHP jest gdzie indziej, zamień ją na właściwą (np. /usr/bin/php). Każde uruchomienie zapisuje wersję PHP i wynik w pliku cron/cron-log.php w katalogu wtyczki (dostępny przez FTP, zablokowany dla przeglądarki).', 'openvote' ); ?></p>
+        <p class="description" style="margin-top:10px;"><?php esc_html_e( 'Polecenie używa PHP 8.4 (/usr/local/bin/php84). Uwaga: samo /usr/local/bin/php lub php8 to na wielu serwerach stara wersja (7.4 / 8.0), a wtyczka wymaga PHP 8.1 lub nowszego. Każde uruchomienie zapisuje wersję PHP i wynik w pliku cron/cron-log.php w katalogu wtyczki (dostępny przez FTP, zablokowany dla przeglądarki); przy zbyt starym PHP log podpowie ścieżki do nowszych wersji znalezionych na serwerze.', 'openvote' ); ?></p>
         <p class="description"><?php esc_html_e( 'Nie są potrzebne ani wget, ani curl, ani żaden klucz. Katalog „cron” jest zablokowany dla przeglądarek plikiem .htaccess, a skrypt uruchamia się wyłącznie z wiersza poleceń.', 'openvote' ); ?></p>
     </div>
 

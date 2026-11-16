@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OpenVote\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 15:58+0100\n"
+"POT-Creation-Date: 2026-11-16 16:28+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2460,12 +2460,13 @@ msgstr ""
 #: admin/partials/manual.php:459
 msgid ""
 "W polu „Polecenie” wklej komendę z zakładki Cron (zaczyna się od „/usr/local/"
-"bin/php -q”). Jeśli PHP jest na serwerze w innym miejscu, zamień ścieżkę "
-"(np. na /usr/bin/php). Nie są potrzebne ani wget, ani curl, ani żaden klucz. "
-"Każde uruchomienie dopisuje do pliku cron/cron-log.php w katalogu wtyczki "
-"datę, wersję PHP i wynik — po pierwszym uruchomieniu sprawdź ten plik przez "
-"FTP. Wtyczka wymaga PHP 8.1 lub nowszego; przy starszej wersji cron tylko "
-"zapisze błąd w logu."
+"bin/php84 -q”). Nie używaj samego /usr/local/bin/php ani php8 — na wielu "
+"serwerach to stare PHP 7.4 / 8.0, a wtyczka wymaga PHP 8.1 lub nowszego. Nie "
+"są potrzebne ani wget, ani curl, ani żaden klucz. Każde uruchomienie "
+"dopisuje do pliku cron/cron-log.php w katalogu wtyczki datę, wersję PHP i "
+"wynik — po pierwszym uruchomieniu sprawdź ten plik przez FTP. Przy zbyt "
+"starym PHP cron tylko zapisze błąd i listę nowszych wersji PHP znalezionych "
+"na serwerze."
 msgstr ""
 
 #: admin/partials/manual.php:460
@@ -4950,10 +4951,12 @@ msgstr ""
 
 #: admin/partials/settings.php:1718
 msgid ""
-"Polecenie używa ścieżki /usr/local/bin/php (standard cPanel). Jeśli na Twoim "
-"serwerze PHP jest gdzie indziej, zamień ją na właściwą (np. /usr/bin/php). "
-"Każde uruchomienie zapisuje wersję PHP i wynik w pliku cron/cron-log.php w "
-"katalogu wtyczki (dostępny przez FTP, zablokowany dla przeglądarki)."
+"Polecenie używa PHP 8.4 (/usr/local/bin/php84). Uwaga: samo /usr/local/bin/"
+"php lub php8 to na wielu serwerach stara wersja (7.4 / 8.0), a wtyczka "
+"wymaga PHP 8.1 lub nowszego. Każde uruchomienie zapisuje wersję PHP i wynik "
+"w pliku cron/cron-log.php w katalogu wtyczki (dostępny przez FTP, "
+"zablokowany dla przeglądarki); przy zbyt starym PHP log podpowie ścieżki do "
+"nowszych wersji znalezionych na serwerze."
 msgstr ""
 
 #: admin/partials/settings.php:1719
@@ -6368,7 +6371,7 @@ msgid "Adres e-mail"
 msgstr ""
 
 #: includes/openvote-identity-frontend.php:49
-#: rest-api/class-openvote-identity-rest-controller.php:86
+#: rest-api/class-openvote-identity-rest-controller.php:129
 msgid "Podaj poprawny adres e-mail."
 msgstr ""
 
@@ -6418,7 +6421,7 @@ msgid "Pozostało prób: %1$d z %2$d"
 msgstr ""
 
 #: includes/openvote-identity-frontend.php:63
-#: rest-api/class-openvote-identity-rest-controller.php:137
+#: rest-api/class-openvote-identity-rest-controller.php:180
 msgid ""
 "Wysłaliśmy 4-cyfrowy kod na podany adres. Wpisz go poniżej. Nie widzisz "
 "wiadomości? Sprawdź folder SPAM."
@@ -6509,7 +6512,7 @@ msgstr ""
 #. translators: 1: full name, 2: city in parentheses, 3: masked email
 #. translators: 1: full name, 2: city, 3: masked email
 #: includes/openvote-render-poll.php:165
-#: rest-api/class-openvote-identity-rest-controller.php:153
+#: rest-api/class-openvote-identity-rest-controller.php:196
 #, php-format
 msgid "Jawnie — w wynikach pojawi się: %1$s (%2$s), %3$s."
 msgstr ""
@@ -6521,13 +6524,13 @@ msgid ""
 msgstr ""
 
 #: includes/openvote-render-poll.php:175
-#: rest-api/class-openvote-identity-rest-controller.php:159
+#: rest-api/class-openvote-identity-rest-controller.php:202
 #, php-format
 msgid "Anonimowo — w wynikach pojawi się tylko pseudonim: %s."
 msgstr ""
 
 #: includes/openvote-render-poll.php:176
-#: rest-api/class-openvote-identity-rest-controller.php:160
+#: rest-api/class-openvote-identity-rest-controller.php:203
 msgid ""
 "Anonimowo — w wynikach pojawi się tylko Twój pseudonim, bez imienia i "
 "nazwiska."
@@ -6696,53 +6699,53 @@ msgstr ""
 msgid "Zadanie nie istnieje lub już jest zakończone."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:71
-#: rest-api/class-openvote-identity-rest-controller.php:166
+#: rest-api/class-openvote-identity-rest-controller.php:114
+#: rest-api/class-openvote-identity-rest-controller.php:209
 msgid "Głosowanie bez logowania jest wyłączone."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:77
-#: rest-api/class-openvote-identity-rest-controller.php:172
+#: rest-api/class-openvote-identity-rest-controller.php:120
+#: rest-api/class-openvote-identity-rest-controller.php:215
 msgid "Nieprawidłowy cel."
 msgstr ""
 
 #. translators: 1: attempts left, 2: max attempts
-#: rest-api/class-openvote-identity-rest-controller.php:111
+#: rest-api/class-openvote-identity-rest-controller.php:154
 #, php-format
 msgid ""
 "Nie znaleźliśmy konta z tym adresem. Sprawdź pisownię (pozostało prób: %1$d "
 "z %2$d)."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:122
+#: rest-api/class-openvote-identity-rest-controller.php:165
 #, php-format
 msgid "Kolejny kod możesz wysłać za %d s."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:126
+#: rest-api/class-openvote-identity-rest-controller.php:169
 msgid ""
 "Wysłano zbyt wiele kodów. Spróbuj ponownie za jakiś czas lub zaloguj się."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:131
+#: rest-api/class-openvote-identity-rest-controller.php:174
 msgid ""
 "Nie udało się wysłać e-maila. Spróbuj ponownie za chwilę lub zaloguj się."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:182
+#: rest-api/class-openvote-identity-rest-controller.php:225
 msgid "Podaj adres e-mail i 4-cyfrowy kod."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:187
+#: rest-api/class-openvote-identity-rest-controller.php:230
 msgid "Kod wygasł lub wykorzystano limit prób — wyślij nowy kod."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:203
+#: rest-api/class-openvote-identity-rest-controller.php:246
 #, php-format
 msgid "Nieprawidłowy kod. Pozostało prób: %1$d z %2$d."
 msgstr ""
 
-#: rest-api/class-openvote-identity-rest-controller.php:234
+#: rest-api/class-openvote-identity-rest-controller.php:277
 #: rest-api/class-openvote-surveys-rest-controller.php:128
 #, php-format
 msgid ""
