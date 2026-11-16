@@ -54,6 +54,8 @@ rsync -a \
   --exclude='package-lock.json' \
   --exclude='phpunit.xml' \
   --exclude='wp-tests-config-sample.php' \
+  --include='cron/' \
+  --include='cron/.htaccess' \
   --exclude='.*' \
   --exclude='*.md' \
   --exclude='*.sh' \

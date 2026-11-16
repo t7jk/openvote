@@ -11,12 +11,12 @@ defined( 'ABSPATH' ) || exit;
             <tbody>
                 <tr style="border-bottom:1px solid #f0f0f1;">
                     <td style="padding:12px 0;color:#666;width:40%;font-size:13px;"><?php esc_html_e( 'Tytuł wtyczki', 'openvote' ); ?></td>
-                    <td style="padding:12px 0;font-weight:600;font-size:14px;"><?php esc_html_e( 'Open Vote', 'openvote' ); ?> — <?php esc_html_e( 'System e-głosowania', 'openvote' ); ?></td>
+                    <td style="padding:12px 0;font-weight:600;font-size:14px;"><?php esc_html_e( 'OpenVote', 'openvote' ); ?> — <?php esc_html_e( 'System e-głosowania', 'openvote' ); ?></td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">
                     <td style="padding:12px 0;color:#666;font-size:13px;"><?php esc_html_e( 'Opis', 'openvote' ); ?></td>
                     <td style="padding:12px 0;font-size:14px;line-height:1.6;">
-                        <?php esc_html_e( 'Wtyczka do przeprowadzania elektronicznych głosowań i ankiet w organizacji. Głosowania wielopytaniowe z grupami docelowymi i rolą Koordynatora. Zaproszenia e-mail oraz masowa wysyłka wiadomości (Komunikacja) — WordPress, SMTP, SendGrid, Brevo, Freshmail, GetResponse. Ankiety ze stroną zgłoszeń. Wyniki jawne lub anonimowe, eksport do PDF.', 'openvote' ); ?>
+                        <?php esc_html_e( 'Wtyczka do przeprowadzania elektronicznych głosowań i ankiet w organizacji. Głosowania wielopytaniowe z grupami docelowymi i rolą Koordynatora. Zaproszenia e-mail oraz masowa wysyłka wiadomości (Wysyłka) — WordPress, SMTP, SendGrid, Brevo, Freshmail, GetResponse. Głosowanie bez logowania z kodem potwierdzającym wysłanym na e-mail. Ankiety ze stroną zgłoszeń. Wyniki jawne lub anonimowe, eksport do PDF.', 'openvote' ); ?>
                     </td>
                 </tr>
                 <tr style="border-bottom:1px solid #f0f0f1;">

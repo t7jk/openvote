@@ -20,16 +20,61 @@ class Openvote_Admin_Surveys {
         $action    = sanitize_text_field( $_POST['openvote_action'] ?? 'create' );
 
         if ( 'delete' === $action && $survey_id ) {
+            $to_delete = Openvote_Survey::get( $survey_id );
+            if ( $to_delete && 'open' === $to_delete->status ) {
+                set_transient( 'openvote_survey_admin_error', __( 'Trwającej ankiety nie można usunąć. Najpierw ją zakończ.', 'openvote' ), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys' ) );
+                exit;
+            }
             Openvote_Survey::delete( $survey_id );
+            if ( $to_delete && ! empty( $to_delete->title ) ) {
+                openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'usunął ankietę %s', 'openvote' ), $to_delete->title ) );
+            }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys&deleted=1' ) );
             exit;
+        }
+
+        // A1: ankieta rozpoczęta/zakończona jest zablokowana — zapis pól usunąłby zgłoszenia uczestników.
+        if ( $survey_id ) {
+            $existing = Openvote_Survey::get( $survey_id );
+            if ( $existing && 'draft' !== $existing->status ) {
+                set_transient( 'openvote_survey_admin_error', __( 'Nie można edytować ankiety, która została rozpoczęta lub zakończona.', 'openvote' ), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys' ) );
+                exit;
+            }
+            if ( $existing && Openvote_Survey::count_all_response_rows( $survey_id ) > 0 ) {
+                set_transient( 'openvote_survey_admin_error', __( 'Ta ankieta ma już zgłoszenia — nie można zmieniać jej pól.', 'openvote' ), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-surveys' ) );
+                exit;
+            }
         }
 
         $data = $this->sanitize_form_data();
 
         if ( is_wp_error( $data ) ) {
             set_transient( 'openvote_survey_admin_error', $data->get_error_message(), 30 );
-            wp_safe_redirect( wp_get_referer() ?: admin_url( 'admin.php?page=openvote-surveys' ) );
+            // A2: zachowaj wpisane dane, aby formularz mógł je odtworzyć po przekierowaniu.
+            $draft_questions = [];
+            foreach ( array_values( (array) ( $_POST['survey_questions'] ?? [] ) ) as $dq ) {
+                if ( ! is_array( $dq ) ) {
+                    continue;
+                }
+                $draft_questions[] = [
+                    'body'           => sanitize_text_field( wp_unslash( $dq['body'] ?? '' ) ),
+                    'field_type'     => sanitize_key( wp_unslash( $dq['field_type'] ?? 'text_short' ) ),
+                    'hide_on_public' => ! empty( $dq['hide_on_public'] ) ? 1 : 0,
+                ];
+            }
+            set_transient( 'openvote_survey_form_draft_' . get_current_user_id(), [
+                'survey_id'   => $survey_id,
+                'title'       => sanitize_text_field( wp_unslash( $_POST['survey_title'] ?? '' ) ),
+                'description' => sanitize_textarea_field( wp_unslash( $_POST['survey_description'] ?? '' ) ),
+                'questions'   => $draft_questions,
+            ], 120 );
+            $back = $survey_id
+                ? admin_url( 'admin.php?page=openvote-surveys&action=edit&survey_id=' . $survey_id )
+                : admin_url( 'admin.php?page=openvote-surveys&action=new' );
+            wp_safe_redirect( $back );
             exit;
         }
 
@@ -100,23 +145,27 @@ class Openvote_Admin_Surveys {
             return new \WP_Error( 'invalid_duration', __( 'Wybierz poprawny czas trwania ankiety.', 'openvote' ) );
         }
 
+        // Czas lokalny witryny (spójnie z głosowaniami): start = teraz, koniec = start + czas trwania.
         $date_start = current_time( 'Y-m-d H:i:s' );
-        $date_end   = gmdate( 'Y-m-d H:i:s', strtotime( $date_start ) + $duration_seconds[ $duration_key ] );
+        $date_end   = wp_date( 'Y-m-d H:i:s', time() + $duration_seconds[ $duration_key ] );
 
         // Parse questions.
         $raw_questions = (array) ( $_POST['survey_questions'] ?? [] );
         $questions     = [];
 
-        foreach ( array_values( $raw_questions ) as $q ) {
+        foreach ( array_values( $raw_questions ) as $q_idx => $q ) {
             if ( ! is_array( $q ) ) {
                 continue;
             }
             $body = trim( sanitize_text_field( wp_unslash( $q['body'] ?? '' ) ) );
             if ( '' === $body ) {
-                continue;
+                return new \WP_Error(
+                    'empty_field',
+                    sprintf( __( 'Pole %d jest puste — wpisz treść lub usuń je.', 'openvote' ), $q_idx + 1 )
+                );
             }
             if ( mb_strlen( $body ) > 512 ) {
-                return new \WP_Error( 'question_too_long', __( 'Etykieta pola może zawierać maksymalnie 512 znaków.', 'openvote' ) );
+                return new \WP_Error( 'question_too_long', __( 'Treść pola może zawierać maksymalnie 512 znaków.', 'openvote' ) );
             }
 
             $field_type = sanitize_key( wp_unslash( $q['field_type'] ?? 'text_short' ) );

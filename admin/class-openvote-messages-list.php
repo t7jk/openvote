@@ -129,7 +129,7 @@ class Openvote_Messages_List extends WP_List_Table {
     }
 
     protected function column_title( $item ): string {
-        $form_anchor = '#openvote-communication-form';
+        $form_anchor = '#tab-form';
         $edit_url    = admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $item->id ) . $form_anchor;
         $preview_url = admin_url( 'admin.php?page=openvote-communication&action=preview&message_id=' . $item->id ) . $form_anchor;
         $send_url    = admin_url( 'admin.php?page=openvote-communication&action=send&message_id=' . $item->id );
@@ -166,7 +166,7 @@ class Openvote_Messages_List extends WP_List_Table {
                 'openvote_delete_message_' . $item->id
             ) ),
             esc_js( __( 'Czy na pewno chcesz usunąć tę wiadomość?', 'openvote' ) ),
-            esc_html__( 'Kasuj', 'openvote' )
+            esc_html__( 'Usuń', 'openvote' )
         );
 
         if ( empty( $item->sent_at ) ) {
@@ -289,7 +289,7 @@ class Openvote_Messages_List extends WP_List_Table {
             Openvote_Message::delete( $id );
         }
 
-        wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-communication', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) );
+        wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-communication', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) . '#tab-list' );
         exit;
     }
 

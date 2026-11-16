@@ -44,7 +44,7 @@
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
     color: #fff;
     padding: 10px 20px 14px;
-    margin: -8px -20px 20px;
+    margin: 0 0 20px -20px;
     border-radius: 0 0 4px 4px;
     box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
@@ -932,4 +932,60 @@ input.evoting-date-readonly {
     border-left: 4px solid #dba617;
     border-radius: 4px;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Konfiguracja: zakładki (panele ukrywane tylko gdy działa JS) ───────── */
+.openvote-settings-tabs.nav-tab-wrapper,
+.openvote-admin-tabs.nav-tab-wrapper {
+    margin: 0 0 16px;
+    padding-top: 9px;
+}
+.openvote-settings-tabs .nav-tab,
+.openvote-admin-tabs .nav-tab {
+    cursor: pointer;
+}
+.openvote-tabs-js .openvote-tab-panel {
+    display: none;
+}
+.openvote-tabs-js .openvote-tab-panel.is-active {
+    display: block;
+}
+@media (max-width: 600px) {
+    /* G21: poziomo przewijany pasek zakładek zamiast pionowego stosu */
+    .openvote-settings-tabs,
+    .openvote-admin-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    .openvote-settings-tabs .nav-tab,
+    .openvote-admin-tabs .nav-tab {
+        float: none;
+        flex: 0 0 auto;
+        margin: 0 4px -1px 0;
+    }
+}
+.openvote-tab-panel:focus { outline: none; }
+
+/* ── Responsywność ekranów administracyjnych (G4/G5/G20) ── */
+.openvote-table-scroll { overflow-x: auto; max-width: 100%; }
+.openvote-stats-cards { display: flex; flex-wrap: wrap; gap: 12px; }
+.openvote-stats-cards > * { min-width: 140px; flex: 1 1 140px; }
+.openvote-stats-chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; }
+.openvote-stats-chart__col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; font-size: 10px; }
+.openvote-stats-chart__bar { width: 100%; background: #2271b1; border-radius: 2px 2px 0 0; }
+@media (max-width: 782px) {
+    .openvote-settings-url-section__table,
+    .openvote-settings-url-section__table td,
+    .openvote-settings-url-section__table th { max-width: 100%; box-sizing: border-box; }
+    .openvote-settings-url-section__table a { overflow-wrap: anywhere; word-break: break-all; }
+    .wp-core-ui .wrap .button, .wp-core-ui .wrap .openvote-btn-danger, .wrap .openvote-btn-danger { white-space: normal; height: auto; max-width: 100%; box-sizing: border-box; line-height: 1.4; padding-top: 4px; padding-bottom: 4px; }
+    .wrap table.widefat, .wrap table.wp-list-table, .wrap table.openvote-manual__table { display: block; max-width: 100%; overflow-x: auto; }
+    .wrap .openvote-fieldmap-table-wrap, .wrap .openvote-table-scroll { overflow-x: auto; max-width: 100%; }
+    .wrap select, .wrap input[type="text"], .wrap input[type="email"], .wrap input[type="number"], .wrap input[type="search"], .wrap textarea { max-width: 100%; box-sizing: border-box; }
+    .wrap form { max-width: 100%; }
+    .openvote-settings-email-section { max-width: 100%; overflow-x: auto; position: relative; }
+    .wrap table.widefat { position: relative; }
 }

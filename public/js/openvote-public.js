@@ -5,6 +5,7 @@
     'use strict';
 
     var cfg = window.openvotePublic || {};
+    var cdTimer = null;
 
     function runOnReady() {
         initCountdowns();
@@ -57,6 +58,16 @@
 
                 if (diff <= 0) {
                     el.textContent = cfg.i18n.ended;
+                    var blk = el.closest('.openvote-poll-block');
+                    var f = blk ? blk.querySelector('.openvote-poll__form') : null;
+                    if (f && !f.dataset.ended) {
+                        f.dataset.ended = '1';
+                        f.querySelectorAll('input, button').forEach(function (x) { x.disabled = true; });
+                        var m = f.querySelector('.openvote-poll__message');
+                        showMessage(m, cfg.i18n.endedReload || 'Głosowanie zakończyło się. Odśwież stronę, aby zobaczyć wyniki.', 'error');
+                        var h = f.querySelector('.openvote-poll__hint');
+                        if (h) h.textContent = '';
+                    }
                     return;
                 }
 
@@ -67,16 +78,17 @@
 
                 var parts = [];
                 if (d > 0) parts.push(d + ' ' + cfg.i18n.days);
-                parts.push(h + ' ' + cfg.i18n.hours);
+                if (d > 0 || h > 0) parts.push(h + ' ' + cfg.i18n.hours);
                 parts.push(m + ' ' + cfg.i18n.minutes);
-                parts.push(s + ' ' + cfg.i18n.seconds);
+                if (d === 0 && h === 0) parts.push(s + ' ' + cfg.i18n.seconds);
 
                 el.textContent = parts.join(' ');
             });
         }
 
         update();
-        setInterval(update, 1000);
+        if (cdTimer) clearInterval(cdTimer);
+        cdTimer = setInterval(update, 1000);
     }
 
     /* ── Voting Forms ── */
@@ -93,11 +105,101 @@
         return allAnswered && !!visibilityChecked;
     }
 
+    function updateHint(form) {
+        var hint = form.querySelector('.openvote-poll__hint');
+        if (!hint || form.dataset.ended || form.dataset.done) return;
+        var text = '';
+        var ok = false;
+        if (form.classList.contains('openvote-poll__form--locked')) {
+            text = form.dataset.identityRequired === '1'
+                ? (window.OpenvoteIdentity && window.OpenvoteIdentity.loadSession && window.OpenvoteIdentity.loadSession()
+                    ? ''
+                    : (cfg.i18n.hintGuest || 'Aby oddać głos, najpierw zaloguj się lub potwierdź adres e-mail (ramka wyżej).'))
+                : '';
+        } else {
+            var missing = [];
+            var n = 0;
+            form.querySelectorAll('.openvote-poll__question').forEach(function (fs) {
+                n++;
+                if (!fs.querySelector('input[type="radio"]:checked')) missing.push(n);
+            });
+            var vis = form.querySelector('input[name="openvote_vote_visibility"]:checked');
+            if (missing.length) {
+                text = (missing.length === 1 ? (cfg.i18n.hintQ1 || 'Zaznacz odpowiedź w pytaniu %s.') : (cfg.i18n.hintQn || 'Zaznacz odpowiedzi w pytaniach: %s.')).replace('%s', missing.join(', '));
+            } else if (!vis) {
+                text = cfg.i18n.chooseVisibility || 'Wybierz sposób oddania głosu (jawnie lub anonimowo).';
+            } else {
+                text = cfg.i18n.hintReady || 'Wszystko gotowe. Naciśnij „Oddaj głos”.';
+                ok = true;
+            }
+        }
+        hint.textContent = text;
+        hint.classList.toggle('openvote-poll__hint--ok', ok);
+    }
+
     function updateVoteSubmitButton(form) {
         var submitBtn = form.querySelector('.openvote-poll__submit');
         if (submitBtn) {
-            submitBtn.disabled = !isFormVoteComplete(form);
+            submitBtn.disabled = !isFormVoteComplete(form) || form.classList.contains('openvote-poll__form--locked');
         }
+        updateHint(form);
+    }
+
+    function applyLabels(form, labels) {
+        form.querySelectorAll('[data-ov-label]').forEach(function (sp) {
+            var k = sp.getAttribute('data-ov-label');
+            sp.textContent = (labels && labels[k]) ? labels[k] : (sp.getAttribute('data-ov-default') || sp.textContent);
+        });
+    }
+
+    function setFormLocked(form, locked) {
+        form.classList.toggle('openvote-poll__form--locked', locked);
+        form.querySelectorAll('input, button').forEach(function (el) { el.disabled = locked; });
+        if (!locked) updateVoteSubmitButton(form); else updateHint(form);
+    }
+
+    function authHeaders(form, pollId) {
+        var block = form.closest('.openvote-poll-block');
+        var nonce = (block && block.dataset.nonce) || cfg.nonce || '';
+        var h = {};
+        if (window.OpenvoteIdentity && !nonce) {
+            h = window.OpenvoteIdentity.authHeaders('poll', pollId);
+        } else if (nonce) {
+            h['X-WP-Nonce'] = nonce;
+        }
+        return h;
+    }
+
+    function initIdentity(form, pollId) {
+        var Id = window.OpenvoteIdentity;
+        var block = form.closest('.openvote-poll-block');
+        var slot = block ? block.querySelector('.openvote-identity') : null;
+        if (!Id || !slot) return null;
+        var ctrl = Id.mount(slot, {
+            type: 'poll',
+            id: pollId,
+            onVerified: function (sess) {
+                var p = sess.poll || {};
+                var ss = Id.loadSession && Id.loadSession();
+                applyLabels(form, ss && ss.labels);
+                if (p.has_voted) {
+                    form.hidden = true;
+                    return;
+                }
+                form.hidden = false;
+                if (p.eligible_error) {
+                    setFormLocked(form, true);
+                    return;
+                }
+                setFormLocked(form, false);
+            },
+            onReset: function () {
+                applyLabels(form, null);
+                form.hidden = false;
+                setFormLocked(form, true);
+            }
+        });
+        return ctrl;
     }
 
     function initVotingForms() {
@@ -105,6 +207,11 @@
             var submitBtn = form.querySelector('.openvote-poll__submit');
             if (submitBtn) {
                 submitBtn.disabled = true;
+            }
+            var identityCtrl = null;
+            if (form.dataset.identityRequired === '1') {
+                updateHint(form);
+                identityCtrl = initIdentity(form, form.dataset.pollId);
             }
             form.addEventListener('change', function () {
                 updateVoteSubmitButton(form);
@@ -142,27 +249,38 @@
                 }
 
                 submitBtn.disabled = true;
+                var btnLabel = submitBtn.textContent;
+                submitBtn.textContent = cfg.i18n.saving || 'Zapisuję głos…';
+                var restoreBtn = function () { submitBtn.textContent = btnLabel; };
 
-                var block = form.closest('.openvote-poll-block');
-                var nonce = block ? block.dataset.nonce : cfg.nonce;
+                var headers = authHeaders(form, pollId);
+                headers['Content-Type'] = 'application/json';
 
                 fetch(cfg.restUrl + '/polls/' + pollId + '/vote', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+                    credentials: headers['X-WP-Nonce'] ? 'same-origin' : 'omit',
+                    headers: headers,
                     body: JSON.stringify({ answers: answers, is_anonymous: isAnonymous })
                 })
-                .then(function (r) { return r.json(); })
+                .then(function (r) {
+                    return r.json().catch(function () { return { code: '__bad_response' }; });
+                })
                 .then(function (data) {
+                    restoreBtn();
                     if (data.success) {
-                        showMessage(msgEl, cfg.i18n.voteSuccess, 'success');
-                        form.querySelectorAll('input, button').forEach(function (el) { el.disabled = true; });
+                        showVoteSuccess(form);
+                    } else if (data.code === 'identity_invalid' && identityCtrl) {
+                        identityCtrl.invalidate(data.message);
+                    } else if (data.code === 'already_voted' || data.code === 'openvote_already_voted') {
+                        showVoteSuccess(form, true);
                     } else {
-                        showMessage(msgEl, data.message || cfg.i18n.voteError, 'error');
+                        showMessage(msgEl, mapVoteError(data), 'error');
                         submitBtn.disabled = false;
                     }
                 })
                 .catch(function () {
-                    showMessage(msgEl, cfg.i18n.voteError, 'error');
+                    restoreBtn();
+                    showMessage(msgEl, cfg.i18n.networkError || 'Brak połączenia. Sprawdź internet i spróbuj ponownie. Jeśli Twój głos został już zapisany, po odświeżeniu strony zobaczysz informację o tym.', 'error');
                     submitBtn.disabled = false;
                 });
             });
@@ -173,31 +291,84 @@
         if (!el) return;
         el.textContent = text;
         el.className = 'openvote-poll__message openvote-poll__message--' + type;
+        if (type === 'error') {
+            el.setAttribute('role', 'alert');
+            try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* ignore */ }
+        }
+    }
+
+    function mapVoteError(data) {
+        var c = data && data.code;
+        var msg = (data && data.message) || '';
+        if (c === 'rest_cookie_invalid_nonce' || c === 'rest_forbidden' || c === '__bad_response') {
+            return c === '__bad_response'
+                ? (cfg.i18n.badResponse || 'Serwer nie odpowiedział poprawnie. Odśwież stronę (klawisz F5). Jeśli Twój głos został zapisany, zobaczysz tam odpowiednią informację.')
+                : (cfg.i18n.sessionExpired || 'Sesja wygasła. Odśwież stronę (klawisz F5) i spróbuj ponownie.');
+        }
+        return msg || cfg.i18n.voteError;
+    }
+
+    /* Po oddaniu głosu: zastępujemy formularz wyraźnym potwierdzeniem. */
+    function showVoteSuccess(form, already) {
+        form.dataset.done = '1';
+        var box = document.createElement('div');
+        box.className = 'openvote-poll__success';
+        box.setAttribute('role', 'status');
+        box.setAttribute('tabindex', '-1');
+        var h = document.createElement('p');
+        h.className = 'openvote-poll__success-title';
+        h.textContent = '✓ ' + (already ? (cfg.i18n.alreadyVoted || 'Już oddałeś głos w tym głosowaniu. Dziękujemy!') : (cfg.i18n.voteSuccessTitle || 'Dziękujemy! Twój głos został zapisany.'));
+        box.appendChild(h);
+        var p = document.createElement('p');
+        p.textContent = cfg.i18n.voteSuccessNote || 'Możesz zamknąć tę stronę.';
+        box.appendChild(p);
+        var cd = form.querySelector('.openvote-poll__countdown');
+        if (cd) { box.appendChild(cd.cloneNode(true)); }
+        form.parentNode.insertBefore(box, form);
+        form.hidden = true;
+        form.querySelectorAll('input, button').forEach(function (el) { el.disabled = true; });
+        initCountdowns();
+        try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* ignore */ }
+        box.focus({ preventScroll: true });
     }
 
     /* ── Results (ended polls) ── */
 
-    function initResults() {
-        document.querySelectorAll('.openvote-poll__results').forEach(function (container) {
+    function resultsError(container, msg) {
+        container.innerHTML = '';
+        var p = document.createElement('p');
+        p.textContent = msg || (cfg.i18n.resultsFailed || 'Nie udało się pobrać wyników.');
+        container.appendChild(p);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'openvote-poll__retry';
+        b.textContent = cfg.i18n.retry || 'Spróbuj ponownie';
+        b.addEventListener('click', function () { initResults(container); });
+        container.appendChild(b);
+    }
+
+    function initResults(only) {
+        (only ? [only] : document.querySelectorAll('.openvote-poll__results')).forEach(function (container) {
             var pollId = container.dataset.pollId;
             if (!pollId) return;
 
             var block = container.closest('.openvote-poll-block');
-            var nonce = block ? block.dataset.nonce : cfg.nonce;
+            var nonce = (block && block.dataset.nonce) || cfg.nonce || '';
+            var rHeaders = nonce ? { 'X-WP-Nonce': nonce } : {};
 
             fetch(cfg.restUrl + '/polls/' + pollId + '/results', {
-                headers: { 'X-WP-Nonce': nonce }
+                headers: rHeaders
             })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.code) {
-                    container.innerHTML = '<p>' + escapeHtml(data.message || '') + '</p>';
+                    resultsError(container, data.message || '');
                     return;
                 }
                 renderResults(container, data);
             })
             .catch(function () {
-                container.innerHTML = '<p>' + escapeHtml(cfg.i18n.voteError) + '</p>';
+                resultsError(container, '');
             });
         });
     }
@@ -224,10 +395,14 @@
             html += '<div class="openvote-results__question">';
             html += '<h4>' + (qi + 1) + '. ' + escapeHtml(q.question_text) + '</h4>';
 
+            var maxCount = 0;
+            q.answers.forEach(function (a0) { if (!a0.is_abstain && a0.count > maxCount) maxCount = a0.count; });
             q.answers.forEach(function (answer, ai) {
+                var txt = String(answer.text || '').trim().toLowerCase();
                 var barClass = answer.is_abstain
                     ? 'openvote-results__bar--wstrzymuje_sie'
-                    : (ai === 0 ? 'openvote-results__bar--za' : 'openvote-results__bar--przeciw');
+                    : (txt === 'tak' ? 'openvote-results__bar--za' : (txt === 'nie' ? 'openvote-results__bar--przeciw' : 'openvote-results__bar--neutral'));
+                var isTop = !answer.is_abstain && answer.count > 0 && answer.count === maxCount;
 
                 var pct   = parseFloat(answer.pct) || 0;
                 var label = answer.is_abstain
@@ -236,7 +411,7 @@
 
                 html += '<div class="openvote-results__bar-container">';
                 html += '<div class="openvote-results__bar-label">';
-                html += '<span>' + label + '</span>';
+                html += '<span>' + label + (isTop ? ' <strong class="openvote-results__top">✓ ' + escapeHtml(cfg.i18n.mostVotes || 'najwięcej głosów') + '</strong>' : '') + '</span>';
                 html += '<span>' + answer.count + ' (' + pct.toFixed(1) + '%)</span>';
                 html += '</div>';
                 html += '<div class="openvote-results__bar ' + barClass + '" style="width:' + pct.toFixed(1) + '%"></div>';
@@ -249,7 +424,7 @@
         /* Voter list – anonymized nicenames, toggled */
         if (data.voters && data.voters.length) {
             html += '<div class="openvote-results__voters-section">';
-            html += '<button type="button" class="openvote-voters-toggle" data-list="voters">' + escapeHtml(cfg.i18n.showVoters) + '</button>';
+            html += '<button type="button" class="openvote-voters-toggle" data-list="voters" aria-expanded="false">' + escapeHtml(cfg.i18n.showVoters) + '</button>';
             html += '<div class="openvote-results__voters" style="display:none">';
             html += '<h4>' + escapeHtml(cfg.i18n.voterList) + '</h4><ul>';
             data.voters.forEach(function (v) {
@@ -261,7 +436,7 @@
         /* Non-voter list – eligible users who did not vote */
         if (data.non_voters_list && data.non_voters_list.length) {
             html += '<div class="openvote-results__voters-section">';
-            html += '<button type="button" class="openvote-voters-toggle" data-list="non-voters">' + escapeHtml(cfg.i18n.showNonVoters) + '</button>';
+            html += '<button type="button" class="openvote-voters-toggle" data-list="non-voters" aria-expanded="false">' + escapeHtml(cfg.i18n.showNonVoters) + '</button>';
             html += '<div class="openvote-results__non-voters" style="display:none">';
             html += '<h4>' + escapeHtml(cfg.i18n.nonVoterList) + '</h4><ul>';
             data.non_voters_list.forEach(function (v) {
@@ -283,6 +458,7 @@
                 if (!listEl) return;
                 var open = listEl.style.display !== 'none';
                 listEl.style.display = open ? 'none' : '';
+                toggleBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
                 if (listKey === 'non-voters') {
                     toggleBtn.textContent = open ? cfg.i18n.showNonVoters : cfg.i18n.hideNonVoters;
                 } else {

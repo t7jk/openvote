@@ -71,7 +71,7 @@ class Openvote_Eligibility {
         }
 
         // ── 3. Użytkownik zalogowany ────────────────────────────────────────
-        if ( ! $user_id || ! is_user_logged_in() ) {
+        if ( ! $user_id || ( ! is_user_logged_in() && ! ( class_exists( 'Openvote_Identity_Verifier', false ) && Openvote_Identity_Verifier::is_authorized_token_user( $user_id ) ) ) ) {
             return self::no( __( 'Musisz być zalogowany, aby wziąć udział w głosowaniu.', 'openvote' ) );
         }
 

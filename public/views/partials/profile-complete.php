@@ -9,9 +9,9 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-$context_label = ( 'survey' === $context )
-    ? __( 'ankiety', 'openvote' )
-    : __( 'głosowania', 'openvote' );
+$context_intro = ( 'survey' === $context )
+    ? __( 'Aby wypełnić ankietę, uzupełnij swój profil.', 'openvote' )
+    : __( 'Aby zagłosować, uzupełnij swój profil.', 'openvote' );
 ?>
 <div class="openvote-profile-complete"
      data-context="<?php echo esc_attr( $context ); ?>"
@@ -22,9 +22,9 @@ $context_label = ( 'survey' === $context )
         <p>
             <?php
             printf(
-                /* translators: 1: ankiety / głosowania, 2: lista brakujących pól */
-                esc_html__( 'Aby wziąć udział w %1$s, uzupełnij swój profil. Brakujące pola: %2$s', 'openvote' ),
-                esc_html( $context_label ),
+                /* translators: 1: intro sentence, 2: list of missing fields */
+                esc_html__( '%1$s Brakuje: %2$s.', 'openvote' ),
+                esc_html( $context_intro ),
                 '<strong>' . esc_html( implode( ', ', array_values( $missing_fields ) ) ) . '</strong>'
             );
             ?>
@@ -69,8 +69,9 @@ $context_label = ( 'survey' === $context )
         <button type="button"
                 class="openvote-profile-complete__btn"
                 disabled>
-            <?php esc_html_e( 'Dodaj', 'openvote' ); ?>
+            <?php echo 'survey' === $context ? esc_html__( 'Zapisz dane i przejdź do ankiety', 'openvote' ) : esc_html__( 'Zapisz dane i przejdź do głosowania', 'openvote' ); ?>
         </button>
+        <p class="openvote-profile-complete__hint"><?php esc_html_e( 'Przycisk zadziała, gdy wypełnisz wszystkie pola oznaczone gwiazdką.', 'openvote' ); ?></p>
         <div class="openvote-profile-complete__message" aria-live="polite"></div>
     </div>
 

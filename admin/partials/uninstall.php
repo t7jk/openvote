@@ -14,11 +14,17 @@ $tables = [
     $wpdb->prefix . 'openvote_questions',
     $wpdb->prefix . 'openvote_answers',
     $wpdb->prefix . 'openvote_votes',
+    $wpdb->prefix . 'openvote_groups',
+    $wpdb->prefix . 'openvote_group_members',
+    $wpdb->prefix . 'openvote_surveys',
+    $wpdb->prefix . 'openvote_survey_responses',
+    $wpdb->prefix . 'openvote_messages',
+    $wpdb->prefix . 'openvote_message_queue',
 ];
 
 $table_rows = [];
 foreach ( $tables as $table ) {
-    $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" );
+    $count = ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" ) : 0;
     $table_rows[ $table ] = $count;
 }
 ?>
@@ -44,7 +50,7 @@ foreach ( $tables as $table ) {
 
             <h3><?php esc_html_e( 'Co zostanie usunięte:', 'openvote' ); ?></h3>
 
-            <table class="widefat fixed" style="max-width:560px;margin-bottom:20px;">
+            <div class="openvote-table-scroll"><table class="widefat fixed" style="max-width:560px;margin-bottom:20px;">
                 <thead>
                     <tr>
                         <th><?php esc_html_e( 'Tabela / opcja', 'openvote' ); ?></th>
@@ -67,11 +73,11 @@ foreach ( $tables as $table ) {
                         </tr>
                     <?php endforeach; ?>
                     <tr>
-                        <td><code>openvote_version</code>, <code>openvote_db_version</code>, <code>openvote_field_map</code>, <code>openvote_vote_page_slug</code>, <code>openvote_time_offset_hours</code></td>
+                        <td><code>openvote_version</code>, <code>openvote_db_version</code>, <code>openvote_field_map</code>, <code>openvote_vote_page_slug</code>, <code>openvote_time_offset_hours</code>, <code>openvote_identity_voting_enabled</code>, <code>openvote_cron_key</code>, <?php esc_html_e( 'oraz pozostałe opcje i dane tymczasowe wtyczki (openvote_*, ov_*)', 'openvote' ); ?></td>
                         <td><?php esc_html_e( 'Opcje WordPress', 'openvote' ); ?></td>
                     </tr>
                 </tbody>
-            </table>
+            </table></div>
 
             <form method="post" action="" id="openvote-uninstall-form">
                 <?php wp_nonce_field( 'openvote_uninstall', 'openvote_uninstall_nonce' ); ?>

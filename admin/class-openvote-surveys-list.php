@@ -61,8 +61,8 @@ class Openvote_Surveys_List extends WP_List_Table {
         $labels = [
             ''       => __( 'Wszystkie', 'openvote' ),
             'draft'  => __( 'Szkic', 'openvote' ),
-            'open'   => __( 'Otwarta', 'openvote' ),
-            'closed' => __( 'Zamknięta', 'openvote' ),
+            'open'   => __( 'Trwa', 'openvote' ),
+            'closed' => __( 'Zakończona', 'openvote' ),
         ];
 
         $base_url = admin_url( 'admin.php?page=openvote-surveys' );
@@ -237,15 +237,10 @@ class Openvote_Surveys_List extends WP_List_Table {
     }
 
     protected function column_status( $item ): string {
-        $labels = [
-            'draft'  => __( 'Szkic', 'openvote' ),
-            'open'   => __( 'Otwarta', 'openvote' ),
-            'closed' => __( 'Zamknięta', 'openvote' ),
-        ];
         return sprintf(
             '<span class="openvote-status openvote-status--%s">%s</span>',
             esc_attr( $item->status ),
-            esc_html( $labels[ $item->status ] ?? $item->status )
+            esc_html( Openvote_Survey::status_label( (string) $item->status ) )
         );
     }
 
@@ -294,23 +289,49 @@ class Openvote_Surveys_List extends WP_List_Table {
             return;
         }
 
+        if ( ! Openvote_Admin::user_can_access_coordinators() ) {
+            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ), '', [ 'response' => 403 ] );
+        }
+
         if ( 'close' === $action ) {
-            $now = current_time( 'Y-m-d H:i:s' );
+            $now   = current_time( 'Y-m-d H:i:s' );
+            $count = 0;
             foreach ( $ids as $id ) {
                 $s = Openvote_Survey::get( $id );
                 if ( $s && 'open' === $s->status ) {
                     Openvote_Survey::update( $id, [ 'status' => 'closed', 'date_end' => $now ] );
+                    if ( ! empty( $s->title ) ) {
+                        openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył ankietę %s', 'openvote' ), $s->title ) );
+                    }
+                    ++$count;
                 }
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-surveys', 'bulk_closed' => count( $ids ) ], admin_url( 'admin.php' ) ) );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-surveys', 'bulk_closed' => $count ], admin_url( 'admin.php' ) ) );
             exit;
         }
 
         if ( 'delete' === $action ) {
+            $deleted = 0;
+            $skipped = 0;
             foreach ( $ids as $id ) {
+                $s = Openvote_Survey::get( $id );
+                // Trwającej ankiety nie usuwamy hurtowo (jak w akcji wiersza) — najpierw trzeba ją zakończyć.
+                if ( ! $s || 'open' === $s->status ) {
+                    ++$skipped;
+                    continue;
+                }
+                $title = (string) ( $s->title ?? '' );
                 Openvote_Survey::delete( $id );
+                if ( '' !== $title ) {
+                    openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'usunął ankietę %s', 'openvote' ), $title ) );
+                }
+                ++$deleted;
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-surveys', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) );
+            $args = [ 'page' => 'openvote-surveys', 'bulk_deleted' => $deleted ];
+            if ( $skipped ) {
+                $args['bulk_skipped'] = $skipped;
+            }
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
             exit;
         }
     }
@@ -320,6 +341,10 @@ class Openvote_Surveys_List extends WP_List_Table {
     public function display(): void {
         wp_nonce_field( 'openvote_survey_bulk_action', 'openvote_survey_bulk_nonce' );
         parent::display();
+        Openvote_Polls_List::print_bulk_confirm_script( 'survey_ids[]', [
+            'delete' => __( 'Usunąć zaznaczone ankiety (%d) wraz ze wszystkimi zgłoszeniami? Operacja jest nieodwracalna. Trwające ankiety zostaną pominięte.', 'openvote' ),
+            'close'  => __( 'Zakończyć zaznaczone ankiety (%d)? Operacja nieodwracalna.', 'openvote' ),
+        ] );
     }
 
     // ─── Szukaj ───────────────────────────────────────────────────────────

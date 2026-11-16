@@ -145,12 +145,6 @@
                 return;
             }
 
-            // Zapobiegaj podwójnemu wysłaniu.
-            var submitBtns = form.querySelectorAll( 'button[type="submit"], input[type="submit"]' );
-            submitBtns.forEach( function ( b ) {
-                b.disabled = true;
-            } );
-
             if ( startBtn && document.activeElement === startBtn ) {
                 const title    = document.getElementById( 'survey_title' );
                 const duration = document.getElementById( 'survey_duration' );
@@ -167,6 +161,12 @@
                     return;
                 }
             }
+
+            // Zapobiegaj podwójnemu wysłaniu (dopiero po przejściu walidacji; akcja jest w polu hidden).
+            var submitBtns = form.querySelectorAll( 'button[type="submit"], input[type="submit"]' );
+            submitBtns.forEach( function ( b ) {
+                b.disabled = true;
+            } );
         } );
     }
 

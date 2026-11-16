@@ -60,10 +60,10 @@ class Openvote_Results_Pdf {
 			$pdf->SetXY( 30, $header_y + 1 );
 		}
 		$pdf->SetFont( 'dejavusans', 'B', 13 );
-		$pdf->Cell( 0, 6, $brand_short . '  —  ' . $brand_full, 0, 1 );
+		$pdf->MultiCell( 0, 6, $brand_short . '  —  ' . $brand_full, 0, 'L', false, 1, $logo_path ? 30 : 15 );
 		$pdf->SetFont( 'dejavusans', '', 8 );
 		$pdf->SetX( $logo_path ? 30 : 15 );
-		$pdf->Cell( 0, 5, __( 'Raport wyników głosowania', 'openvote' ) . '   |   ' . gmdate( 'd.m.Y H:i' ), 0, 1 );
+		$pdf->MultiCell( 0, 5, __( 'Raport wyników głosowania', 'openvote' ) . '   |   ' . wp_date( 'd.m.Y H:i' ), 0, 'L', false, 1 );
 		$pdf->SetX( 15 );
 		$pdf->Ln( 3 );
 		$pdf->SetLineWidth( 0.5 );
@@ -76,8 +76,16 @@ class Openvote_Results_Pdf {
 		$pdf->MultiCell( 0, 9, __( 'Wyniki:', 'openvote' ) . ' ' . $poll->title, 0, 'L', false, 1 );
 		$pdf->SetFont( 'dejavusans', '', 9 );
 		$pdf->SetTextColor( 100, 100, 100 );
-		$pdf->Cell( 0, 6, __( 'Status:', 'openvote' ) . ' ' . $poll->status
-			. '   |   ' . __( 'Okres:', 'openvote' ) . ' ' . $poll->date_start . ' — ' . $poll->date_end, 0, 1 );
+		$pdf->MultiCell( 0, 6, __( 'Status:', 'openvote' ) . ' ' . Openvote_Poll::status_label( (string) $poll->status, $poll )
+			. '   |   ' . __( 'Okres:', 'openvote' ) . ' ' . Openvote_Poll::format_dt( $poll->date_start ) . ' — ' . Openvote_Poll::format_dt( $poll->date_end ), 0, 'L', false, 1 );
+		if ( 'open' === ( $poll->status ?? '' ) && ! Openvote_Poll::is_ended( $poll ) ) {
+			$pdf->SetTextColor( 180, 90, 0 );
+			$pdf->MultiCell( 0, 6, __( 'Wyniki cząstkowe — głosowanie jeszcze trwa.', 'openvote' ), 0, 'L', false, 1 );
+		}
+		if ( ! empty( $poll->description ) ) {
+			$pdf->SetTextColor( 60, 60, 60 );
+			$pdf->MultiCell( 0, 5, (string) $poll->description, 0, 'L', false, 1 );
+		}
 		$pdf->SetTextColor( 0, 0, 0 );
 		$pdf->Ln( 5 );
 
@@ -116,7 +124,11 @@ class Openvote_Results_Pdf {
 			foreach ( $results['questions'] as $i => $q ) {
 				$pdf->SetFont( 'dejavusans', 'B', 10 );
 				$pdf->SetFillColor( 240, 240, 245 );
-				$pdf->Cell( 0, 7, ( $i + 1 ) . '. ' . $q['question_text'], 'B', 1, 'L', true );
+				$q_title = ( $i + 1 ) . '. ' . $q['question_text'];
+				$q_h     = max( 7, $pdf->getStringHeight( 180, $q_title ) + 1 );
+				// Nagłówek pytania + nagłówek tabeli + pierwszy wiersz razem na jednej stronie.
+				self::ensure_space( $pdf, $q_h + 12 + 6 );
+				$pdf->MultiCell( 0, $q_h, $q_title, 'B', 'L', true, 1, '', '', true, 0, false, true, $q_h, 'M' );
 				$pdf->SetFillColor( 255, 255, 255 );
 
 				self::table_header_row( $pdf, [
@@ -127,7 +139,7 @@ class Openvote_Results_Pdf {
 
 				foreach ( $q['answers'] as $ai => $answer ) {
 					$txt = ! empty( $answer['is_abstain'] )
-						? __( 'Wstrzymało się', 'openvote' )
+						? __( 'Wstrzymuję się', 'openvote' )
 						: $answer['text'];
 					// Color-code: za=green, przeciw=red, abstain=orange
 					if ( ! empty( $answer['is_abstain'] ) ) {
@@ -155,7 +167,7 @@ class Openvote_Results_Pdf {
 		if ( ! empty( $voters ) ) {
 			$pdf->SetFont( 'dejavusans', '', 8 );
 			$pdf->SetTextColor( 100, 100, 100 );
-			$pdf->Cell( 0, 5, __( 'Imię i nazwisko oraz zanonimizowany e-mail. Pozostałe dane utajnione.', 'openvote' ), 0, 1 );
+			$pdf->MultiCell( 0, 5, __( 'Imię i nazwisko oraz zanonimizowany e-mail. Pozostałe dane utajnione.', 'openvote' ), 0, 'L', false, 1 );
 			$pdf->SetTextColor( 0, 0, 0 );
 			$pdf->Ln( 1 );
 
@@ -185,7 +197,7 @@ class Openvote_Results_Pdf {
 		if ( ! empty( $non_voters_list ) ) {
 			$pdf->SetFont( 'dejavusans', '', 8 );
 			$pdf->SetTextColor( 100, 100, 100 );
-			$pdf->Cell( 0, 5, __( 'Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane.', 'openvote' ), 0, 1 );
+			$pdf->MultiCell( 0, 5, __( 'Uprawnieni użytkownicy, którzy nie oddali głosu. Pseudonimy zanonimizowane.', 'openvote' ), 0, 'L', false, 1 );
 			$pdf->SetTextColor( 0, 0, 0 );
 			$pdf->Ln( 1 );
 
@@ -199,7 +211,7 @@ class Openvote_Results_Pdf {
 					$row[] = '';
 				}
 				foreach ( $row as $cell ) {
-					$pdf->Cell( $col_w, 6, $cell, 'B', 0, 'L' );
+					$pdf->Cell( $col_w, 6, $cell, 'B', 0, 'L', false, '', 1 ); // 1 = zmniejsz tekst, by nie wychodził poza kolumnę
 				}
 				$pdf->Ln();
 			}
@@ -216,7 +228,7 @@ class Openvote_Results_Pdf {
 		$pdf->Ln( 2 );
 		$pdf->SetFont( 'dejavusans', '', 7 );
 		$pdf->SetTextColor( 150, 150, 150 );
-		$pdf->Cell( 0, 5, $brand_short . ' — ' . $brand_full . '   |   ' . __( 'Wygenerowano:', 'openvote' ) . ' ' . gmdate( 'd.m.Y H:i:s' ), 0, 1, 'C' );
+		$pdf->Cell( 0, 5, $brand_short . ' — ' . $brand_full . '   |   ' . __( 'Wygenerowano:', 'openvote' ) . ' ' . wp_date( 'd.m.Y H:i:s' ), 0, 1, 'C' );
 
 		$filename = 'wyniki-' . $poll->id . '-' . preg_replace( '/[^a-zA-Z0-9]+/', '-', $poll->title ) . '.pdf';
 		$pdf->Output( $filename, 'D' );
@@ -230,7 +242,8 @@ class Openvote_Results_Pdf {
 		$pdf->SetFont( 'dejavusans', 'B', 12 );
 		$pdf->SetFillColor( 26, 26, 46 );
 		$pdf->SetTextColor( 255, 255, 255 );
-		$pdf->Cell( 0, 8, $title, 0, 1, 'L', true );
+		self::ensure_space( $pdf, 30 );
+		$pdf->MultiCell( 0, 8, $title, 0, 'L', true, 1, '', '', true, 0, false, true, 8, 'M' );
 		$pdf->SetFillColor( 255, 255, 255 );
 		$pdf->SetTextColor( 0, 0, 0 );
 		$pdf->Ln( 2 );
@@ -244,10 +257,15 @@ class Openvote_Results_Pdf {
 	private static function table_header_row( TCPDF $pdf, array $cols ): void {
 		$pdf->SetFont( 'dejavusans', 'B', 9 );
 		$pdf->SetFillColor( 230, 235, 245 );
+		$h = 6;
 		foreach ( $cols as [ $text, $w, $align ] ) {
-			$pdf->Cell( $w, 6, $text, 1, 0, $align, true );
+			$h = max( $h, $pdf->getStringHeight( $w, $text ) + 1 );
 		}
-		$pdf->Ln();
+		self::ensure_space( $pdf, $h );
+		foreach ( $cols as [ $text, $w, $align ] ) {
+			$pdf->MultiCell( $w, $h, $text, 1, $align, true, 0, '', '', true, 0, false, true, $h, 'M' );
+		}
+		$pdf->Ln( $h );
 		$pdf->SetFillColor( 255, 255, 255 );
 		$pdf->SetFont( 'dejavusans', '', 9 );
 	}
@@ -258,10 +276,24 @@ class Openvote_Results_Pdf {
 	 * @param array<int, array{0:string,1:int,2:string}> $cols
 	 */
 	private static function table_row( TCPDF $pdf, array $cols ): void {
+		$h = 6;
 		foreach ( $cols as [ $text, $w, $align ] ) {
-			$pdf->Cell( $w, 6, $text, 1, 0, $align );
+			$h = max( $h, $pdf->getStringHeight( $w, $text ) + 1 );
 		}
-		$pdf->Ln();
+		self::ensure_space( $pdf, $h );
+		foreach ( $cols as [ $text, $w, $align ] ) {
+			$pdf->MultiCell( $w, $h, $text, 1, $align, false, 0, '', '', true, 0, false, true, $h, 'M' );
+		}
+		$pdf->Ln( $h );
+	}
+
+	/**
+	 * Przechodzi na nową stronę, jeśli $h mm nie mieści się na bieżącej.
+	 */
+	private static function ensure_space( TCPDF $pdf, float $h ): void {
+		if ( $pdf->GetY() + $h > $pdf->getPageHeight() - $pdf->getBreakMargin() ) {
+			$pdf->AddPage();
+		}
 	}
 
 	/**

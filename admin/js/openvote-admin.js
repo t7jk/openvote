@@ -8,6 +8,12 @@
     var MAX_ANSWERS   = 12;
     var MAX_POLL_DAYS = 31;
 
+    // Teksty z PHP (wp_localize_script) z polskimi wartościami zapasowymi.
+    var I18N = window.openvoteAdminI18n || {};
+    function t(key, fallback) {
+        return (I18N && I18N[key]) ? I18N[key] : fallback;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var container = document.getElementById('openvote-questions-container');
         var addQBtn   = document.getElementById('openvote-add-question');
@@ -20,17 +26,11 @@
 
         if (!container || !addQBtn) return;
 
-        // Toggle target group select.
-        document.querySelectorAll('input[name="target_type"]').forEach(function (radio) {
-            radio.addEventListener('change', toggleTargetGroup);
-        });
-        toggleTargetGroup();
-
         // Add question.
         addQBtn.addEventListener('click', function () {
             var blocks = container.querySelectorAll('.openvote-question-block');
             if (blocks.length >= MAX_QUESTIONS) {
-                alert('Maksymalnie ' + MAX_QUESTIONS + ' pytań.');
+                alert(t('maxQuestions', 'Maksymalnie %d pytań.').replace('%d', MAX_QUESTIONS));
                 return;
             }
             var newBlock = buildQuestionBlock(blocks.length);
@@ -57,7 +57,7 @@
                 var answersCtr = block.querySelector('.openvote-answers-container');
                 var rows     = answersCtr.querySelectorAll('.openvote-answer-row');
                 if (rows.length >= MAX_ANSWERS) {
-                    alert('Maksymalnie ' + MAX_ANSWERS + ' odpowiedzi per pytanie.');
+                    alert(t('maxAnswers', 'Maksymalnie %d odpowiedzi na pytanie.').replace('%d', MAX_ANSWERS));
                     return;
                 }
                 // Insert before the last (abstain) row.
@@ -75,7 +75,7 @@
                 var answersCtr2 = e.target.closest('.openvote-answers-container');
                 var nonLocked   = answersCtr2.querySelectorAll('.openvote-answer-row:not(.openvote-answer-row--locked)');
                 if (nonLocked.length <= 2) {
-                    alert('Pytanie musi mieć co najmniej dwie dowolne odpowiedzi (plus wstrzymanie).');
+                    alert(t('minAnswers', 'Pytanie musi mieć co najmniej dwie własne odpowiedzi plus „Wstrzymuję się”.'));
                     return;
                 }
                 e.target.closest('.openvote-answer-row').remove();
@@ -83,13 +83,6 @@
                 if (form) form.dispatchEvent(new Event('input'));
             }
         });
-
-        function toggleTargetGroup() {
-            var groupRadio = document.getElementById('target_group_radio');
-            var wrapper    = document.getElementById('openvote-target-group-wrapper');
-            if (!groupRadio || !wrapper) return;
-            wrapper.style.display = groupRadio.checked ? '' : 'none';
-        }
 
         function buildQuestionBlock(qIndex) {
             var block = document.createElement('div');
@@ -99,15 +92,15 @@
             block.innerHTML =
                 '<div class="openvote-question-header">' +
                     '<span class="openvote-question-number">' + (qIndex + 1) + '.</span>' +
-                    '<input type="text" name="questions[' + qIndex + '][text]" maxlength="512" class="large-text" placeholder="Treść pytania">' +
-                    '<button type="button" class="button openvote-remove-question">&times;</button>' +
+                    '<input type="text" name="questions[' + qIndex + '][text]" maxlength="512" class="large-text" placeholder="' + escapeAttr(t('questionText', 'Treść pytania')) + '">' +
+                    '<button type="button" class="button openvote-remove-question" aria-label="' + escapeAttr(t('removeQuestion', 'Usuń pytanie')) + '">&times;</button>' +
                 '</div>' +
                 '<div class="openvote-answers-container">' +
                     buildAnswerRowHTML(qIndex, 0, 'Jestem za', false) +
                     buildAnswerRowHTML(qIndex, 1, 'Jestem przeciw', false) +
                     buildAnswerRowHTML(qIndex, 2, 'Wstrzymuję się', true) +
                 '</div>' +
-                '<button type="button" class="button button-small openvote-add-answer">+ Dodaj odpowiedź</button>';
+                '<button type="button" class="button button-small openvote-add-answer">+ ' + escapeAttr(t('addAnswer', 'Dodaj odpowiedź')) + '</button>';
 
             return block;
         }
@@ -117,8 +110,8 @@
             row.className = 'openvote-answer-row';
             row.innerHTML =
                 '<span class="openvote-answer-bullet">&#8226;</span>' +
-                '<input type="text" maxlength="512" class="regular-text" placeholder="Treść odpowiedzi" value="' + escapeAttr(value) + '">' +
-                '<button type="button" class="button openvote-remove-answer">&times;</button>';
+                '<input type="text" maxlength="512" class="regular-text" placeholder="' + escapeAttr(t('answerText', 'Treść odpowiedzi')) + '" value="' + escapeAttr(value) + '">' +
+                '<button type="button" class="button openvote-remove-answer" aria-label="' + escapeAttr(t('removeAnswer', 'Usuń odpowiedź')) + '">&times;</button>';
             return row;
         }
 
@@ -127,13 +120,13 @@
                 return '<div class="openvote-answer-row openvote-answer-row--locked">' +
                     '<span class="openvote-answer-bullet">&#8226;</span>' +
                     '<input type="text" name="questions[' + qIndex + '][answers][' + aIndex + ']" maxlength="512" class="regular-text" value="' + escapeAttr(value) + '" data-abstain="1">' +
-                    '<span class="openvote-abstain-label">(wstrzymanie – auto)</span>' +
+                    '<span class="openvote-abstain-label">' + escapeAttr(t('abstainAuto', '(wstrzymanie – auto)')) + '</span>' +
                 '</div>';
             }
             return '<div class="openvote-answer-row">' +
                 '<span class="openvote-answer-bullet">&#8226;</span>' +
-                '<input type="text" name="questions[' + qIndex + '][answers][' + aIndex + ']" maxlength="512" class="regular-text" placeholder="Treść odpowiedzi" value="' + escapeAttr(value) + '">' +
-                '<button type="button" class="button openvote-remove-answer">&times;</button>' +
+                '<input type="text" name="questions[' + qIndex + '][answers][' + aIndex + ']" maxlength="512" class="regular-text" placeholder="' + escapeAttr(t('answerText', 'Treść odpowiedzi')) + '" value="' + escapeAttr(value) + '">' +
+                '<button type="button" class="button openvote-remove-answer" aria-label="' + escapeAttr(t('removeAnswer', 'Usuń odpowiedź')) + '">&times;</button>' +
             '</div>';
         }
 
@@ -162,23 +155,23 @@
         }
 
         function initStartButtonValidation(form, startBtn, container) {
-            function isFormValid() {
+            var hintEl = document.getElementById('openvote-start-hint');
+
+            // Zwraca listę braków (puste = można startować).
+            function getMissing() {
+                var missing = [];
                 var titleEl = form.querySelector('#poll_title');
                 var durationEl = form.querySelector('#poll_duration');
-                if (!titleEl || titleEl.value.trim() === '') return false;
-                if (!durationEl || !durationEl.value) return false;
+                if (!titleEl || titleEl.value.trim() === '') missing.push(t('missTitle', 'tytułu'));
+                if (!durationEl || !durationEl.value) missing.push(t('missDuration', 'czasu trwania'));
 
                 var groupsSelect = form.querySelector('#openvote-target-groups');
                 if (groupsSelect && groupsSelect.options.length > 0) {
                     var selectedCount = 0;
-                    if (groupsSelect.selectedOptions) {
-                        selectedCount = groupsSelect.selectedOptions.length;
-                    } else {
-                        for (var g = 0; g < groupsSelect.options.length; g++) {
-                            if (groupsSelect.options[g].selected) selectedCount++;
-                        }
+                    for (var g = 0; g < groupsSelect.options.length; g++) {
+                        if (groupsSelect.options[g].selected) selectedCount++;
                     }
-                    if (selectedCount < 1) return false;
+                    if (selectedCount < 1) missing.push(t('missGroup', 'grupy docelowej'));
                 }
 
                 if (container) {
@@ -190,20 +183,38 @@
                         if (qText !== '') {
                             hasQuestion = true;
                             var answerInputs = blocks[i].querySelectorAll('.openvote-answers-container input[type="text"]');
-                            if (answerInputs.length < 3) return false;
+                            if (answerInputs.length < 3) {
+                                missing.push(t('missAnswers', 'min. 3 odpowiedzi w pytaniu %d').replace('%d', i + 1));
+                                continue;
+                            }
+                            var seen = {};
                             for (var j = 0; j < answerInputs.length; j++) {
                                 var inp = answerInputs[j];
-                                if (inp.getAttribute('data-abstain') !== '1' && inp.value.trim() === '') return false;
+                                var val = inp.value.trim();
+                                if (inp.getAttribute('data-abstain') !== '1' && val === '') {
+                                    missing.push(t('missAnswerText', 'treści %d. odpowiedzi w pytaniu %d').replace('%d', j + 1).replace('%d', i + 1));
+                                } else if (val !== '') {
+                                    var key = val.toLowerCase();
+                                    if (seen[key]) {
+                                        missing.push(t('missDuplicate', 'powtórzona odpowiedź w pytaniu %d').replace('%d', i + 1));
+                                        break;
+                                    }
+                                    seen[key] = true;
+                                }
                             }
                         }
                     }
-                    if (!hasQuestion) return false;
+                    if (!hasQuestion) missing.push(t('missQuestion', 'treści pytania'));
                 }
-                return true;
+                return missing;
             }
 
             function updateButton() {
-                startBtn.disabled = !isFormValid();
+                var missing = getMissing();
+                startBtn.disabled = missing.length > 0;
+                var msg = missing.length ? (t('missPrefix', 'Aby wystartować, uzupełnij: ') + missing.join(', ') + '.') : '';
+                startBtn.title = msg;
+                if (hintEl) hintEl.textContent = msg;
             }
 
             updateButton();
@@ -239,7 +250,7 @@
                     btn.parentNode.removeChild(btn.parentNode.contains(btn) ? btn : btn);
                     btn.remove();
                 } else {
-                    btn.textContent = 'Załaduj więcej (pokazano ' + visible + ' z ' + total + ')';
+                    btn.textContent = t('loadMore', 'Załaduj więcej (pokazano %1$d z %2$d)').replace('%1$d', visible).replace('%2$d', total);
                 }
             });
         });

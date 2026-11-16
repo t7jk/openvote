@@ -78,6 +78,14 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
         </div>
     <?php } ?>
 
+    <?php // Zakładki (client-side, openvote-settings-tabs.js) — formularze i akcje bez zmian; bez JS wszystkie sekcje widoczne. ?>
+    <h2 class="nav-tab-wrapper openvote-admin-tabs" id="openvote-roles-tabs" data-tabs-key="roles" role="tablist" aria-label="<?php echo esc_attr__( 'Sekcje ekranu', 'openvote' ); ?>">
+        <a href="#tab-list" id="tabbtn-list" class="nav-tab nav-tab-active" role="tab" aria-controls="tab-list" aria-selected="true" data-tab="list"><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></a>
+        <a href="#tab-add" id="tabbtn-add" class="nav-tab" role="tab" aria-controls="tab-add" aria-selected="false" data-tab="add"><?php esc_html_e( 'Dodaj koordynatora', 'openvote' ); ?></a>
+        <a href="#tab-audit" id="tabbtn-audit" class="nav-tab" role="tab" aria-controls="tab-audit" aria-selected="false" data-tab="audit"><?php esc_html_e( 'Dziennik zmian', 'openvote' ); ?></a>
+    </h2>
+
+    <div class="openvote-tab-panel" id="tab-list" data-tab="list" role="tabpanel" aria-labelledby="tabbtn-list">
     <!-- 1. Lista obecnych koordynatorów -->
     <section class="openvote-roles-list" style="margin-bottom:32px;">
         <h2 class="openvote-section-title" style="margin:0 0 12px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Obecni koordynatorzy', 'openvote' ); ?></h2>
@@ -113,7 +121,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                                     $parts = [];
                                     foreach ( $user_groups as $g ) {
                                         if ( $can_remove ) {
-                                            $parts[] = '<form method="post" action="" style="display:inline;">' . wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce', false, false ) . '<input type="hidden" name="openvote_roles_action" value="remove_group"><input type="hidden" name="user_id" value="' . esc_attr( $u->ID ) . '"><input type="hidden" name="group_id" value="' . esc_attr( $g->id ) . '"><button type="submit" class="button-link">' . esc_html( $g->name ) . '</button></form>';
+                                            $parts[] = '<form method="post" action="" style="display:inline;">' . wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce', false, false ) . '<input type="hidden" name="openvote_roles_action" value="remove_group"><input type="hidden" name="user_id" value="' . esc_attr( $u->ID ) . '"><input type="hidden" name="group_id" value="' . esc_attr( $g->id ) . '"><button type="submit" class="button-link" title="' . esc_attr__( 'Odłącz od grupy', 'openvote' ) . '" onclick="return confirm(' . esc_attr( wp_json_encode( sprintf( __( 'Odłączyć użytkownika %1$s od grupy „%2$s”?', 'openvote' ), openvote_roles_format_user_display( $u ), $g->name ) ) ) . ')">' . esc_html( $g->name ) . ' &times;</button></form>';
                                         } else {
                                             $parts[] = esc_html( $g->name );
                                         }
@@ -128,7 +136,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                                         <?php wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce' ); ?>
                                         <input type="hidden" name="openvote_roles_action" value="remove_role">
                                         <input type="hidden" name="user_id" value="<?php echo esc_attr( $u->ID ); ?>">
-                                        <button type="submit" class="button button-small"><?php esc_html_e( 'Odłącz wszystko', 'openvote' ); ?></button>
+                                        <button type="submit" class="button button-small" onclick="return confirm(<?php echo esc_attr( wp_json_encode( sprintf( __( 'Odebrać rolę Koordynatora użytkownikowi %s i odłączyć go od wszystkich grup?', 'openvote' ), openvote_roles_format_user_display( $u ) ) ) ); ?>)"><?php esc_html_e( 'Odbierz rolę koordynatora', 'openvote' ); ?></button>
                                     </form>
                                 <?php endif; ?>
                             </td>
@@ -139,6 +147,9 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
         </table>
     </section>
 
+    </div>
+
+    <div class="openvote-tab-panel" id="tab-add" data-tab="add" role="tabpanel" aria-labelledby="tabbtn-add">
     <?php if ( ! empty( $groups ) ) : ?>
     <!-- 2. Dodaj koordynatora — jedna sekcja formularza -->
     <section class="openvote-roles-add" style="max-width:800px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
@@ -151,21 +162,21 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                 <div style="flex:1; min-width:200px;">
                     <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Użytkownicy', 'openvote' ); ?></h3>
                     <p class="description" style="margin:0 0 8px;"><?php printf( esc_html__( 'Wybierz użytkownika (max %d).', 'openvote' ), (int) $openvote_roles_list_limit ); ?></p>
-                    <select name="user_id" id="openvote_add_editor_user" size="12" style="min-width:100%; display:block;">
+                    <select name="user_id" id="openvote_add_editor_user" size="12" required style="width:100%; max-width:100%; box-sizing:border-box; display:block;">
                         <option value="">— <?php esc_html_e( 'Wybierz', 'openvote' ); ?> —</option>
                         <?php foreach ( $all_users_for_role as $u ) : ?>
                             <option value="<?php echo esc_attr( $u->ID ); ?>"><?php echo esc_html( openvote_roles_format_user_display( $u ) ); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <p style="margin:10px 0 0;">
-                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Dodaj >>', 'openvote' ); ?></button>
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Dodaj koordynatora', 'openvote' ); ?></button>
                     </p>
                 </div>
 
                 <div style="flex:1; min-width:200px;">
                     <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
-                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele grup.', 'openvote' ); ?></p>
-                    <select name="openvote_editor_groups[]" id="openvote_editor_groups" multiple size="12" style="min-width:100%; display:block;">
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Przytrzymaj Ctrl (Cmd na Mac), aby zaznaczyć wiele grup.', 'openvote' ); ?></p>
+                    <select name="openvote_editor_groups[]" id="openvote_editor_groups" multiple size="12" style="width:100%; max-width:100%; box-sizing:border-box; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                         <?php endforeach; ?>
@@ -178,7 +189,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
     <!-- 3. Dodaj koordynatora po e-mailu (wyszukiwarka, bazy 10k+) -->
     <section class="openvote-roles-add-by-email" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
         <h2 class="openvote-section-title" style="margin:0 0 16px; font-size:1.1em; font-weight:600; padding-bottom:8px; border-bottom:1px solid #eee;"><?php esc_html_e( 'Dodaj koordynatora po adresie e-mail', 'openvote' ); ?></h2>
-        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i grupy, następnie kliknij Dodaj >>.', 'openvote' ); ?></p>
+        <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Wpisz fragment adresu e-mail (min. 2 znaki). Po opóźnieniu wyniki wyszukiwania pojawią się poniżej. Wybierz użytkownika i grupy, następnie kliknij „Dodaj".', 'openvote' ); ?></p>
         <form method="post" action="" id="openvote-add-coordinator-by-email-form">
             <?php wp_nonce_field( 'openvote_roles_action', 'openvote_roles_nonce' ); ?>
             <input type="hidden" name="openvote_roles_action" value="add_poll_editor">
@@ -198,13 +209,13 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                 </div>
 
                 <div style="display:flex; align-items:center; flex-shrink:0;">
-                    <button type="submit" class="button button-primary" id="openvote_add_by_email_btn" disabled><?php esc_html_e( 'Dodaj >>', 'openvote' ); ?></button>
+                    <button type="submit" class="button button-primary" id="openvote_add_by_email_btn" disabled><?php esc_html_e( 'Dodaj koordynatora', 'openvote' ); ?></button>
                 </div>
 
                 <div style="flex:1; min-width:200px;">
                     <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
-                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Ctrl+klik: wiele grup.', 'openvote' ); ?></p>
-                    <select name="openvote_editor_groups[]" id="openvote_editor_groups_by_email" multiple size="12" style="min-width:100%; display:block;">
+                    <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Przytrzymaj Ctrl (Cmd na Mac), aby zaznaczyć wiele grup.', 'openvote' ); ?></p>
+                    <select name="openvote_editor_groups[]" id="openvote_editor_groups_by_email" multiple size="12" style="width:100%; max-width:100%; box-sizing:border-box; display:block;">
                         <?php foreach ( $groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                         <?php endforeach; ?>
@@ -217,6 +228,9 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
         <p class="description"><?php esc_html_e( 'Najpierw dodaj grupy w sekcji Grupy, aby móc przypisywać Koordynatorów.', 'openvote' ); ?></p>
     <?php endif; ?>
 
+    </div>
+
+    <div class="openvote-tab-panel" id="tab-audit" data-tab="audit" role="tabpanel" aria-labelledby="tabbtn-audit">
     <!-- Log audytu: kto kogo promował / komu odebrał koordynatora (niekasowalny, w celach bezpieczeństwa). Paginacja po 20 linii. -->
     <?php
     $audit_entries_all = openvote_coordinator_audit_log_get();
@@ -230,7 +244,7 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
     $audit_base_url   = add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) );
     ?>
     <section class="openvote-roles-audit-log" style="margin-top:32px; max-width:900px;">
-        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log zmian koordynatorów', 'openvote' ); ?></h2>
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Dziennik zmian koordynatorów', 'openvote' ); ?></h2>
         <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy promował lub odbierał koordynatora której grupy. Lista niekasowalna, widoczna w celach bezpieczeństwa.', 'openvote' ); ?></p>
         <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
             <?php
@@ -264,14 +278,15 @@ function openvote_roles_format_user_display( \WP_User $user ): string {
                 ?>
             </span>
             <?php if ( $audit_page > 1 ) : ?>
-                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page - 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page - 1, $audit_base_url ) . '#tab-audit' ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
             <?php endif; ?>
             <?php if ( $audit_page < $audit_total_pages ) : ?>
-                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page + 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page + 1, $audit_base_url ) . '#tab-audit' ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
             <?php endif; ?>
         </p>
         <?php endif; ?>
     </section>
+    </div>
 </div>
 
 <?php if ( ! empty( $groups ) ) : ?>

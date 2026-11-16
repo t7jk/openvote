@@ -12,7 +12,11 @@ $is_logged      = is_user_logged_in();
 $user_id        = $is_logged ? get_current_user_id() : 0;
 $polls_for_user = [];
 $poll_missing_fields = [];
-if ( $is_logged ) {
+if ( ! $is_logged ) {
+    // Gość widzi pytania; głosuje po zalogowaniu lub weryfikacji danych.
+    $polls_for_user = array_values( Openvote_Poll::get_active_polls() );
+    openvote_identity_send_nocache();
+} else {
     $active_polls   = Openvote_Poll::get_active_polls();
     $polls_for_user = array_values( array_filter( $active_polls, function ( $poll ) use ( $user_id ) {
         return Openvote_Poll::user_in_target_groups( $user_id, $poll );
@@ -49,9 +53,7 @@ if ( ! empty( $poll_missing_fields ) ) {
         .openvote-page-title { margin: 0; }
         .openvote-poll-block { margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #ddd; }
         .openvote-poll-block:last-child { border-bottom: 0; }
-        .openvote-poll__vote-mode { font-size: 0.75rem !important; margin-top: 12px; }
-        .openvote-poll__vote-mode legend { font-size: 1em !important; font-weight: 600; }
-        .openvote-poll__vote-mode .openvote-poll__option { font-size: 1em !important; }
+        .openvote-poll__vote-mode { margin-top: 12px; }
         .openvote-poll__question { background-color: #e8f4f8; border: 1px solid #e2e4e7; border-radius: 6px; }
     </style>
 </head>
@@ -71,19 +73,9 @@ if ( ! empty( $poll_missing_fields ) ) {
         <h1 class="openvote-page-title"><?php esc_html_e( 'Trwające głosowania', 'openvote' ); ?></h1>
     </header>
 
-    <?php if ( ! $is_logged ) : ?>
-        <p class="openvote-poll__login-notice">
-            <?php
-            printf(
-                /* translators: %1$s: login link, %2$s: lost password link, %3$s: register link */
-                esc_html__( 'Aby głosować, %1$s. %2$s. %3$s', 'openvote' ),
-                '<a href="' . esc_url( wp_login_url( $vote_page_url ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'nie pamiętam hasła', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'zarejestruj się', 'openvote' ) . '</a>'
-            );
-            ?>
-        </p>
-    <?php elseif ( ! empty( $poll_missing_fields ) ) : ?>
+    <?php if ( ! $is_logged && empty( $polls_for_user ) ) : ?>
+        <p class="openvote-poll__no-polls"><?php esc_html_e( 'Brak głosowań w tym momencie.', 'openvote' ); ?></p>
+    <?php elseif ( $is_logged && ! empty( $poll_missing_fields ) ) : ?>
         <?php
         $context        = 'poll';
         $missing_fields = $poll_missing_fields;
@@ -93,7 +85,7 @@ if ( ! empty( $poll_missing_fields ) ) {
     <?php elseif ( empty( $polls_for_user ) ) : ?>
         <p class="openvote-poll__no-polls"><?php esc_html_e( 'Brak głosowań w tym momencie.', 'openvote' ); ?></p>
     <?php else : ?>
-        <div class="openvote-poll-block openvote-poll-wrapper" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>">
+        <div class="openvote-poll-block openvote-poll-wrapper"<?php echo $is_logged ? ' data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '"' : ''; ?>>
             <?php foreach ( $polls_for_user as $poll ) : ?>
                 <?php openvote_render_single_poll( $poll, $user_id ); ?>
             <?php endforeach; ?>

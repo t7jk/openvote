@@ -7,6 +7,35 @@ $title        = $is_edit ? $survey->title : '';
 $desc         = $is_edit ? $survey->description : '';
 $status       = $is_edit ? $survey->status : 'draft';
 $questions    = $is_edit ? Openvote_Survey::get_questions( (int) $survey->id ) : [];
+$edit_locked  = ! empty( $edit_locked );
+
+// A2: błąd walidacji + wcześniej wpisane dane (redirect po błędzie nie może gubić wpisanego tekstu).
+$form_error = get_transient( 'openvote_survey_admin_error' );
+if ( $form_error ) {
+    delete_transient( 'openvote_survey_admin_error' );
+}
+$draft_key  = 'openvote_survey_form_draft_' . get_current_user_id();
+$form_draft = get_transient( $draft_key );
+if ( is_array( $form_draft ) ) {
+    delete_transient( $draft_key );
+    $draft_for = (int) ( $form_draft['survey_id'] ?? 0 );
+    $cur_id    = $is_edit ? (int) $survey->id : 0;
+    if ( ! $is_read_only && $draft_for === $cur_id ) {
+        $title = (string) ( $form_draft['title'] ?? $title );
+        $desc  = (string) ( $form_draft['description'] ?? $desc );
+        if ( ! empty( $form_draft['questions'] ) && is_array( $form_draft['questions'] ) ) {
+            $questions = [];
+            foreach ( $form_draft['questions'] as $dq ) {
+                $questions[] = (object) [
+                    'body'          => (string) ( $dq['body'] ?? '' ),
+                    'field_type'    => (string) ( $dq['field_type'] ?? 'text_short' ),
+                    'max_chars'     => 100,
+                    'profile_field' => ! empty( $dq['hide_on_public'] ) ? '1' : '',
+                ];
+            }
+        }
+    }
+}
 
 // Data rozpoczęcia: zawsze „teraz" (wyszarzona).
 $now_ts              = current_time( 'timestamp' );
@@ -59,8 +88,16 @@ $page_title = $is_read_only
     </a>
     <hr class="wp-header-end" style="margin-top:8px;">
 
+    <?php if ( $form_error ) : ?>
+        <div class="notice notice-error" role="alert"><p><?php echo esc_html( $form_error ); ?></p></div>
+    <?php endif; ?>
+
     <?php if ( isset( $_GET['duplicated'] ) ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Utworzono kopię ankiety. Możesz ją teraz edytować.', 'openvote' ); ?></p></div>
+    <?php endif; ?>
+
+    <?php if ( $edit_locked ) : ?>
+        <div class="notice notice-warning" role="alert"><p><?php esc_html_e( 'Nie można edytować ankiety, która została rozpoczęta lub zakończona (zmiana pól usunęłaby zebrane zgłoszenia). Poniżej podgląd tylko do odczytu.', 'openvote' ); ?></p></div>
     <?php endif; ?>
 
     <form method="post" action="" id="openvote-survey-form">
@@ -162,14 +199,14 @@ $page_title = $is_read_only
 
         <!-- ── Przyciski zapisu ──────────────────────────────────── -->
         <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
+            <?php /* onclick (nie onmousedown): działa także z klawiatury (Enter/Spacja). Szkic jest pierwszy = domyślny przy Enter w polu tekstowym. */ ?>
             <button type="submit" class="button button-primary button-large"
-                    style="background:#b32d2e;border-color:#a02020;"
-                    onmousedown="var h=document.getElementById('openvote-survey-submit-action');if(h){h.value='start_now';}">
-                <?php esc_html_e( 'Wystartuj ankietę', 'openvote' ); ?>
-            </button>
-            <button type="submit" class="button button-secondary button-large"
-                    onmousedown="var h=document.getElementById('openvote-survey-submit-action');if(h){h.value='draft';}">
+                    onclick="var h=document.getElementById('openvote-survey-submit-action');if(h){h.value='draft';}">
                 <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
+            </button>
+            <button type="submit" class="button button-secondary button-large" id="openvote-survey-start-btn"
+                    onclick="var h=document.getElementById('openvote-survey-submit-action');if(!window.confirm(<?php echo esc_attr( wp_json_encode( __( 'Wystartować ankietę? Po starcie nie można edytować pól ani zmienić pytań.', 'openvote' ) ) ); ?>)){return false;}if(h){h.value='start_now';}">
+                <?php esc_html_e( 'Wystartuj ankietę', 'openvote' ); ?>
             </button>
         </div>
         <?php endif; ?>
@@ -183,8 +220,9 @@ $page_title = $is_read_only
  * @param array $labels Etykiety typów pól (field_type).
  */
 function openvote_render_survey_field_row( int $i, ?object $q, array $labels, bool $read_only ): void {
-    $body          = $q ? esc_attr( $q->body ) : '';
-    $field_type    = $q ? esc_attr( $q->field_type ) : 'text_short';
+    // Surowe wartości — escapowanie dopiero przy wyjściu (inaczej podwójne &amp;amp;).
+    $body          = $q ? (string) $q->body : '';
+    $field_type    = $q ? (string) $q->field_type : 'text_short';
     $max_chars     = $q ? (int) $q->max_chars : 100;
     $profile_field = $q && isset( $q->profile_field ) ? (string) $q->profile_field : '';
     $hide_on_public_checked = ( $profile_field !== '' );
@@ -207,10 +245,11 @@ function openvote_render_survey_field_row( int $i, ?object $q, array $labels, bo
             <input type="text"
                    name="survey_questions[<?php echo esc_attr( $i ); ?>][body]"
                    value="<?php echo esc_attr( $body ); ?>"
-                   placeholder="<?php esc_attr_e( 'Pytanie', 'openvote' ); ?>"
+                   placeholder="<?php esc_attr_e( 'Treść pola (np. Imię i nazwisko kandydata)', 'openvote' ); ?>"
                    maxlength="512"
                    style="width:100%;"
                    class="openvote-survey-field-body"
+                   aria-label="<?php echo esc_attr( sprintf( __( 'Treść pola %d', 'openvote' ), $i + 1 ) ); ?>"
                    <?php echo $disabled; ?>>
 
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#666;">
@@ -227,6 +266,7 @@ function openvote_render_survey_field_row( int $i, ?object $q, array $labels, bo
         <button type="button"
                 class="button openvote-remove-survey-field"
                 style="margin-top:4px;"
+                aria-label="<?php echo esc_attr( sprintf( __( 'Usuń pole %d', 'openvote' ), $i + 1 ) ); ?>"
                 title="<?php esc_attr_e( 'Usuń pole', 'openvote' ); ?>">✕</button>
         <?php endif; ?>
     </div>

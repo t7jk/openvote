@@ -102,13 +102,13 @@ class Openvote_Survey_Page {
         wp_enqueue_script(
             'openvote-survey-public',
             OPENVOTE_PLUGIN_URL . 'public/js/survey-public.js',
-            [],
+            [ 'openvote-identity' ],
             OPENVOTE_VERSION,
             true
         );
         wp_localize_script( 'openvote-survey-public', 'openvoteSurveyPublic', [
             'restUrl' => esc_url_raw( rest_url( 'openvote/v1' ) ),
-            'nonce'   => wp_create_nonce( 'wp_rest' ),
+            'nonce'   => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
             'loggedIn' => is_user_logged_in() ? 1 : 0,
             'i18n'    => [
                 'saving'     => __( 'Zapisywanie…', 'openvote' ),

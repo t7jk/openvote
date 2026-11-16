@@ -32,13 +32,13 @@ wp_add_inline_style( 'openvote-public', sprintf(
 wp_enqueue_script(
     'openvote-public',
     OPENVOTE_PLUGIN_URL . 'public/js/openvote-public.js',
-    [],
+    [ 'openvote-identity' ],
     OPENVOTE_VERSION,
     true
 );
 wp_localize_script( 'openvote-public', 'openvotePublic', [
     'restUrl' => esc_url_raw( rest_url( 'openvote/v1' ) ),
-    'nonce'   => wp_create_nonce( 'wp_rest' ),
+    'nonce'   => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
     'i18n'    => [
         'voteSuccess'      => __( 'Twój głos został zapisany. Dziękujemy!', 'openvote' ),
         'voteError'        => __( 'Wystąpił błąd. Spróbuj ponownie.', 'openvote' ),
@@ -47,19 +47,35 @@ wp_localize_script( 'openvote-public', 'openvotePublic', [
         'participation'    => __( 'Frekwencja', 'openvote' ),
         'totalEligible'    => __( 'Uprawnionych do głosowania', 'openvote' ),
         'totalVoters'      => __( 'Uczestniczyło w głosowaniu', 'openvote' ),
-        'totalAbsent'      => __( 'Nie uczestniczyło', 'openvote' ),
-        'inclAbsent'       => __( 'inc. brak głosu', 'openvote' ),
+        'totalAbsent'      => __( 'Nie głosowało', 'openvote' ),
+        'inclAbsent'       => __( 'wliczając osoby, które nie głosowały', 'openvote' ),
         'voterList'        => __( 'Głosujący (anonimowo):', 'openvote' ),
         'showVoters'       => __( 'Pokaż głosujących', 'openvote' ),
         'hideVoters'       => __( 'Ukryj głosujących', 'openvote' ),
-        'nonVoterList'     => __( 'Nieobecni (nie głosowali):', 'openvote' ),
-        'showNonVoters'    => __( 'Pokaż nieobecnych', 'openvote' ),
-        'hideNonVoters'    => __( 'Ukryj nieobecnych', 'openvote' ),
+        'nonVoterList'     => __( 'Osoby, które nie głosowały:', 'openvote' ),
+        'showNonVoters'    => __( 'Pokaż osoby, które nie głosowały', 'openvote' ),
+        'hideNonVoters'    => __( 'Ukryj osoby, które nie głosowały', 'openvote' ),
         'days'             => __( 'd', 'openvote' ),
         'hours'            => __( 'godz.', 'openvote' ),
         'minutes'          => __( 'min.', 'openvote' ),
         'seconds'          => __( 'sek.', 'openvote' ),
         'ended'            => __( 'Głosowanie zakończone', 'openvote' ),
+        'hintGuest'        => __( 'Aby oddać głos, najpierw zaloguj się lub potwierdź adres e-mail (ramka wyżej).', 'openvote' ),
+        'hintQ1'           => __( 'Zaznacz odpowiedź w pytaniu %s.', 'openvote' ),
+        'hintQn'           => __( 'Zaznacz odpowiedzi w pytaniach: %s.', 'openvote' ),
+        'hintReady'        => __( 'Wszystko gotowe. Naciśnij „Oddaj głos”.', 'openvote' ),
+        'saving'           => __( 'Zapisuję głos…', 'openvote' ),
+        'networkError'     => __( 'Brak połączenia. Sprawdź internet i spróbuj ponownie. Jeśli Twój głos został już zapisany, po odświeżeniu strony zobaczysz informację o tym.', 'openvote' ),
+        'sessionExpired'   => __( 'Sesja wygasła. Odśwież stronę (klawisz F5) i spróbuj ponownie.', 'openvote' ),
+        'badResponse'      => __( 'Serwer nie odpowiedział poprawnie. Odśwież stronę (klawisz F5). Jeśli Twój głos został zapisany, zobaczysz tam odpowiednią informację.', 'openvote' ),
+        'voteSuccessTitle' => __( 'Dziękujemy! Twój głos został zapisany.', 'openvote' ),
+        'voteSuccessNote'  => __( 'Możesz zamknąć tę stronę.', 'openvote' ),
+        'alreadyVoted'     => __( 'Już oddałeś głos w tym głosowaniu. Dziękujemy!', 'openvote' ),
+        'endedReload'      => __( 'Głosowanie zakończyło się. Odśwież stronę, aby zobaczyć wyniki.', 'openvote' ),
+        'mostVotes'        => __( 'najwięcej głosów', 'openvote' ),
+        'resultsFailed'    => __( 'Nie udało się pobrać wyników.', 'openvote' ),
+        'retry'            => __( 'Spróbuj ponownie', 'openvote' ),
+        'abstainedLabel'   => __( 'Wstrzymało się', 'openvote' ),
         'expand'           => __( 'Rozwiń', 'openvote' ),
         'collapse'         => __( 'Zwiń', 'openvote' ),
     ],
@@ -76,7 +92,26 @@ $polls_active = [];
 $polls_closed = [];
 
 $poll_missing_fields = [];
-if ( $is_logged ) {
+if ( ! $is_logged ) {
+    if ( 'active' === $active_tab ) {
+        // Gość widzi pytania; głosuje po zalogowaniu lub weryfikacji danych.
+        $polls_active = array_values( Openvote_Poll::get_active_polls() );
+    } else {
+        // Wyniki zakończonych głosowań są publiczne (tak samo jak w REST) — gość też je widzi.
+        global $wpdb;
+        $_ov_now = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
+        $_ov_ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}openvote_polls WHERE (status = 'closed' OR date_end < %s) ORDER BY date_end DESC",
+            $_ov_now
+        ) );
+        foreach ( array_map( 'absint', (array) $_ov_ids ) as $_ov_id ) {
+            $_ov_poll = Openvote_Poll::get( $_ov_id );
+            if ( $_ov_poll ) {
+                $polls_closed[] = $_ov_poll;
+            }
+        }
+    }
+} else {
     if ( 'active' === $active_tab ) {
         $all_active   = Openvote_Poll::get_active_polls();
         $polls_active = array_values( array_filter(
@@ -113,36 +148,22 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
 ?>
 <div class="openvote-vote-page-wrap">
 
-    <nav class="openvote-tabs" role="tablist" style="position:relative;">
+    <nav class="openvote-tabs" aria-label="<?php esc_attr_e( 'Głosowania', 'openvote' ); ?>" style="position:relative;">
         <a href="<?php echo esc_url( $tab_active_url ); ?>"
            class="openvote-tab<?php echo 'active' === $active_tab ? ' openvote-tab--active' : ''; ?>"
-           role="tab"
-           aria-selected="<?php echo 'active' === $active_tab ? 'true' : 'false'; ?>">
+           <?php echo 'active' === $active_tab ? 'aria-current="page"' : ''; ?>>
             <?php esc_html_e( 'Trwające głosowania', 'openvote' ); ?>
         </a>
         <a href="<?php echo esc_url( $tab_closed_url ); ?>"
            class="openvote-tab<?php echo 'closed' === $active_tab ? ' openvote-tab--active' : ''; ?>"
-           role="tab"
-           aria-selected="<?php echo 'closed' === $active_tab ? 'true' : 'false'; ?>">
+           <?php echo 'closed' === $active_tab ? 'aria-current="page"' : ''; ?>>
             <?php esc_html_e( 'Zakończone głosowania', 'openvote' ); ?>
         </a>
     </nav>
 
     <div class="openvote-tab-content">
 
-    <?php if ( ! $is_logged ) : ?>
-
-        <p class="openvote-poll__login-notice">
-            <?php             printf(
-                /* translators: %1$s: login link, %2$s: lost password link, %3$s: register link */
-                esc_html__( 'Aby głosować, %1$s. %2$s. %3$s', 'openvote' ),
-                '<a href="' . esc_url( wp_login_url( get_permalink() ?: $vote_page_url ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'nie pamiętam hasła', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'zarejestruj się', 'openvote' ) . '</a>'
-            ); ?>
-        </p>
-
-    <?php elseif ( 'active' === $active_tab ) : ?>
+    <?php if ( 'active' === $active_tab ) : ?>
 
         <?php if ( ! empty( $poll_missing_fields ) ) : ?>
             <?php
@@ -156,8 +177,7 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
                 <?php esc_html_e( 'Brak trwających głosowań w tym momencie.', 'openvote' ); ?>
             </p>
         <?php else : ?>
-            <div class="openvote-poll-wrapper"
-                 data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>">
+            <div class="openvote-poll-wrapper"<?php echo $is_logged ? ' data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '"' : ''; ?>>
                 <?php foreach ( $polls_active as $poll ) : ?>
                     <?php openvote_render_single_poll( $poll, $user_id ); ?>
                 <?php endforeach; ?>
@@ -168,9 +188,15 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
 
         <?php if ( empty( $polls_closed ) ) : ?>
             <p class="openvote-poll__no-polls">
-                <?php esc_html_e( 'Nie brałeś/aś udziału w żadnym zakończonym głosowaniu.', 'openvote' ); ?>
+                <?php esc_html_e( 'Nie ma jeszcze zakończonych głosowań.', 'openvote' ); ?>
             </p>
         <?php else : ?>
+            <?php if ( ! $is_logged ) : ?>
+            <p class="openvote-poll__login-notice">
+                <a class="openvote-identity__btn" href="<?php echo esc_url( wp_login_url( $vote_page_url ) ); ?>"><?php esc_html_e( 'Zaloguj się', 'openvote' ); ?></a>
+                <?php esc_html_e( 'aby zobaczyć, w których głosowaniach brałeś/aś udział.', 'openvote' ); ?>
+            </p>
+            <?php endif; ?>
             <?php foreach ( $polls_closed as $poll ) :
                 $poll_id   = (int) $poll->id;
                 $has_voted = Openvote_Vote::has_voted( $poll_id, $user_id );
@@ -194,12 +220,12 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
 
                 <div class="openvote-closed-poll-block__summary">
                     <span class="openvote-closed-poll-block__date-start" title="<?php esc_attr_e( 'Rozpoczęcie', 'openvote' ); ?>">
-                        <?php echo esc_html( substr( (string) ( $poll->date_start ?? '' ), 0, 10 ) ); ?>
+                        <?php echo esc_html( openvote_fmt_poll_date( $poll->date_start ?? '' ) ); ?>
                     </span>
                     <div class="openvote-closed-poll-block__summary-body">
                         <h3 class="openvote-closed-poll-block__summary-title"><?php echo esc_html( $poll->title ); ?></h3>
                         <span class="openvote-closed-poll-block__summary-date">
-                            <?php printf( esc_html__( 'Zakończono: %s', 'openvote' ), esc_html( substr( (string) ( $poll->date_end ?? '' ), 0, 10 ) ) ); ?>
+                            <?php printf( esc_html__( 'Zakończono: %s', 'openvote' ), esc_html( openvote_fmt_poll_date( $poll->date_end ?? '' ) ) ); ?>
                         </span>
                         <p class="openvote-closed-poll-block__summary-desc">
                             <?php echo esc_html( ! empty( $poll->description ) ? $poll->description : '—' ); ?>
@@ -213,11 +239,13 @@ $tab_closed_url = esc_url( add_query_arg( 'tab', 'closed', $base_url ) );
                 <div class="openvote-closed-poll-block__details" hidden>
 
                 <div class="openvote-closed-poll-block__topbar">
+                    <?php if ( $is_logged ) : ?>
                     <span class="openvote-closed-poll__status <?php echo $has_voted ? 'openvote-closed-poll__status--voted' : 'openvote-closed-poll__status--absent'; ?>">
-                        <?php echo $has_voted ? esc_html__( 'Głosowałeś/aś', 'openvote' ) : esc_html__( 'Nie głosowałeś/aś', 'openvote' ); ?>
+                        <?php echo $has_voted ? esc_html__( 'Oddano głos', 'openvote' ) : esc_html__( 'Nie oddano głosu', 'openvote' ); ?>
                     </span>
+                    <?php endif; ?>
                     <span class="openvote-closed-poll-block__date">
-                        <?php printf( esc_html__( 'Zakończono: %s', 'openvote' ), esc_html( substr( $poll->date_end, 0, 10 ) ) ); ?>
+                        <?php printf( esc_html__( 'Zakończono: %s', 'openvote' ), esc_html( openvote_fmt_poll_date( $poll->date_end ) ) ); ?>
                     </span>
                 </div>
 

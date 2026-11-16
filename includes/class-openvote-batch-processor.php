@@ -178,6 +178,68 @@ class Openvote_Batch_Processor {
      */
     public static function process_batch( string $job_id ): array|false {
         $job = get_transient( $job_id );
+        if ( false === $job ) {
+            return false;
+        }
+
+        // Blokada per cel wysyłki: panel admina (AJAX) i cron (heartbeat) nie mogą równolegle
+        // pobierać tych samych wierszy 'pending' z kolejki — inaczej odbiorca dostałby e-mail dwukrotnie.
+        $lock = self::send_lock_name( $job );
+        if ( $lock !== '' ) {
+            if ( ! self::acquire_send_lock( $lock ) ) {
+                return $job; // inny proces właśnie wysyła tę partię — klient spróbuje ponownie.
+            }
+            try {
+                return self::process_batch_unlocked( $job_id );
+            } finally {
+                self::release_send_lock( $lock );
+            }
+        }
+        return self::process_batch_unlocked( $job_id );
+    }
+
+    private static function send_lock_name( array $job ): string {
+        $type = $job['type'] ?? '';
+        if ( 'send_invitations' === $type && ! empty( $job['params']['poll_id'] ) ) {
+            return 'openvote_sendlock_p' . absint( $job['params']['poll_id'] );
+        }
+        if ( 'send_mass_message' === $type && ! empty( $job['params']['message_id'] ) ) {
+            return 'openvote_sendlock_m' . absint( $job['params']['message_id'] );
+        }
+        return '';
+    }
+
+    private static function acquire_send_lock( string $name ): bool {
+        global $wpdb;
+        $ins = $wpdb->query( $wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')",
+            $name,
+            (string) time()
+        ) );
+        if ( $ins ) {
+            return true;
+        }
+        // Blokada porzucona (np. przerwany proces) — przejmij po 5 minutach.
+        $ts = (int) $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+        if ( $ts > 0 && ( time() - $ts ) > 300 ) {
+            $upd = $wpdb->query( $wpdb->prepare(
+                "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+                (string) time(),
+                $name,
+                (string) $ts
+            ) );
+            return (bool) $upd;
+        }
+        return false;
+    }
+
+    private static function release_send_lock( string $name ): void {
+        global $wpdb;
+        $wpdb->delete( $wpdb->options, [ 'option_name' => $name ], [ '%s' ] );
+    }
+
+    private static function process_batch_unlocked( string $job_id ): array|false {
+        $job = get_transient( $job_id );
 
         if ( false === $job ) {
             return false;

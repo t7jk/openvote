@@ -13,11 +13,11 @@ $page_num = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
 if ( isset( $survey ) && $survey ) {
     // ── Widok pojedynczej ankiety ────────────────────────────────────────
     $surveys_to_show = [ $survey ];
-    $page_title      = sprintf( __( 'Odpowiedzi: %s', 'openvote' ), $survey->title );
+    $page_title      = sprintf( __( 'Zgłoszenia: %s', 'openvote' ), $survey->title );
 } else {
     // ── Widok zbiorczy — wszystkie zamknięte ankiety ─────────────────────
     $surveys_to_show = Openvote_Survey::get_all( [ 'status' => 'closed', 'orderby' => 'title', 'order' => 'ASC' ] );
-    $page_title      = __( 'Odpowiedzi — zakończone ankiety', 'openvote' );
+    $page_title      = __( 'Zgłoszenia — zakończone ankiety', 'openvote' );
 }
 ?>
 <div class="wrap">
@@ -53,7 +53,7 @@ if ( isset( $survey ) && $survey ) {
                 <?php echo esc_html( $s->title ); ?>
                 <span style="font-size:.75em;font-weight:400;color:#666;margin-left:8px;">
                     <?php printf(
-                        esc_html__( '%d odpowiedzi (gotowe)', 'openvote' ),
+                        esc_html__( '%d zgłoszeń', 'openvote' ),
                         $total
                     ); ?>
                 </span>
@@ -65,7 +65,7 @@ if ( isset( $survey ) && $survey ) {
             <?php endif; ?>
 
             <?php if ( empty( $responses ) ) : ?>
-                <p style="padding:12px 16px;color:#888;"><?php esc_html_e( 'Brak gotowych odpowiedzi.', 'openvote' ); ?></p>
+                <p style="padding:12px 16px;color:#888;"><?php esc_html_e( 'Brak zgłoszeń.', 'openvote' ); ?></p>
             <?php else : ?>
 
                 <?php foreach ( $responses as $resp ) : ?>
@@ -86,7 +86,7 @@ if ( isset( $survey ) && $survey ) {
                                 <span style="color:#555;">✉ <?php echo esc_html( $resp->user_email ); ?></span>
                             <?php endif; ?>
                             <span style="margin-left:auto;color:#999;font-size:.85em;">
-                                <?php echo esc_html( $resp->updated_at ); ?>
+                                <?php echo esc_html( Openvote_Poll::format_dt( $resp->updated_at ) ); ?>
                             </span>
                             <?php
                             $spam_status = $resp->spam_status ?? 'pending';

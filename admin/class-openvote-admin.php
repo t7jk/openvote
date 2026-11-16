@@ -41,8 +41,8 @@ class Openvote_Admin {
 
         add_submenu_page(
             'openvote',
-            __( 'Komunikacja', 'openvote' ),
-            __( 'Komunikacja', 'openvote' ),
+            __( 'Wysyłka', 'openvote' ),
+            __( 'Wysyłka', 'openvote' ),
             'read',
             'openvote-communication',
             [ $this, 'render_communication_page' ]
@@ -209,7 +209,7 @@ class Openvote_Admin {
             return;
         }
         if ( ! current_user_can( self::CAP_MGR ) ) {
-            return;
+            wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ), 403 );
         }
 
         global $wpdb;
@@ -263,16 +263,26 @@ class Openvote_Admin {
                 $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
             } else {
                 $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_id ) );
-                $wpdb->query(
-                    $wpdb->prepare(
-                        "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
-                        $group_id,
-                        $user_id,
-                        current_time( 'mysql' )
-                    )
-                );
-                $message = __( 'Członek dodany.', 'openvote' );
-                if ( $group_row ) {
+                if ( ! $group_row ) {
+                    $error = __( 'Nie znaleziono grupy.', 'openvote' );
+                } elseif ( ! get_userdata( $user_id ) ) {
+                    $error = __( 'Nie znaleziono użytkownika o podanym ID.', 'openvote' );
+                } else {
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)",
+                            $group_id,
+                            $user_id,
+                            current_time( 'mysql' )
+                        )
+                    );
+                    if ( $wpdb->rows_affected ) {
+                        $message = __( 'Członek dodany.', 'openvote' );
+                    } else {
+                        $error = __( 'Ten użytkownik już jest w grupie.', 'openvote' );
+                    }
+                }
+                if ( $message && $group_row ) {
                     openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'dodał %s do %s', 'openvote' ), openvote_get_user_nickname( $user_id ), $group_row->name ) );
                 }
             }
@@ -327,6 +337,9 @@ class Openvote_Admin {
                         openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'dodał %s do %s', 'openvote' ), openvote_get_user_nickname( $user_id ), $group_names_str ) );
                     }
                 }
+                if ( 0 === $added ) {
+                    $message = __( 'Użytkownik już należy do wybranych grup.', 'openvote' );
+                }
                 if ( count( $group_ids ) === 1 ) {
                     $user = get_userdata( $user_id );
                     if ( $user instanceof WP_User ) {
@@ -347,6 +360,25 @@ class Openvote_Admin {
                     }
                 }
             }
+        } elseif ( 'import_csv' === $action ) {
+            $group_id  = absint( $_POST['group_id'] ?? 0 );
+            $group_row = $group_id ? $wpdb->get_row( $wpdb->prepare( "SELECT id, name FROM {$groups_table} WHERE id = %d", $group_id ) ) : null;
+            $file      = $_FILES['openvote_csv_file'] ?? null;
+            if ( ! $group_row ) {
+                $error = __( 'Wybierz grupę.', 'openvote' );
+            } elseif ( ! is_array( $file ) || ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) !== UPLOAD_ERR_OK || ! is_uploaded_file( $file['tmp_name'] ) ) {
+                $error = __( 'Nie udało się wgrać pliku.', 'openvote' );
+            } elseif ( (int) $file['size'] > 2 * MB_IN_BYTES ) {
+                $error = __( 'Plik jest za duży (maksymalnie 2 MB).', 'openvote' );
+            } elseif ( ! in_array( strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) ), [ 'csv', 'txt' ], true ) ) {
+                $error = __( 'Dozwolone są tylko pliki .csv i .txt.', 'openvote' );
+            } else {
+                $content = (string) file_get_contents( $file['tmp_name'] );
+                $report  = self::import_group_members_from_csv( $content, (int) $group_row->id, (string) $group_row->name );
+                set_transient( 'openvote_groups_csv_report_' . get_current_user_id(), $report, 300 );
+                $message = __( 'Zakończono import członków z pliku CSV.', 'openvote' );
+                openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'zaimportował z CSV do %1$s: dodano %2$d', 'openvote' ), $group_row->name, $report['added'] ) );
+            }
         }
 
         if ( $message || $error ) {
@@ -356,9 +388,179 @@ class Openvote_Admin {
             if ( $error ) {
                 set_transient( 'openvote_groups_error', $error, 30 );
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-groups', 'updated' => '1' ], admin_url( 'admin.php' ) ) );
+            // Zakładka docelowa po akcji (fragment #tab-… obsługuje openvote-settings-tabs.js).
+            $groups_tab_map = [
+                'add'                => 'add-group',
+                'delete'             => 'list',
+                'add_member'         => 'list',
+                'remove_member'      => 'list',
+                'add_user_to_groups' => 'members',
+                'import_csv'         => 'csv',
+            ];
+            $groups_tab = $groups_tab_map[ $action ] ?? 'list';
+            $redirect_args = [ 'page' => 'openvote-groups', 'updated' => '1' ];
+            if ( in_array( $action, [ 'add_member', 'remove_member' ], true ) && ! empty( $_POST['group_id'] ) ) {
+                // Po dodaniu/usunięciu członka wracamy do widoku członków tej grupy.
+                $redirect_args['action']   = 'members';
+                $redirect_args['group_id'] = absint( $_POST['group_id'] );
+            }
+            wp_safe_redirect( add_query_arg( $redirect_args, admin_url( 'admin.php' ) ) . '#tab-' . $groups_tab );
             exit;
         }
+    }
+
+
+    /**
+     * Parsuje CSV (adresy e-mail) i dodaje istniejących użytkowników do grupy. Nie tworzy kont.
+     *
+     * @return array{total:int,added:int,rejected:string[],existing:int,invalid:int}
+     */
+    private static function import_group_members_from_csv( string $content, int $group_id, string $group_name ): array {
+        global $wpdb;
+        $gm_table = $wpdb->prefix . 'openvote_group_members';
+        $content  = preg_replace( '/^\xEF\xBB\xBF/', '', $content );
+        if ( ! mb_check_encoding( $content, 'UTF-8' ) ) {
+            $conv    = function_exists( 'mb_convert_encoding' ) ? @mb_convert_encoding( $content, 'UTF-8', 'Windows-1250' ) : false;
+            $content = is_string( $conv ) ? $conv : mb_convert_encoding( $content, 'UTF-8', 'ISO-8859-1' );
+        }
+        $content = str_replace( [ "\r\n", "\r" ], "\n", $content );
+        $lines   = array_values( array_filter( explode( "\n", $content ), static fn( $l ) => trim( $l ) !== '' ) );
+
+        // Wykryj separator po pierwszych liniach.
+        $delim = ',';
+        $best  = -1;
+        foreach ( [ ',', ';', "\t" ] as $d ) {
+            $cnt = 0;
+            foreach ( array_slice( $lines, 0, 5 ) as $l ) {
+                $cnt += substr_count( $l, $d );
+            }
+            if ( $cnt > $best ) {
+                $best  = $cnt;
+                $delim = $d;
+            }
+        }
+        $rows = [];
+        foreach ( $lines as $l ) {
+            $rows[] = str_getcsv( $l, $delim, '"', '' );
+        }
+
+        // Kolumna e-mail: nagłówek lub pierwsza kolumna z poprawnym adresem.
+        $col      = null;
+        $skip_hdr = false;
+        if ( $rows ) {
+            foreach ( $rows[0] as $i => $cell ) {
+                $h = strtolower( trim( (string) $cell ) );
+                if ( in_array( $h, [ 'email', 'e-mail', 'mail', 'adres e-mail', 'adres email', 'adres e-mail:' ], true ) ) {
+                    $col      = $i;
+                    $skip_hdr = true;
+                    break;
+                }
+            }
+        }
+        $seen    = [];
+        $order   = [];
+        $invalid = 0;
+        foreach ( array_slice( $rows, $skip_hdr ? 1 : 0 ) as $row ) {
+            $cand = null;
+            if ( null !== $col ) {
+                $cand = trim( (string) ( $row[ $col ] ?? '' ) );
+                if ( '' === $cand ) {
+                    continue;
+                }
+            } else {
+                foreach ( $row as $cell ) {
+                    if ( is_email( trim( (string) $cell ) ) ) {
+                        $cand = trim( (string) $cell );
+                        break;
+                    }
+                }
+                if ( null === $cand ) {
+                    // Wiersz bez poprawnego e-maila: licz jako nieprawidłowy, jeśli zawiera "@".
+                    if ( strpos( implode( ' ', $row ), '@' ) !== false ) {
+                        $key = 'bad:' . strtolower( trim( implode( ' ', $row ) ) );
+                        if ( ! isset( $seen[ $key ] ) ) {
+                            $seen[ $key ] = true;
+                            ++$invalid;
+                        }
+                    }
+                    continue;
+                }
+            }
+            $key = strtolower( $cand );
+            if ( isset( $seen[ $key ] ) ) {
+                continue;
+            }
+            $seen[ $key ] = true;
+            if ( ! is_email( $cand ) ) {
+                ++$invalid;
+                continue;
+            }
+            $order[] = $key;
+        }
+
+        // Mapowanie e-mail → ID użytkownika (zgodnie z mapą pól, w paczkach).
+        $actual = Openvote_Field_Map::get_field( 'email' );
+        if ( Openvote_Field_Map::NOT_SET_KEY === $actual ) {
+            $actual = 'user_email';
+        }
+        $map = [];
+        foreach ( array_chunk( $order, 500 ) as $chunk ) {
+            $ph = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
+            if ( 'user_email' === $actual ) {
+                $res = $wpdb->get_results( $wpdb->prepare( "SELECT ID AS uid, LOWER(user_email) AS em FROM {$wpdb->users} WHERE LOWER(user_email) IN ($ph)", ...$chunk ) );
+            } elseif ( Openvote_Field_Map::is_core_field( $actual ) ) {
+                $col_sql = esc_sql( $actual );
+                $res     = $wpdb->get_results( $wpdb->prepare( "SELECT ID AS uid, LOWER(`{$col_sql}`) AS em FROM {$wpdb->users} WHERE LOWER(`{$col_sql}`) IN ($ph)", ...$chunk ) );
+            } else {
+                $res = $wpdb->get_results( $wpdb->prepare( "SELECT user_id AS uid, LOWER(meta_value) AS em FROM {$wpdb->usermeta} WHERE meta_key = %s AND LOWER(meta_value) IN ($ph)", $actual, ...$chunk ) );
+            }
+            foreach ( (array) $res as $r ) {
+                $map[ $r->em ] = (int) $r->uid;
+            }
+        }
+
+        $existing_ids = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$gm_table} WHERE group_id = %d", $group_id ) ) );
+        $existing_ids = array_flip( $existing_ids );
+        $added        = 0;
+        $already      = 0;
+        $rejected     = [];
+        $now          = current_time( 'mysql' );
+        foreach ( $order as $em ) {
+            if ( ! isset( $map[ $em ] ) ) {
+                $rejected[] = $em;
+                continue;
+            }
+            $uid = $map[ $em ];
+            if ( isset( $existing_ids[ $uid ] ) ) {
+                ++$already;
+                continue;
+            }
+            $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'manual', %s)", $group_id, $uid, $now ) );
+            if ( $wpdb->rows_affected ) {
+                ++$added;
+                $existing_ids[ $uid ] = true;
+                // Jak przy ręcznym dodaniu do jednej grupy: uzupełnij puste miasto nazwą grupy.
+                $user = get_userdata( $uid );
+                if ( $user instanceof WP_User && '' === trim( Openvote_Field_Map::get_user_value( $user, 'city' ) ) && '' !== $group_name ) {
+                    $city_key = Openvote_Field_Map::get_field( 'city' );
+                    if ( ! Openvote_Field_Map::is_core_field( $city_key ) ) {
+                        update_user_meta( $uid, $city_key, $group_name );
+                    } else {
+                        wp_update_user( [ 'ID' => $uid, $city_key => $group_name ] );
+                    }
+                }
+            } else {
+                ++$already;
+            }
+        }
+        return [
+            'total'    => count( $order ) + $invalid,
+            'added'    => $added,
+            'rejected' => $rejected,
+            'existing' => $already,
+            'invalid'  => $invalid,
+            'group'    => $group_name,
+        ];
     }
 
 
@@ -385,6 +587,9 @@ class Openvote_Admin {
         $poll = Openvote_Poll::get( $poll_id );
         if ( ! $poll ) {
             wp_die( esc_html__( 'Głosowanie nie istnieje.', 'openvote' ) );
+        }
+        if ( ! Openvote_Poll::current_user_can_access( $poll ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego głosowania.', 'openvote' ), '', [ 'response' => 403 ] );
         }
         $results         = Openvote_Vote::get_results( $poll_id );
         $voters          = Openvote_Vote::get_voters_admin( $poll_id, 0, 0 );
@@ -418,7 +623,7 @@ class Openvote_Admin {
     }
 
     /**
-     * Akcje GET (duplikat, zakończ, uruchom, usuń) — wykonywane w admin_init,
+     * Akcje GET (duplikat, zakończ, usuń) — wykonywane w admin_init,
      * zanim cokolwiek zostanie wysłane, żeby przekierowanie działało.
      */
     public function handle_openvote_get_actions(): void {
@@ -431,6 +636,9 @@ class Openvote_Admin {
 
         if ( 'edit' === $action && $poll_id ) {
             $poll = Openvote_Poll::get( $poll_id );
+            if ( $poll && ! Openvote_Poll::current_user_can_access( $poll ) ) {
+                wp_die( esc_html__( 'Brak uprawnień do tego głosowania.', 'openvote' ), '', [ 'response' => 403 ] );
+            }
             if ( $poll && 'draft' !== $poll->status ) {
                 wp_safe_redirect( add_query_arg( 'edit_locked', 1, admin_url( 'admin.php?page=openvote' ) ) );
                 exit;
@@ -438,23 +646,26 @@ class Openvote_Admin {
             return;
         }
 
-        if ( ! $poll_id || ! in_array( $action, [ 'delete', 'end', 'start', 'duplicate' ], true ) ) {
+        if ( ! $poll_id || ! in_array( $action, [ 'delete', 'end', 'duplicate' ], true ) ) {
             return;
         }
 
         if ( 'delete' === $action ) {
-            if ( ! current_user_can( 'manage_options' ) ) {
-                return;
-            }
             check_admin_referer( 'openvote_delete_poll_' . $poll_id );
-            $poll = Openvote_Poll::get( $poll_id );
-            $title = $poll && isset( $poll->title ) ? $poll->title : '';
-            Openvote_Poll::delete( $poll_id );
-            if ( $title !== '' ) {
-                openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'usunął głosowanie %s', 'openvote' ), $title ) );
+            $res = Openvote_Admin_Polls::delete_checked( $poll_id );
+            if ( is_wp_error( $res ) ) {
+                set_transient( 'openvote_admin_error', $res->get_error_message(), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote' ) );
+                exit;
             }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote&deleted=1' ) );
             exit;
+        }
+
+        // Pozostałe akcje (zakończ / start / duplikuj): koordynator ograniczony do własnych grup nie rusza cudzych głosowań.
+        $guard_poll = Openvote_Poll::get( $poll_id );
+        if ( $guard_poll && ! Openvote_Poll::current_user_can_access( $guard_poll ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tego głosowania.', 'openvote' ), '', [ 'response' => 403 ] );
         }
 
         if ( 'end' === $action && ( current_user_can( self::CAP ) || self::user_can_access_coordinators() ) ) {
@@ -474,26 +685,6 @@ class Openvote_Admin {
                     openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył głosowanie %s', 'openvote' ), $title ) );
                 }
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote&poll_ended=1' ) );
-                exit;
-            }
-        }
-
-        if ( 'start' === $action && ( current_user_can( self::CAP ) || self::user_can_access_coordinators() ) ) {
-            check_admin_referer( 'openvote_start_poll_' . $poll_id );
-            $poll = Openvote_Poll::get( $poll_id );
-            if ( $poll && 'draft' === $poll->status ) {
-                $now      = current_time( 'Y-m-d H:i:s' );
-                $date_end = ( $poll->date_end && $poll->date_end >= $now ) ? $poll->date_end : $now;
-                Openvote_Poll::update( $poll_id, [
-                    'status'     => 'open',
-                    'date_start' => $now,
-                    'date_end'   => $date_end,
-                ] );
-                $title = isset( $poll->title ) ? $poll->title : '';
-                if ( $title !== '' ) {
-                    openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'wystartował głosowanie %s', 'openvote' ), $title ) );
-                }
-                wp_safe_redirect( add_query_arg( 'started', 1, admin_url( 'admin.php?page=openvote' ) ) );
                 exit;
             }
         }
@@ -625,7 +816,7 @@ class Openvote_Admin {
         if ( $message_id && 'edit' === $action && openvote_user_can_access_screen( get_current_user_id(), 'openvote-communication' ) ) {
             $message = Openvote_Message::get( $message_id );
             if ( $message && ! empty( $message->sent_at ) ) {
-                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=preview&message_id=' . $message_id ) . '#openvote-communication-form' );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=preview&message_id=' . $message_id ) . '#tab-form' );
                 exit;
             }
         }
@@ -642,11 +833,21 @@ class Openvote_Admin {
             check_admin_referer( 'openvote_delete_message_' . $message_id );
             $message = Openvote_Message::get( $message_id );
             $title   = $message && isset( $message->title ) ? $message->title : '';
+            // Nie usuwamy wiadomości w trakcie wysyłki (są jeszcze oczekujące wiadomości w kolejce).
+            global $wpdb;
+            $pending_q = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}openvote_message_queue WHERE message_id = %d AND status = 'pending'",
+                $message_id
+            ) );
+            if ( $message && empty( $message->sent_at ) && $pending_q > 0 ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&delete_blocked=1' ) . '#tab-list' );
+                exit;
+            }
             Openvote_Message::delete( $message_id );
             if ( function_exists( 'openvote_messages_audit_log_append' ) && $title !== '' ) {
                 openvote_messages_audit_log_append( get_current_user_id(), sprintf( __( 'usunął wysyłkę %s', 'openvote' ), $title ) );
             }
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&deleted=1' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&deleted=1' ) . '#tab-list' );
             exit;
         }
 
@@ -659,10 +860,10 @@ class Openvote_Admin {
                 if ( function_exists( 'openvote_messages_audit_log_append' ) && $title !== '' ) {
                     openvote_messages_audit_log_append( get_current_user_id(), sprintf( __( 'zduplikował wysyłkę %s', 'openvote' ), $title ) );
                 }
-                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&duplicated=1' ) . '#openvote-communication-form' );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&duplicated=1' ) . '#tab-form' );
                 exit;
             }
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&duplicate_error=1' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&duplicate_error=1' ) . '#tab-list' );
             exit;
         }
     }
@@ -700,7 +901,25 @@ class Openvote_Admin {
 
         if ( '' === $title ) {
             set_transient( $transient_key, $save_fallback, 120 );
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) . '#tab-form' );
+            exit;
+        }
+
+        // Koordynator ograniczony do własnych grup: odrzucamy cudze grupy (nie tylko w UI).
+        if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
+            $allowed_ids = array_map( 'intval', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+            if ( function_exists( 'openvote_create_test_group_enabled' ) && openvote_create_test_group_enabled() ) {
+                $tg = openvote_get_test_group_id();
+                if ( $tg ) {
+                    $allowed_ids[] = (int) $tg;
+                }
+            }
+            $target_groups = array_values( array_intersect( $target_groups, $allowed_ids ) );
+            $save_fallback['target_groups'] = $target_groups;
+        }
+        if ( empty( $target_groups ) ) {
+            set_transient( $transient_key, $save_fallback, 120 );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=2' ) . '#tab-form' );
             exit;
         }
 
@@ -708,7 +927,7 @@ class Openvote_Admin {
             $message = Openvote_Message::get( $message_id );
             if ( ! $message || $message->sent_at ) {
                 set_transient( $transient_key, $save_fallback, 120 );
-                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) . '#tab-form' );
                 exit;
             }
             $ok = Openvote_Message::update( $message_id, [
@@ -717,10 +936,10 @@ class Openvote_Admin {
                 'target_groups' => $target_groups,
             ] );
             if ( $ok ) {
-                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $message_id . '&saved=1' ) . '#openvote-communication-form' );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $message_id . '&saved=1' ) . '#tab-form' );
             } else {
                 set_transient( $transient_key, $save_fallback, 120 );
-                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) . '#tab-form' );
             }
             exit;
         }
@@ -732,10 +951,10 @@ class Openvote_Admin {
         ] );
 
         if ( false !== $new_id ) {
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&saved=1' ) . '#openvote-communication-form' );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&action=edit&message_id=' . $new_id . '&saved=1' ) . '#tab-form' );
         } else {
             set_transient( $transient_key, $save_fallback, 120 );
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=1' ) . '#tab-form' );
         }
         exit;
     }
@@ -758,6 +977,13 @@ class Openvote_Admin {
 
         if ( 'edit' === $action && $survey_id ) {
             $survey = Openvote_Survey::get( $survey_id );
+            if ( $survey && 'draft' !== $survey->status ) {
+                // Ankieta rozpoczęta/zakończona: pola są zablokowane — pokazujemy podgląd (tylko do odczytu).
+                $is_read_only = true;
+                $edit_locked  = true;
+                include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
+                return;
+            }
             if ( $survey ) {
                 $is_read_only = false;
                 include OPENVOTE_PLUGIN_DIR . 'admin/partials/survey-form.php';
@@ -822,6 +1048,13 @@ class Openvote_Admin {
             return;
         }
 
+        if ( $poll_id && in_array( $action, [ 'edit', 'view', 'results', 'invitations' ], true ) ) {
+            $guard_poll = Openvote_Poll::get( $poll_id );
+            if ( $guard_poll && ! Openvote_Poll::current_user_can_access( $guard_poll ) ) {
+                wp_die( esc_html__( 'Brak uprawnień do tego głosowania.', 'openvote' ), '', [ 'response' => 403 ] );
+            }
+        }
+
         if ( 'edit' === $action && $poll_id ) {
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll && 'draft' === $poll->status ) {
@@ -882,9 +1115,24 @@ class Openvote_Admin {
                 </p></div>
             <?php endif; ?>
 
+            <?php if ( ! empty( $_GET['bulk_skipped'] ) ) : ?>
+                <?php $skipped_n = absint( $_GET['bulk_skipped'] ); ?>
+                <div class="notice notice-warning is-dismissible"><p>
+                    <?php echo esc_html( sprintf( _n( 'Pominięto %d pozycję (trwające głosowanie lub brak uprawnień). Trwające głosowanie trzeba najpierw zakończyć.', 'Pominięto %d pozycji (trwające głosowania lub brak uprawnień). Trwające głosowania trzeba najpierw zakończyć.', $skipped_n, 'openvote' ), $skipped_n ) ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php
+            $list_err = get_transient( 'openvote_admin_error' );
+            if ( $list_err ) {
+                delete_transient( 'openvote_admin_error' );
+                echo '<div class="notice notice-error is-dismissible" role="alert"><p>' . esc_html( $list_err ) . '</p></div>';
+            }
+            ?>
+
             <?php if ( isset( $_GET['started'] ) ) : ?>
                 <div class="notice notice-success is-dismissible"><p>
-                    <?php esc_html_e( 'Głosowanie zostało uruchomione.', 'openvote' ); ?>
+                    <?php esc_html_e( 'Głosowanie wystartowało.', 'openvote' ); ?>
                 </p></div>
             <?php endif; ?>
 
@@ -913,6 +1161,12 @@ class Openvote_Admin {
                 </p></div>
             <?php endif; ?>
 
+            <?php if ( isset( $_GET['draft_incomplete'] ) ) : ?>
+                <div class="notice notice-warning is-dismissible"><p>
+                    <?php esc_html_e( 'Szkic zapisany, ale niektóre pytania mają mniej niż 3 odpowiedzi. Uzupełnij je przed startem (min. 2 własne odpowiedzi + „Wstrzymuję się”).', 'openvote' ); ?>
+                </p></div>
+            <?php endif; ?>
+
             <?php if ( isset( $_GET['poll_ended'] ) ) : ?>
                 <div class="notice notice-success is-dismissible"><p>
                     <?php esc_html_e( 'Głosowanie zostało zakończone.', 'openvote' ); ?>
@@ -925,33 +1179,46 @@ class Openvote_Admin {
                 </p></div>
             <?php endif; ?>
 
-            <?php if ( isset( $_GET['duplicated'] ) ) : ?>
-                <?php
-                $edit_poll_id = isset( $_GET['edit_poll_id'] ) ? absint( $_GET['edit_poll_id'] ) : 0;
-                $edit_url     = $edit_poll_id ? admin_url( 'admin.php?page=openvote&action=edit&poll_id=' . $edit_poll_id . '&duplicated=1' ) : '';
-                ?>
-                <div class="notice notice-success is-dismissible"><p>
-                    <?php esc_html_e( 'Utworzono kopię głosowania. Znajdziesz ją na liście jako szkic.', 'openvote' ); ?>
-                    <?php if ( $edit_url ) : ?>
-                        <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-primary" style="margin-left:10px;">
-                            <?php esc_html_e( 'Edytuj skopiowane głosowanie', 'openvote' ); ?>
-                        </a>
-                    <?php endif; ?>
-                </p></div>
-            <?php endif; ?>
-
             <?php if ( isset( $_GET['duplicate_error'] ) ) : ?>
                 <div class="notice notice-error is-dismissible"><p>
                     <?php esc_html_e( 'Nie udało się skopiować głosowania. Upewnij się, że głosowanie ma pytania.', 'openvote' ); ?>
                 </p></div>
             <?php endif; ?>
 
-            <form method="post">
+        <?php $poll_vote_url = function_exists( 'openvote_get_vote_page_url' ) ? openvote_get_vote_page_url() : home_url( '/glosuj/' ); ?>
+        <div class="notice notice-info inline openvote-poll-list-info" id="openvote-poll-list-info" style="max-width:560px;margin-bottom:16px;padding:8px 32px 8px 12px;position:relative;overflow-wrap:anywhere;">
+            <button type="button" class="openvote-poll-list-info-dismiss" aria-label="<?php esc_attr_e( 'Zamknij', 'openvote' ); ?>" style="position:absolute;top:6px;right:8px;background:none;border:none;padding:0;cursor:pointer;font-size:18px;line-height:1;color:#2271b1;opacity:.8;">&times;</button>
+            <p style="margin:0;font-size:13px;">
+                <?php esc_html_e( 'Głosowania:', 'openvote' ); ?>
+                <a href="<?php echo esc_url( $poll_vote_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $poll_vote_url ); ?></a>
+            </p>
+        </div>
+        <script>
+        (function(){
+            var box = document.getElementById('openvote-poll-list-info');
+            var btn = box && box.querySelector('.openvote-poll-list-info-dismiss');
+            var key = 'openvote_poll_list_info_closed';
+            if ( box && btn ) {
+                if ( sessionStorage.getItem(key) === '1' ) { box.style.display = 'none'; }
+                btn.addEventListener('click', function() {
+                    box.style.display = 'none';
+                    try { sessionStorage.setItem(key, '1'); } catch (e) {}
+                });
+            }
+        })();
+        </script>
+
+            <?php /* Wyszukiwarka jako GET: zachowuje filtr statusu, a linki sortowania/paginacji zawierają frazę. */ ?>
+            <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
                 <input type="hidden" name="page" value="openvote">
-                <?php
-                $list_table->search_box( __( 'Szukaj głosowania', 'openvote' ), 'openvote-poll' );
-                $list_table->display();
-                ?>
+                <?php if ( ! empty( $_GET['poll_status'] ) ) : ?>
+                    <input type="hidden" name="poll_status" value="<?php echo esc_attr( sanitize_text_field( $_GET['poll_status'] ) ); ?>">
+                <?php endif; ?>
+                <?php $list_table->search_box( __( 'Szukaj głosowania', 'openvote' ), 'openvote-poll' ); ?>
+            </form>
+            <form method="post" action="<?php echo esc_url( add_query_arg( null, null ) ); ?>">
+                <input type="hidden" name="page" value="openvote">
+                <?php $list_table->display(); ?>
             </form>
 
             <?php
@@ -1179,6 +1446,26 @@ class Openvote_Admin {
             OPENVOTE_VERSION,
             true
         );
+        wp_localize_script( 'openvote-admin', 'openvoteAdminI18n', [
+            'maxQuestions'   => __( 'Maksymalnie %d pytań.', 'openvote' ),
+            'maxAnswers'     => __( 'Maksymalnie %d odpowiedzi na pytanie.', 'openvote' ),
+            'minAnswers'     => __( 'Pytanie musi mieć co najmniej dwie własne odpowiedzi plus „Wstrzymuję się”.', 'openvote' ),
+            'questionText'   => __( 'Treść pytania', 'openvote' ),
+            'answerText'     => __( 'Treść odpowiedzi', 'openvote' ),
+            'addAnswer'      => __( 'Dodaj odpowiedź', 'openvote' ),
+            'removeQuestion' => __( 'Usuń pytanie', 'openvote' ),
+            'removeAnswer'   => __( 'Usuń odpowiedź', 'openvote' ),
+            'abstainAuto'    => __( '(wstrzymanie – auto)', 'openvote' ),
+            'loadMore'       => __( 'Załaduj więcej (pokazano %1$d z %2$d)', 'openvote' ),
+            'missPrefix'     => __( 'Aby wystartować, uzupełnij: ', 'openvote' ),
+            'missTitle'      => __( 'tytuł', 'openvote' ),
+            'missDuration'   => __( 'czas trwania', 'openvote' ),
+            'missGroup'      => __( 'grupę docelową', 'openvote' ),
+            'missQuestion'   => __( 'treść pytania', 'openvote' ),
+            'missAnswers'    => __( 'min. 3 odpowiedzi w pytaniu %d', 'openvote' ),
+            'missAnswerText' => __( 'treść %d. odpowiedzi w pytaniu %d', 'openvote' ),
+            'missDuplicate'  => __( 'powtórzona odpowiedź w pytaniu %d', 'openvote' ),
+        ] );
 
         // Batch progress — na stronie Grup oraz na głównej stronie Open Vote (zaproszenia, wyniki).
         if ( str_contains( $hook, 'openvote' ) ) {
@@ -1233,7 +1520,7 @@ class Openvote_Admin {
                     'text_short'     => __( 'Krótki tekst do 100 znaków', 'openvote' ),
                     'text_long'      => __( 'Długi tekst do 2000 znaków', 'openvote' ),
                     'url'            => __( 'Adres URL', 'openvote' ),
-                    'placeholder'           => __( 'Pytanie', 'openvote' ),
+                    'placeholder'           => __( 'Treść pola (np. Imię i nazwisko kandydata)', 'openvote' ),
                     'sensitiveCheckboxLabel' => __( 'Informacja wrażliwa - nie pokazuj odpowiedzi na stronie publicznie.', 'openvote' ),
                     'maxChars'              => __( 'Limit znaków:', 'openvote' ),
                     'remove'         => __( 'Usuń pole', 'openvote' ),
@@ -1256,6 +1543,20 @@ class Openvote_Admin {
             );
             wp_enqueue_script( 'openvote-settings-media' );
             wp_add_inline_script( 'openvote-settings-media', self::get_media_picker_script() );
+        }
+
+        // Zakładki (client-side) na ekranach: Konfiguracja, Grupy, Koordynatorzy, Wysyłka.
+        foreach ( [ 'openvote-settings', 'openvote-groups', 'openvote-roles', 'openvote-communication' ] as $tabs_screen ) {
+            if ( str_contains( $hook, $tabs_screen ) ) {
+                wp_enqueue_script(
+                    'openvote-settings-tabs',
+                    OPENVOTE_PLUGIN_URL . 'admin/js/openvote-settings-tabs.js',
+                    [],
+                    OPENVOTE_VERSION,
+                    true
+                );
+                break;
+            }
         }
     }
 

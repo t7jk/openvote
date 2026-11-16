@@ -120,6 +120,7 @@ if ( function_exists( 'openvote_replace_message_placeholders' ) && $preview_body
                 class="button<?php echo ( $all_sent || $no_recipients ) ? '' : ' button-primary'; ?>"
                 id="openvote-send-messages-btn"
                 data-message-id="<?php echo (int) $message->id; ?>"
+                data-confirm="<?php echo esc_attr( sprintf( __( 'Wysłać „%1$s” do %2$d odbiorców? Tej operacji nie można cofnąć.', 'openvote' ), (string) $message->title, (int) ( $eligible_count ?? 0 ) ) ); ?>"
                 data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
                 <?php disabled( $all_sent || $no_recipients ); ?>
                 style="<?php echo ( $all_sent || $no_recipients ) ? 'opacity:.55;cursor:default;' : ''; ?>">
@@ -255,7 +256,7 @@ if ( function_exists( 'openvote_replace_message_placeholders' ) && $preview_body
     $audit_base_url       = add_query_arg( [ 'page' => 'openvote-communication', 'action' => 'send', 'message_id' => $message->id ], admin_url( 'admin.php' ) );
     ?>
     <section class="openvote-messages-audit-log" style="margin-top:32px; max-width:900px;">
-        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log wysyłki', 'openvote' ); ?></h2>
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Dziennik zmian', 'openvote' ); ?></h2>
         <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy uruchomił wysyłkę lub wykonał inne działania na wysyłkach. Lista niekasowalna, w celach bezpieczeństwa.', 'openvote' ); ?></p>
         <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
             <?php
@@ -351,6 +352,8 @@ if ( function_exists( 'openvote_replace_message_placeholders' ) && $preview_body
 
     function triggerSend() {
         if ( btn && btn.disabled ) return;
+        var cm = btn ? btn.getAttribute( 'data-confirm' ) : '';
+        if ( cm && ! window.confirm( cm ) ) return;
         statusEl.style.color = '#555';
         statusEl.textContent = '<?php esc_html_e( 'Łączenie…', 'openvote' ); ?>';
         fetch( apiRoot + '/messages/' + messageId + '/send', {

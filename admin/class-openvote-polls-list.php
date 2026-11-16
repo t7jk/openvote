@@ -65,7 +65,7 @@ class Openvote_Polls_List extends WP_List_Table {
         $labels = [
             ''      => __( 'Wszystkie', 'openvote' ),
             'draft' => __( 'Szkic', 'openvote' ),
-            'open'  => __( 'Rozpoczęte', 'openvote' ),
+            'open'  => __( 'Trwa', 'openvote' ),
             'closed' => __( 'Zakończone', 'openvote' ),
         ];
 
@@ -193,8 +193,8 @@ class Openvote_Polls_List extends WP_List_Table {
 
         $actions = [];
 
-        // Wyniki — tylko dla głosowania zakończonego.
-        if ( 'closed' === $item->status ) {
+        // Wyniki — dla głosowania zakończonego (także takiego, któremu minął termin).
+        if ( 'closed' === $item->status || Openvote_Poll::is_time_expired( $item ) ) {
             $actions['results'] = sprintf(
                 '<a href="%s">%s</a>',
                 esc_url( $results_url ),
@@ -219,7 +219,7 @@ class Openvote_Polls_List extends WP_List_Table {
         }
 
         // Zaproszenia — status wysyłki e-mail, dostępny dla open i closed.
-        if ( in_array( $item->status, [ 'open', 'closed' ], true ) ) {
+        if ( in_array( $item->status, [ 'open', 'closed' ], true ) && ! Openvote_Poll::is_time_expired( $item ) ) {
             $actions['invitations'] = sprintf(
                 '<a href="%s">%s</a>',
                 esc_url( $invitations_url ),
@@ -237,10 +237,6 @@ class Openvote_Polls_List extends WP_List_Table {
                 esc_js( __( 'Zakończyć głosowanie? Przyjmowanie głosów zostanie zatrzymane, data zakończenia ustawiona na dziś. Operacja nieodwracalna.', 'openvote' ) ),
                 esc_html__( 'Zakończ', 'openvote' )
             );
-        }
-
-        if ( 'draft' === $item->status ) {
-            unset( $actions['start'] );
         }
 
         $actions['duplicate'] = sprintf(
@@ -283,15 +279,12 @@ class Openvote_Polls_List extends WP_List_Table {
     }
 
     protected function column_status( $item ): string {
-        $labels = [
-            'draft'  => __( 'Szkic', 'openvote' ),
-            'open'   => __( 'Rozpoczęte', 'openvote' ),
-            'closed' => __( 'Zakończone', 'openvote' ),
-        ];
-        $label = $labels[ $item->status ] ?? $item->status;
+        $label   = Openvote_Poll::status_label( (string) $item->status, $item );
+        $expired = Openvote_Poll::is_time_expired( $item );
         return sprintf(
-            '<span class="openvote-status openvote-status--%s">%s</span>',
+            '<span class="openvote-status openvote-status--%s"%s>%s</span>',
             esc_attr( $item->status ),
+            $expired ? ' title="' . esc_attr__( 'Termin zakończenia minął. Kliknij „Zakończ”, aby formalnie zamknąć głosowanie.', 'openvote' ) . '"' : '',
             esc_html( $label )
         );
     }
@@ -352,11 +345,12 @@ class Openvote_Polls_List extends WP_List_Table {
             if ( ! current_user_can( 'edit_others_posts' ) && ! Openvote_Admin::user_can_access_coordinators() ) {
                 return;
             }
-            $now   = current_time( 'Y-m-d H:i:s' );
-            $count = 0;
+            $now     = current_time( 'Y-m-d H:i:s' );
+            $count   = 0;
+            $skipped = 0;
             foreach ( $ids as $id ) {
                 $poll = Openvote_Poll::get( $id );
-                if ( $poll && 'open' === $poll->status ) {
+                if ( $poll && 'open' === $poll->status && Openvote_Poll::current_user_can_access( $poll ) ) {
                     $date_end_was_past = isset( $poll->date_end ) && $poll->date_end <= $now;
                     Openvote_Poll::update( $id, [
                         'status'   => 'closed',
@@ -365,21 +359,47 @@ class Openvote_Polls_List extends WP_List_Table {
                     if ( $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
                         openvote_increment_missed_for_poll_non_voters( (int) $id );
                     }
+                    if ( ! empty( $poll->title ) ) {
+                        openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył głosowanie %s', 'openvote' ), $poll->title ) );
+                    }
                     ++$count;
+                } else {
+                    ++$skipped;
                 }
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote', 'bulk_ended' => $count ], admin_url( 'admin.php' ) ) );
+            $args = [ 'page' => 'openvote', 'bulk_ended' => $count ];
+            if ( $skipped ) {
+                $args['bulk_skipped'] = $skipped;
+            }
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
             exit;
         }
 
         if ( 'delete' === $action ) {
             if ( ! current_user_can( 'manage_options' ) ) {
-                return;
+                wp_die( esc_html__( 'Brak uprawnień do usuwania głosowań.', 'openvote' ), '', [ 'response' => 403 ] );
             }
+            $deleted = 0;
+            $skipped = 0;
             foreach ( $ids as $id ) {
+                $poll = Openvote_Poll::get( $id );
+                // Trwającego głosowania nie usuwamy hurtowo (tak jak w akcji wiersza) — najpierw trzeba je zakończyć.
+                if ( ! $poll || 'open' === $poll->status ) {
+                    ++$skipped;
+                    continue;
+                }
+                $title = (string) ( $poll->title ?? '' );
                 Openvote_Poll::delete( $id );
+                if ( '' !== $title ) {
+                    openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'usunął głosowanie %s', 'openvote' ), $title ) );
+                }
+                ++$deleted;
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) );
+            $args = [ 'page' => 'openvote', 'bulk_deleted' => $deleted ];
+            if ( $skipped ) {
+                $args['bulk_skipped'] = $skipped;
+            }
+            wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
             exit;
         }
     }
@@ -389,6 +409,38 @@ class Openvote_Polls_List extends WP_List_Table {
     public function display(): void {
         wp_nonce_field( 'openvote_bulk_action', 'openvote_bulk_nonce' );
         parent::display();
+        self::print_bulk_confirm_script( 'poll_ids[]', [
+            'delete' => __( 'Usunąć zaznaczone głosowania (%d) wraz z oddanymi głosami? Operacja jest nieodwracalna. Trwające głosowania zostaną pominięte.', 'openvote' ),
+            'end'    => __( 'Zakończyć zaznaczone głosowania (%d)? Przyjmowanie głosów zostanie zatrzymane. Operacja nieodwracalna.', 'openvote' ),
+        ] );
+    }
+
+    /**
+     * Potwierdzenie (confirm) przed masową akcją Usuń / Zakończ.
+     *
+     * @param array<string,string> $messages akcja => komunikat z %d (liczba zaznaczonych).
+     */
+    public static function print_bulk_confirm_script( string $checkbox_name, array $messages ): void {
+        ?>
+        <script>
+        (function () {
+            var msgs = <?php echo wp_json_encode( $messages ); ?>;
+            var cbName = <?php echo wp_json_encode( $checkbox_name ); ?>;
+            var table = document.querySelector('input[name="' + cbName + '"]');
+            var form = table ? table.closest('form') : null;
+            if (!form) { return; }
+            form.addEventListener('submit', function (e) {
+                var top = form.querySelector('#bulk-action-selector-top');
+                var bottom = form.querySelector('#bulk-action-selector-bottom');
+                var act = (top && top.value !== '-1') ? top.value : ((bottom && bottom.value !== '-1') ? bottom.value : '');
+                if (!act || !msgs[act]) { return; }
+                var n = form.querySelectorAll('input[name="' + cbName + '"]:checked').length;
+                if (n === 0) { return; }
+                if (!window.confirm(msgs[act].replace('%d', n))) { e.preventDefault(); }
+            });
+        })();
+        </script>
+        <?php
     }
 
     // ─── Wyszukiwanie ─────────────────────────────────────────────────────
@@ -417,9 +469,10 @@ class Openvote_Polls_List extends WP_List_Table {
             if ( empty( $coordinator_group_ids ) ) {
                 $where .= ' AND 1=0';
             } else {
-                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(p.target_groups, CAST(%d AS JSON), \'$\')' ) );
+                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(p.target_groups, %s, \'$\')' ) );
                 $where .= ' AND (' . $placeholders . ')';
-                $params = array_merge( $params, $coordinator_group_ids );
+                // JSON_CONTAINS z literałem JSON (jak '4') działa w MySQL i MariaDB (CAST(... AS JSON) — tylko MySQL).
+                $params = array_merge( $params, array_map( 'strval', array_values( $coordinator_group_ids ) ) );
             }
         }
 
@@ -466,9 +519,10 @@ class Openvote_Polls_List extends WP_List_Table {
             if ( empty( $coordinator_group_ids ) ) {
                 $where .= ' AND 1=0';
             } else {
-                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(target_groups, CAST(%d AS JSON), \'$\')' ) );
+                $placeholders = implode( ' OR ', array_fill( 0, count( $coordinator_group_ids ), 'JSON_CONTAINS(target_groups, %s, \'$\')' ) );
                 $where .= ' AND (' . $placeholders . ')';
-                $params = array_merge( $params, $coordinator_group_ids );
+                // JSON_CONTAINS z literałem JSON (jak '4') działa w MySQL i MariaDB (CAST(... AS JSON) — tylko MySQL).
+                $params = array_merge( $params, array_map( 'strval', array_values( $coordinator_group_ids ) ) );
             }
         }
 

@@ -87,7 +87,7 @@ if ( $is_preview && $message ) {
                 );
                 ?>
                 <p style="margin-top:8px;">
-                    <button type="button" id="openvote-reset-message-body" class="button"><?php esc_html_e( 'Reset', 'openvote' ); ?></button>
+                    <button type="button" id="openvote-reset-message-body" class="button" data-confirm="<?php echo esc_attr__( 'Zastąpić obecną treść wiadomości domyślną treścią?', 'openvote' ); ?>"><?php esc_html_e( 'Przywróć domyślną treść', 'openvote' ); ?></button>
                 </p>
                 <p class="description" style="margin-top:12px;">
                     <strong><?php esc_html_e( 'Obsługiwane kody (zostaną zastąpione przy wysyłce):', 'openvote' ); ?></strong><br>
@@ -102,7 +102,7 @@ if ( $is_preview && $message ) {
             <th scope="row"><?php esc_html_e( 'Grupa docelowa', 'openvote' ); ?></th>
             <td>
                 <?php if ( ! empty( $all_groups ) ) : ?>
-                    <select name="target_groups[]" id="openvote-message-target-groups" multiple size="8" style="min-width:280px;">
+                    <select name="target_groups[]" id="openvote-message-target-groups" multiple size="8" required style="min-width:200px; max-width:100%; box-sizing:border-box;">
                         <?php foreach ( $all_groups as $group ) : ?>
                             <option value="<?php echo esc_attr( $group->id ); ?>"
                                     <?php echo in_array( (int) $group->id, $selected_group_ids, true ) ? 'selected' : ''; ?>>

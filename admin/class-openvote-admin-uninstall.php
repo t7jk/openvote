@@ -52,6 +52,10 @@ class Openvote_Admin_Uninstall {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_groups" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_email_queue" );
 
+        // Wysyłka | Newsletter (kolejka → wiadomości).
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_message_queue" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_messages" );
+
         // Survey tables (answers → responses → questions → surveys).
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_survey_answers" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_survey_responses" );
@@ -64,6 +68,28 @@ class Openvote_Admin_Uninstall {
         // Delete all plugin options (single source of list).
         foreach ( self::get_option_keys() as $key ) {
             delete_option( $key );
+        }
+        self::purge_prefixed_options_and_transients( [] );
+    }
+
+    /**
+     * Usuwa pozostałe opcje openvote_* (np. klucz crona, znaczniki heartbeat, kod e-mail) oraz transienty ov_* / openvote_*.
+     *
+     * @param string[] $keep Nazwy opcji do zachowania.
+     */
+    public static function purge_prefixed_options_and_transients( array $keep ): void {
+        global $wpdb;
+        $names = $wpdb->get_col(
+            "SELECT option_name FROM {$wpdb->options}
+             WHERE option_name LIKE 'openvote\\_%'
+                OR option_name LIKE '\\_transient\\_ov\\_%' OR option_name LIKE '\\_transient\\_timeout\\_ov\\_%'
+                OR option_name LIKE '\\_transient\\_openvote\\_%' OR option_name LIKE '\\_transient\\_timeout\\_openvote\\_%'"
+        );
+        foreach ( (array) $names as $name ) {
+            if ( in_array( $name, $keep, true ) ) {
+                continue;
+            }
+            delete_option( $name );
         }
     }
 
@@ -134,6 +160,9 @@ class Openvote_Admin_Uninstall {
             'openvote_role_screen_map',
             'openvote_coordinator_poll_access',
             'openvote_create_test_group',
+            'openvote_identity_voting_enabled',
+            'openvote_cron_key',
+            'openvote_auto_invite_since',
         ];
     }
 }

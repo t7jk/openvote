@@ -27,7 +27,7 @@ class Openvote_Surveys_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/surveys/(?P<id>\d+)/submit', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'submit_response' ],
-            'permission_callback' => fn() => is_user_logged_in(),
+            'permission_callback' => fn( $request ) => Openvote_Identity_Verifier::permission_for( $request, 'survey' ),
             'args'                => [
                 'id'     => [ 'sanitize_callback' => 'absint' ],
                 'status' => [
@@ -46,7 +46,7 @@ class Openvote_Surveys_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/surveys/(?P<id>\d+)/my-response', [
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => [ $this, 'get_my_response' ],
-            'permission_callback' => fn() => is_user_logged_in(),
+            'permission_callback' => fn( $request ) => Openvote_Identity_Verifier::permission_for( $request, 'survey' ),
             'args'                => [
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
@@ -85,8 +85,11 @@ class Openvote_Surveys_Rest_Controller {
             return new WP_Error( 'survey_not_found', __( 'Ankieta nie istnieje.', 'openvote' ), [ 'status' => 404 ] );
         }
 
-        $user_id  = get_current_user_id();
+        $user_id  = Openvote_Identity_Verifier::resolve_user_id( $request, 'survey', (int) $survey_id );
         $response = $user_id ? Openvote_Survey::get_user_response( $survey_id, $user_id ) : null;
+        if ( $user_id && ! is_user_logged_in() ) {
+            Openvote_Identity_Verifier::send_nocache();
+        }
 
         $data = $this->format_survey( $survey, true );
         $data['my_response'] = $response ? [
@@ -99,7 +102,11 @@ class Openvote_Surveys_Rest_Controller {
 
     public function submit_response( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $survey_id = $request->get_param( 'id' );
-        $user_id   = get_current_user_id();
+        $user_id   = Openvote_Identity_Verifier::resolve_user_id( $request, 'survey', (int) $survey_id );
+        $via_token = ! is_user_logged_in();
+        if ( $user_id <= 0 ) {
+            return Openvote_Identity_Verifier::invalid_error();
+        }
 
         $survey = Openvote_Survey::get( $survey_id );
         if ( ! $survey ) {
@@ -116,10 +123,15 @@ class Openvote_Surveys_Rest_Controller {
         if ( ! $profile_check['ok'] ) {
             return new WP_Error(
                 'incomplete_profile',
-                sprintf(
-                    __( 'Uzupełnij profil przed wypełnieniem ankiety. Brakujące pola: %s', 'openvote' ),
-                    implode( ', ', $profile_check['missing'] )
-                ),
+                $via_token
+                    ? sprintf(
+                        __( 'Twój profil jest niekompletny (brakuje: %s). Zaloguj się, aby uzupełnić profil, a potem wypełnij ankietę.', 'openvote' ),
+                        implode( ', ', $profile_check['missing'] )
+                    )
+                    : sprintf(
+                        __( 'Uzupełnij profil przed wypełnieniem ankiety. Brakujące pola: %s', 'openvote' ),
+                        implode( ', ', $profile_check['missing'] )
+                    ),
                 [ 'status' => 403 ]
             );
         }
@@ -131,7 +143,7 @@ class Openvote_Surveys_Rest_Controller {
 
         foreach ( $questions as $q ) {
             $qid  = (int) $q->id;
-            $text = isset( $raw_answers[ $qid ] ) ? trim( sanitize_textarea_field( (string) $raw_answers[ $qid ] ) ) : '';
+            $text = ( isset( $raw_answers[ $qid ] ) && is_scalar( $raw_answers[ $qid ] ) ) ? trim( sanitize_textarea_field( (string) $raw_answers[ $qid ] ) ) : '';
 
             if ( ( $q->field_type ?? '' ) === 'url' && $text !== '' ) {
                 $url = $text;
@@ -184,7 +196,13 @@ class Openvote_Surveys_Rest_Controller {
 
     public function get_my_response( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $survey_id = $request->get_param( 'id' );
-        $user_id   = get_current_user_id();
+        $user_id   = Openvote_Identity_Verifier::resolve_user_id( $request, 'survey', (int) $survey_id );
+        if ( $user_id <= 0 ) {
+            return Openvote_Identity_Verifier::invalid_error();
+        }
+        if ( ! is_user_logged_in() ) {
+            Openvote_Identity_Verifier::send_nocache();
+        }
 
         $survey = Openvote_Survey::get( $survey_id );
         if ( ! $survey ) {

@@ -77,6 +77,17 @@ class Openvote_Admin_Settings {
             wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ) );
         }
 
+        // Formularze pomocnicze poza głównym formularzem (np. „Zaktualizuj stronę głosowania” w ostrzeżeniu)
+        // nie mogą uruchamiać pełnego zapisu — brakujące pola wyzerowałyby całą konfigurację.
+        if ( empty( $_POST['openvote_main_settings_form'] ) ) {
+            $query_args = [ 'page' => 'openvote-settings' ];
+            if ( ! empty( $_POST['openvote_update_vote_page'] ) && self::update_vote_page_block( openvote_get_vote_page_slug() ) ) {
+                $query_args['page_updated'] = '1';
+            }
+            wp_safe_redirect( add_query_arg( $query_args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         $raw_map = (array) ( $_POST['openvote_field_map'] ?? [] );
         Openvote_Field_Map::save( $raw_map );
 
@@ -86,6 +97,9 @@ class Openvote_Admin_Settings {
         $raw_survey_required = array_map( 'sanitize_key', (array) ( $_POST['openvote_survey_required_fields'] ?? [] ) );
         Openvote_Field_Map::save_survey_required_fields( $raw_survey_required );
 
+        // G2: mapa rola→ekran, dostęp koordynatorów, metoda i dane dostępowe poczty — tylko dla manage_options.
+        // Użytkownik z samym dostępem do ekranu Konfiguracji (rola → ekran) zachowuje dotychczasowe wartości.
+        if ( $can_manage ) {
         // Mapowanie roli → ekrany.
         $allowed_roles  = Openvote_Role_Map::ROLES;
         $allowed_screens = Openvote_Role_Map::SCREENS;
@@ -109,6 +123,11 @@ class Openvote_Admin_Settings {
         $coordinator_access = sanitize_key( (string) ( $_POST['openvote_coordinator_poll_access'] ?? 'all' ) );
         $coordinator_access = ( $coordinator_access === 'own' ) ? 'own' : 'all';
         update_option( 'openvote_coordinator_poll_access', $coordinator_access, false );
+
+        }
+
+        // Głosowanie bez logowania (kod e-mail): odznaczony checkbox = 0.
+        update_option( 'openvote_identity_voting_enabled', ( isset( $_POST['openvote_identity_voting_enabled'] ) && (string) $_POST['openvote_identity_voting_enabled'] === '1' ) ? 1 : 0, false );
 
         // Grupa Test: checkbox włączony = utrzymaj/utwórz grupę; wyłączony = usuń grupę.
         $create_test_group = isset( $_POST['openvote_create_test_group'] ) && ( $_POST['openvote_create_test_group'] === '1' || $_POST['openvote_create_test_group'] === 1 );
@@ -164,6 +183,7 @@ class Openvote_Admin_Settings {
         }
         update_option( 'openvote_from_email', $from_email, false );
 
+        if ( $can_manage ) {
         $raw_method  = sanitize_key( wp_unslash( $_POST['openvote_mail_method'] ?? 'wordpress' ) );
         $allowed     = [ 'wordpress', 'smtp', 'sendgrid', 'brevo', 'brevo_paid', 'freshmail', 'getresponse' ];
         $mail_method = in_array( $raw_method, $allowed, true ) ? $raw_method : 'wordpress';
@@ -220,6 +240,8 @@ class Openvote_Admin_Settings {
         if ( isset( $_POST['openvote_getresponse_from_field_id'] ) ) {
             update_option( 'openvote_getresponse_from_field_id', sanitize_text_field( wp_unslash( $_POST['openvote_getresponse_from_field_id'] ) ), false );
         }
+
+        } // end if $can_manage (poczta)
 
         // Parametry wysyłki masowej z tabeli „Warunki wysyłki e-maili” — per metoda (bezpłatne). 0 = domyślna wartość.
         $brevo_size  = isset( $_POST['openvote_batch_brevo_free_size'] ) ? absint( $_POST['openvote_batch_brevo_free_size'] ) : 0;
@@ -554,7 +576,7 @@ class Openvote_Admin_Settings {
         if ( empty( $_POST['openvote_confirm_clean'] ) ) {
             set_transient( 'openvote_clean_error',
                 __( 'Zaznacz pole potwierdzenia przed wyczyszczeniem.', 'openvote' ), 30 );
-            wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings' ) );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings' ) . '#tab-tools' );
             exit;
         }
 
@@ -566,6 +588,7 @@ class Openvote_Admin_Settings {
             'openvote_group_members', 'openvote_groups', 'openvote_email_queue',
             'openvote_survey_answers', 'openvote_survey_responses',
             'openvote_survey_questions', 'openvote_surveys',
+            'openvote_messages', 'openvote_message_queue',
         ];
         foreach ( $tables as $t ) {
             $wpdb->query( "TRUNCATE TABLE `{$wpdb->prefix}{$t}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- nazwa tabeli z prefiksu WP i stałej
@@ -584,10 +607,11 @@ class Openvote_Admin_Settings {
         foreach ( $options_to_reset as $opt ) {
             delete_option( $opt );
         }
+        Openvote_Admin_Uninstall::purge_prefixed_options_and_transients( [ 'openvote_version', 'openvote_db_version' ] );
 
         set_transient( 'openvote_clean_success',
             __( 'Baza danych i ustawienia zostały przywrócone do stanu fabrycznego.', 'openvote' ), 30 );
-        wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=openvote-settings' ) . '#tab-tools' );
         exit;
     }
 

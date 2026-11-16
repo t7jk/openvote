@@ -286,6 +286,12 @@ class Openvote_Survey {
         $at = self::answers_table();
         $rt = self::responses_table();
 
+        // BEZPIECZEŃSTWO DANYCH: nigdy nie kasujemy zgłoszeń uczestników przy zapisie pytań.
+        // Gdy ankieta ma jakiekolwiek zgłoszenia, pytania są zablokowane (zmiana usunęłaby dane).
+        if ( self::count_all_response_rows( $survey_id ) > 0 ) {
+            return;
+        }
+
         // Usuń wszystkie zgłoszenia ankiety (responses + survey_answers), aby uniknąć niespójności po zmianie pytań.
         $response_ids = $wpdb->get_col(
             $wpdb->prepare( 'SELECT id FROM %i WHERE survey_id = %d', $rt, $survey_id )
@@ -626,6 +632,29 @@ class Openvote_Survey {
         );
 
         return $list ?: [];
+    }
+
+    /**
+     * Policz WSZYSTKIE zgłoszenia ankiety (każdy status, także spam/oczekujące).
+     */
+    public static function count_all_response_rows( int $survey_id ): int {
+        global $wpdb;
+
+        return (int) $wpdb->get_var(
+            $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE survey_id = %d', self::responses_table(), $survey_id )
+        );
+    }
+
+    /**
+     * Polska etykieta statusu ankiety (jedno słownictwo w całej wtyczce).
+     */
+    public static function status_label( string $status ): string {
+        return match ( $status ) {
+            'draft'  => __( 'Szkic', 'openvote' ),
+            'open'   => __( 'Trwa', 'openvote' ),
+            'closed' => __( 'Zakończona', 'openvote' ),
+            default  => $status,
+        };
     }
 
     /**

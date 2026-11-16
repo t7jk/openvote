@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
- * Version:           1.0.35
+ * Version:           1.0.36
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.35' );
+define( 'OPENVOTE_VERSION', '1.0.36' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -49,6 +49,7 @@ require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-rate-limits.ph
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-cron-sync.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-resume-cron.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-heartbeat.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-deactivator.php';
@@ -72,6 +73,7 @@ function openvote_run(): void {
 
 Openvote_Cron_Sync::register();
 Openvote_Email_Resume_Cron::register();
+Openvote_Heartbeat::register();
 openvote_run();
 
 /**

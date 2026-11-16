@@ -77,6 +77,10 @@ class Openvote {
         require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-vote-page.php';
         require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-survey-page.php';
 
+        require_once OPENVOTE_PLUGIN_DIR . 'includes/openvote-identity-frontend.php';
+        add_action( 'wp_enqueue_scripts', 'openvote_identity_register_assets', 5 );
+        add_action( 'template_redirect', 'openvote_identity_maybe_nocache', 1 );
+
         $public = new Openvote_Public();
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_styles' );
         $this->loader->add_action( 'wp_enqueue_scripts', $public, 'enqueue_scripts' );
@@ -92,6 +96,8 @@ class Openvote {
         require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-rest-controller.php';
         require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-groups-rest-controller.php';
         require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-surveys-rest-controller.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-identity-verifier.php';
+        require_once OPENVOTE_PLUGIN_DIR . 'rest-api/class-openvote-identity-rest-controller.php';
 
         $rest = new Openvote_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $rest, 'register_routes' );
@@ -101,6 +107,14 @@ class Openvote {
 
         $surveys_rest = new Openvote_Surveys_Rest_Controller();
         $this->loader->add_action( 'rest_api_init', $surveys_rest, 'register_routes' );
+
+        $identity_rest = new Openvote_Identity_Rest_Controller();
+        $this->loader->add_action( 'rest_api_init', $identity_rest, 'register_routes' );
+
+        // Zgodność z wtyczką „REST API Guard” (blokuje anonimowy dostęp do REST): przepuszczamy wyłącznie
+        // trasy /openvote/v1/… — każda z nich ma własny permission_callback (głosowanie gościa wymaga tokenu e-mail).
+        $this->loader->add_filter( 'rest_api_guard_prevent_anonymous_access', $identity_rest, 'filter_rest_api_guard_prevent', 20, 2 );
+        $this->loader->add_filter( 'rest_api_guard_anonymous_requests_allowlist', $identity_rest, 'filter_rest_api_guard_allowlist', 20, 1 );
     }
 
     private function define_block_hooks(): void {

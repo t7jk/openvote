@@ -47,7 +47,7 @@ class Openvote_Role_Manager {
         if ( ! $raw ) {
             return [];
         }
-        $decoded = json_decode( $raw, true );
+        $decoded = is_array( $raw ) ? $raw : ( is_string( $raw ) ? json_decode( $raw, true ) : null );
         return is_array( $decoded ) ? array_map( 'absint', $decoded ) : [];
     }
 

@@ -17,23 +17,26 @@ require_once OPENVOTE_PLUGIN_DIR . 'includes/openvote-render-poll.php';
 $is_logged = is_user_logged_in();
 $user_id   = $is_logged ? get_current_user_id() : 0;
 
-// ─── Gość: tylko zachęta do logowania ─────────────────────────────────────
+// ─── Gość: widzi pytania; głosuje po zalogowaniu lub weryfikacji danych ─────
 if ( ! $is_logged ) {
-    ?>
-    <div <?php echo get_block_wrapper_attributes( [ 'class' => 'openvote-poll-block openvote-poll-block--login' ] ); ?>>
-        <p class="openvote-poll__login-notice">
+    $guest_polls = array_values( Openvote_Poll::get_active_polls() );
+    if ( ! empty( $guest_polls ) ) {
+        ?>
+        <div <?php echo get_block_wrapper_attributes( [ 'class' => 'openvote-poll-block openvote-poll-wrapper' ] ); ?>>
             <?php
-            printf(
-                /* translators: %1$s: login link, %2$s: lost password link, %3$s: register link */
-                esc_html__( 'Aby zobaczyć dostępne głosowania i oddać głos, %1$s. %2$s. %3$s', 'openvote' ),
-                '<a href="' . esc_url( wp_login_url( get_permalink() ) ) . '">' . esc_html__( 'zaloguj się', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'nie pamiętam hasła', 'openvote' ) . '</a>',
-                '<a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'zarejestruj się', 'openvote' ) . '</a>'
-            );
+            foreach ( $guest_polls as $poll ) {
+                openvote_render_single_poll( $poll, 0 );
+            }
             ?>
-        </p>
-    </div>
-    <?php
+        </div>
+        <?php
+    } else {
+        ?>
+        <div <?php echo get_block_wrapper_attributes( [ 'class' => 'openvote-poll-block openvote-poll-block--no-access' ] ); ?>>
+            <p class="openvote-poll__no-polls"><?php esc_html_e( 'Brak trwających głosowań w tym momencie.', 'openvote' ); ?></p>
+        </div>
+        <?php
+    }
     return;
 }
 

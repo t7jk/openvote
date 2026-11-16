@@ -215,7 +215,7 @@ class Openvote_Poll {
                 self::answers_table(),
                 [
                     'question_id' => $question_id,
-                    'body'        => sanitize_text_field( $text ),
+                    'body'        => mb_substr( sanitize_text_field( $text ), 0, 512 ),
                     'sort_order'  => $a_order,
                     'is_abstain'  => $is_abstain,
                 ],
@@ -413,6 +413,65 @@ class Openvote_Poll {
         $wpdb->delete( self::questions_table(), [ 'poll_id' => $poll_id ], [ '%d' ] );
 
         return (bool) $wpdb->delete( self::polls_table(), [ 'id' => $poll_id ], [ '%d' ] );
+    }
+
+    /**
+     * Polska etykieta statusu głosowania (jedno słownictwo w całej wtyczce).
+     * Dla 'open' z minioną datą zakończenia zwraca "Zakończone (czas minął)".
+     */
+    public static function status_label( string $status, ?object $poll = null ): string {
+        if ( 'open' === $status && $poll && self::is_time_expired( $poll ) ) {
+            return __( 'Zakończone (czas minął)', 'openvote' );
+        }
+        return match ( $status ) {
+            'draft'  => __( 'Szkic', 'openvote' ),
+            'open'   => __( 'Trwa', 'openvote' ),
+            'closed' => __( 'Zakończone', 'openvote' ),
+            default  => $status,
+        };
+    }
+
+    /**
+     * Czytelny format daty z bazy (czas lokalny witryny): d.m.Y H:i.
+     */
+    public static function format_dt( ?string $mysql ): string {
+        if ( empty( $mysql ) ) {
+            return '—';
+        }
+        $ts = strtotime( $mysql );
+        return $ts ? date_i18n( 'd.m.Y H:i', $ts ) : $mysql;
+    }
+
+    /**
+     * Czy głosowanie ze statusem 'open' ma już miniony termin zakończenia (tylko obliczenie, bez zmian w bazie).
+     */
+    public static function is_time_expired( object $poll ): bool {
+        if ( 'open' !== ( $poll->status ?? '' ) || empty( $poll->date_end ) ) {
+            return false;
+        }
+        $end = (string) $poll->date_end;
+        if ( strlen( $end ) === 10 ) {
+            $end .= ' 23:59:59';
+        }
+        return openvote_current_time_for_voting( 'Y-m-d H:i:s' ) > $end;
+    }
+
+    /**
+     * Czy bieżący użytkownik (koordynator ograniczony do „własnych grup”) ma dostęp do tego głosowania.
+     * Administrator i koordynator z pełnym zakresem: zawsze true.
+     */
+    public static function current_user_can_access( object $poll ): bool {
+        if ( ! function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) || ! openvote_is_coordinator_restricted_to_own_groups() ) {
+            return true;
+        }
+        $my_ids = array_map( 'absint', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+        if ( openvote_create_test_group_enabled() ) {
+            $test_gid = openvote_get_test_group_id();
+            if ( $test_gid ) {
+                $my_ids[] = $test_gid;
+            }
+        }
+        return ! empty( array_intersect( self::get_target_group_ids( $poll ), $my_ids ) );
     }
 
     /**

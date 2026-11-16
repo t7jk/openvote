@@ -68,12 +68,6 @@ if ( $avg_pct > $max_pct ) {
 $chart_max  = $max_pct > 0 ? $max_pct : 100;
 $chart_scale = 200; // max bar height in px
 $chart_has_data = ! empty( $chart_data );
-// Przy braku danych: szare słupki o losowej wysokości (placeholder).
-if ( ! $chart_has_data ) {
-	$chart_placeholder_heights = array_map( function () use ( $chart_scale ) {
-		return mt_rand( (int) ( $chart_scale * 0.1 ), (int) ( $chart_scale * 0.9 ) );
-	}, range( 0, 10 ) );
-}
 ?>
 <style>
 .openvote-stat-section { margin-top: 24px; }
@@ -153,16 +147,6 @@ if ( ! $chart_has_data ) {
 <div class="wrap">
 	<h1><?php esc_html_e( 'Statystyka', 'openvote' ); ?></h1>
 
-	<?php if ( isset( $_GET['saved'] ) ) : ?>
-		<div class="notice notice-success is-dismissible">
-			<p><?php esc_html_e( 'Ustawienia zapisane.', 'openvote' ); ?></p>
-		</div>
-	<?php endif; ?>
-	<?php if ( isset( $_GET['recalculated'] ) ) : ?>
-		<div class="notice notice-success is-dismissible">
-			<p><?php esc_html_e( 'Statystyki nieaktywnych przeliczone.', 'openvote' ); ?></p>
-		</div>
-	<?php endif; ?>
 
 	<div class="openvote-stat-section">
 		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Informacje', 'openvote' ); ?></h2>
@@ -170,11 +154,11 @@ if ( ! $chart_has_data ) {
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'Grupy i członkowie', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość grup', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba grup', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $groups_count ); ?></span>
 				</div>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość członków', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba członków', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $members_count ); ?></span>
 				</div>
 			</div>
@@ -189,6 +173,16 @@ if ( ! $chart_has_data ) {
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $inactive_count ); ?></span>
 				</div>
 			</div>
+			<div class="openvote-stat-card" style="grid-column:1/-1;box-shadow:none;border-style:dashed;">
+				<span class="description"><?php
+					printf(
+						/* translators: 1: months, 2: missed polls */
+						esc_html__( 'Członek nieaktywny = nie głosował od co najmniej %1$d mies. lub pominął co najmniej %2$d głosowań. Progi zmienisz w Konfiguracji → Nieaktywni.', 'openvote' ),
+						(int) openvote_get_stat_months_inactive(),
+						(int) openvote_get_stat_missed_votes()
+					);
+				?></span>
+			</div>
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'Głosowania i ankiety', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
@@ -196,15 +190,15 @@ if ( ! $chart_has_data ) {
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $closed_polls_count ); ?></span>
 				</div>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość uruchomionych ankiet', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba uruchomionych ankiet', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $surveys_launched ); ?></span>
 				</div>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość wypełnionych ankiet', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba wypełnionych ankiet', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $surveys_filled ); ?></span>
 				</div>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość wyświetleń wszystkich ankiet', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba wyświetleń wszystkich ankiet', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $surveys_views ); ?></span>
 				</div>
 			</div>
@@ -215,49 +209,56 @@ if ( ! $chart_has_data ) {
 	$email_rate_counts = class_exists( 'Openvote_Email_Rate_Limits', false ) ? Openvote_Email_Rate_Limits::get_counts() : [ 'count_15' => 0, 'count_hour' => 0, 'count_day' => 0 ];
 	$email_month_history = openvote_get_emails_sent_history( 1 );
 	$email_count_month   = reset( $email_month_history ) ?: 0;
+	$ov_lim_15  = function_exists( 'openvote_get_email_limit_per_15min' ) ? (int) openvote_get_email_limit_per_15min() : 0;
+	$ov_lim_h   = function_exists( 'openvote_get_email_limit_per_hour' ) ? (int) openvote_get_email_limit_per_hour() : 0;
+	$ov_lim_day = function_exists( 'openvote_get_email_limit_per_day' ) ? (int) openvote_get_email_limit_per_day() : 0;
+	$ov_fmt_lim = function ( $count, $limit ) {
+		return $limit > 0 ? sprintf( '%d / %d', (int) $count, (int) $limit ) : (string) (int) $count;
+	};
 	?>
 	<div class="openvote-stat-section" style="margin-top:24px;">
-		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Ilość wysłanych e-maili', 'openvote' ); ?></h2>
-		<div class="openvote-stat-cards" style="grid-template-columns: repeat(4, 1fr);">
+		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Liczba wysłanych e-maili', 'openvote' ); ?></h2>
+		<div class="openvote-stat-cards">
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu ostatnich 15 minut', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
-					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_15'] ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( $ov_fmt_lim( $email_rate_counts['count_15'], $ov_lim_15 ) ); ?></span>
 				</div>
 			</div>
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu ostatniej godziny', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
-					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_hour'] ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( $ov_fmt_lim( $email_rate_counts['count_hour'], $ov_lim_h ) ); ?></span>
 				</div>
 			</div>
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu doby', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
-					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_rate_counts['count_day'] ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__value"><?php echo esc_html( $ov_fmt_lim( $email_rate_counts['count_day'], $ov_lim_day ) ); ?></span>
 				</div>
 			</div>
 			<div class="openvote-stat-card">
 				<span class="openvote-stat-card__heading"><?php esc_html_e( 'W ciągu miesiąca', 'openvote' ); ?></span>
 				<div class="openvote-stat-card__row">
-					<span class="openvote-stat-card__label"><?php esc_html_e( 'Ilość e-maili', 'openvote' ); ?></span>
+					<span class="openvote-stat-card__label"><?php esc_html_e( 'Liczba e-maili', 'openvote' ); ?></span>
 					<span class="openvote-stat-card__value"><?php echo esc_html( (string) $email_count_month ); ?></span>
 				</div>
 			</div>
 		</div>
+		<p class="description"><?php esc_html_e( 'Liczby w formacie „wysłano / limit” — limity zależą od wybranej metody wysyłki (Konfiguracja → Wysyłka e-mail). Po osiągnięciu limitu wysyłka jest wstrzymywana i wznawiana automatycznie.', 'openvote' ); ?></p>
 	</div>
 
 	<div class="openvote-stat-table-wrap">
 		<h2 class="openvote-stat-section__title"><?php esc_html_e( 'Ostatnie 10 głosowań (zakończone)', 'openvote' ); ?></h2>
-		<table class="widefat fixed striped">
+		<div class="openvote-table-scroll"><table class="widefat striped">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Tytuł', 'openvote' ); ?></th>
-					<th><?php esc_html_e( 'Ilość uprawnionych do głosowania', 'openvote' ); ?></th>
-					<th><?php esc_html_e( 'Ilość głosujących', 'openvote' ); ?></th>
+					<th><?php esc_html_e( 'Liczba uprawnionych do głosowania', 'openvote' ); ?></th>
+					<th><?php esc_html_e( 'Liczba głosujących', 'openvote' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -278,35 +279,43 @@ if ( ! $chart_has_data ) {
 					<?php endforeach; ?>
 				<?php endif; ?>
 			</tbody>
-		</table>
+		</table></div>
 	</div>
 
 	<div class="openvote-stat-chart-section openvote-chart-box" style="padding:20px 24px;background:#fff;border:1px solid #c3c4c7;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);max-width:800px;">
 		<h2 class="title" style="margin-top:0;margin-bottom:16px;"><?php esc_html_e( 'Frekwencja (ostatnie 10 głosowań)', 'openvote' ); ?></h2>
-		<div class="openvote-chart-wrap" style="max-width:720px;min-height:240px;">
-			<div class="openvote-chart-y-label" style="width:40px;display:inline-block;vertical-align:bottom;font-size:11px;text-align:right;"><?php echo esc_html( (string) $chart_max ); ?>%</div>
-			<div class="openvote-chart-bars" style="display:inline-block;width:calc(100% - 50px);vertical-align:bottom;min-height:220px;">
-				<?php for ( $i = 0; $i < 11; $i++ ) : ?>
-					<?php
+		<?php if ( ! $chart_has_data ) : ?>
+			<p class="description"><?php esc_html_e( 'Wykres pojawi się po zakończeniu pierwszego głosowania.', 'openvote' ); ?></p>
+		<?php else : ?>
+		<div class="openvote-chart-wrap" style="max-width:720px;">
+			<div class="openvote-stats-chart" role="img" aria-label="<?php echo esc_attr__( 'Wykres frekwencji w ostatnich głosowaniach; wartości w tabeli poniżej.', 'openvote' ); ?>">
+				<?php for ( $i = 0; $i < 11; $i++ ) :
 					$label  = $i < 10 ? (string) ( $i + 1 ) : __( 'Średnia', 'openvote' );
-					if ( $chart_has_data ) {
-						$pct    = $i < 10 ? ( isset( $chart_data[ $i ] ) ? $chart_data[ $i ]['pct'] : 0 ) : $avg_pct;
-						$height = $chart_max > 0 ? ( $pct / $chart_max ) * $chart_scale : 0;
-						$bar_color = '#2271b1';
-						$bar_title = $label . ': ' . $pct . '%';
-					} else {
-						$height = $chart_placeholder_heights[ $i ];
-						$bar_color = '#a7aaad';
-						$bar_title = $label;
-					}
+					$pct    = $i < 10 ? ( isset( $chart_data[ $i ] ) ? $chart_data[ $i ]['pct'] : 0 ) : $avg_pct;
+					$height = $chart_max > 0 ? ( $pct / $chart_max ) * 100 : 0;
+					$bar_color = $i < 10 ? '#2271b1' : '#1d2327';
 					?>
-					<div class="openvote-chart-bar-cell" style="display:inline-block;width:8%;min-width:40px;vertical-align:bottom;text-align:center;">
-						<div class="openvote-chart-bar" style="height:<?php echo esc_attr( (string) round( $height ) ); ?>px;max-height:<?php echo (int) $chart_scale; ?>px;min-height:0;background:<?php echo esc_attr( $bar_color ); ?>;margin:0 auto 4px;width:24px;" title="<?php echo esc_attr( $bar_title ); ?>"></div>
-						<span style="font-size:11px;"><?php echo esc_html( $label ); ?></span>
+					<div class="openvote-stats-chart__col" title="<?php echo esc_attr( $label . ': ' . $pct . '%' ); ?>">
+						<span><?php echo esc_html( $pct . '%' ); ?></span>
+						<div class="openvote-stats-chart__bar" style="height:<?php echo esc_attr( (string) round( $height * 1.2 ) ); ?>px;background:<?php echo esc_attr( $bar_color ); ?>;"></div>
+						<span><?php echo esc_html( $label ); ?></span>
 					</div>
 				<?php endfor; ?>
 			</div>
+			<details style="margin-top:12px;">
+				<summary><?php esc_html_e( 'Pokaż dane w tabeli', 'openvote' ); ?></summary>
+				<div class="openvote-table-scroll"><table class="widefat striped" style="max-width:720px;">
+					<thead><tr><th>#</th><th><?php esc_html_e( 'Tytuł', 'openvote' ); ?></th><th><?php esc_html_e( 'Frekwencja', 'openvote' ); ?></th></tr></thead>
+					<tbody>
+					<?php foreach ( $chart_data as $ci => $cd ) : ?>
+						<tr><td><?php echo (int) ( $ci + 1 ); ?></td><td><?php echo esc_html( (string) $cd['title'] ); ?></td><td><?php echo esc_html( $cd['pct'] . '%' ); ?></td></tr>
+					<?php endforeach; ?>
+					<tr><td></td><td><strong><?php esc_html_e( 'Średnia', 'openvote' ); ?></strong></td><td><?php echo esc_html( $avg_pct . '%' ); ?></td></tr>
+					</tbody>
+				</table></div>
+			</details>
 		</div>
+		<?php endif; ?>
 		<p class="description" style="margin-top:12px;margin-bottom:0;"><?php esc_html_e( 'Oś X: numer głosowania (1 = ostatnie, 11 = średnia). Oś Y: frekwencja w %.', 'openvote' ); ?></p>
 	</div>
 

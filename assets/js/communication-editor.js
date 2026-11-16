@@ -35,6 +35,8 @@
         var editorId = 'openvote_message_body';
 
         btn.addEventListener('click', function() {
+            var msg = btn.getAttribute('data-confirm');
+            if (msg && !window.confirm(msg)) return;
             var ed = window.tinymce && window.tinymce.get(editorId);
             if (ed) {
                 ed.setContent(defaultBody);

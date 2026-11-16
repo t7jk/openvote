@@ -27,7 +27,7 @@ class Openvote_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/vote', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'cast_vote' ],
-            'permission_callback' => fn() => is_user_logged_in(),
+            'permission_callback' => fn( $request ) => Openvote_Identity_Verifier::permission_for( $request, 'poll' ),
             'args'                => [
                 'id'           => [ 'sanitize_callback' => 'absint' ],
                 'answers'      => [
@@ -137,12 +137,17 @@ class Openvote_Rest_Controller {
 
         $is_active = Openvote_Poll::is_active( $poll );
         $is_ended  = Openvote_Poll::is_ended( $poll );
-        $has_voted = is_user_logged_in() ? Openvote_Vote::has_voted( (int) $poll->id, get_current_user_id() ) : false;
+        // Zalogowany użytkownik albo użytkownik z tokenu weryfikacji tożsamości (0 = anonim).
+        $uid       = Openvote_Identity_Verifier::resolve_user_id( $request, 'poll', (int) $poll->id );
+        $has_voted = $uid ? Openvote_Vote::has_voted( (int) $poll->id, $uid ) : false;
+        if ( $uid && ! is_user_logged_in() ) {
+            Openvote_Identity_Verifier::send_nocache();
+        }
 
-        // Check eligibility for logged-in users (pełne 7 sprawdzeń).
+        // Check eligibility (pełne 7 sprawdzeń).
         $eligible_error = null;
-        if ( is_user_logged_in() && $is_active && ! $has_voted ) {
-            $check = Openvote_Eligibility::can_vote( get_current_user_id(), (int) $poll->id );
+        if ( $uid && $is_active && ! $has_voted ) {
+            $check = Openvote_Eligibility::can_vote( $uid, (int) $poll->id );
             if ( ! $check['eligible'] ) {
                 $eligible_error = $check['reason'];
             }
@@ -174,7 +179,11 @@ class Openvote_Rest_Controller {
     public function cast_vote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $poll_id      = $request->get_param( 'id' );
         $answers      = $request->get_param( 'answers' );
-        $user_id      = get_current_user_id();
+        $user_id      = Openvote_Identity_Verifier::resolve_user_id( $request, 'poll', (int) $poll_id );
+        $via_token    = ! is_user_logged_in();
+        if ( $user_id <= 0 ) {
+            return Openvote_Identity_Verifier::invalid_error();
+        }
 
         $poll = Openvote_Poll::get( $poll_id );
         if ( $poll && isset( $poll->vote_mode ) && $poll->vote_mode === 'anonymous' ) {
@@ -186,13 +195,22 @@ class Openvote_Rest_Controller {
         // Sanitize: question_id → int, answer_id → int.
         $clean_answers = [];
         foreach ( $answers as $question_id => $answer_id ) {
-            $clean_answers[ absint( $question_id ) ] = absint( $answer_id );
+            // Tylko dodatnie liczby całkowite (absint zamieniłby -9 na 9).
+            if ( ! is_scalar( $answer_id ) || ! preg_match( '/^[1-9][0-9]*$/', (string) $answer_id )
+                || ! preg_match( '/^[1-9][0-9]*$/', (string) $question_id ) ) {
+                return new WP_Error( 'invalid_answers', __( 'Nieprawidłowe odpowiedzi.', 'openvote' ), [ 'status' => 400 ] );
+            }
+            $clean_answers[ (int) $question_id ] = (int) $answer_id;
         }
 
         $result = Openvote_Vote::cast( $poll_id, $user_id, $clean_answers, $is_anonymous );
 
         if ( is_wp_error( $result ) ) {
             return $result;
+        }
+
+        if ( $via_token ) {
+            Openvote_Identity_Verifier::send_nocache();
         }
 
         return new WP_REST_Response( [
@@ -262,10 +280,14 @@ class Openvote_Rest_Controller {
             return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'openvote' ), [ 'status' => 404 ] );
         }
 
-        if ( ! in_array( $poll->status, [ 'open', 'closed' ], true ) ) {
+        if ( ! Openvote_Poll::current_user_can_access( $poll ) ) {
+            return new WP_Error( 'forbidden', __( 'Brak uprawnień do tego głosowania.', 'openvote' ), [ 'status' => 403 ] );
+        }
+
+        if ( 'open' !== $poll->status || Openvote_Poll::is_time_expired( $poll ) ) {
             return new WP_Error(
                 'poll_not_active',
-                __( 'Zaproszenia można wysyłać tylko do otwartych lub zakończonych głosowań.', 'openvote' ),
+                __( 'Zaproszenia można wysyłać tylko podczas trwania głosowania.', 'openvote' ),
                 [ 'status' => 400 ]
             );
         }
@@ -383,6 +405,10 @@ class Openvote_Rest_Controller {
 
         if ( ! $poll ) {
             return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
+        if ( ! Openvote_Poll::current_user_can_access( $poll ) ) {
+            return new WP_Error( 'forbidden', __( 'Brak uprawnień do tego głosowania.', 'openvote' ), [ 'status' => 403 ] );
         }
 
         if ( ! in_array( $poll->status, [ 'open', 'closed' ], true ) ) {

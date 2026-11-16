@@ -41,7 +41,7 @@ $brand = openvote_get_brand_short_name();
         <li><a href="#manual-vote"><?php esc_html_e( 'Jak odbywa się głosowanie (widok uczestnika)', 'openvote' ); ?></a></li>
         <li><a href="#manual-results"><?php esc_html_e( 'Wyniki głosowania', 'openvote' ); ?></a></li>
         <li><a href="#manual-invitations"><?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></a></li>
-        <li><a href="#manual-communication"><?php esc_html_e( 'Komunikacja — masowa wysyłka wiadomości', 'openvote' ); ?></a></li>
+        <li><a href="#manual-communication"><?php esc_html_e( 'Wysyłka — masowa wysyłka wiadomości', 'openvote' ); ?></a></li>
         <li><a href="#manual-config"><?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></a></li>
         <li><a href="#manual-fieldmap"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></a></li>
         <li><a href="#manual-surveys"><?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></a></li>
@@ -186,7 +186,7 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Jak nadać rolę Koordynatora', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Koordynatorzy.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu OpenVote → Koordynatorzy.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W lewej kolumnie znajdź użytkownika (wpisz imię lub nazwisko).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'W prawej kolumnie wybierz grupę (lub kilka grup).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Dodaj". Użytkownik stanie się Koordynatorem wybranych grup.', 'openvote' ); ?></li>
@@ -201,18 +201,22 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Tworzenie grupy', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu Open Vote → Członkowie i grupy.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu OpenVote → Członkowie i grupy.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Dodaj grupę", wpisz nazwę (np. nazwę miasta lub oddziału).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Zapisz. Grupa pojawi się na liście.', 'openvote' ); ?></li>
 </ol>
 
 <h3><?php esc_html_e( 'Dodawanie użytkowników do grupy', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Są trzy sposoby:', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Są cztery sposoby (ekran Grupy ma zakładki: Lista grup, Dodaj do grup, Import CSV, Dodaj grupę, Synchronizacja, Dziennik zmian):', 'openvote' ); ?></p>
 <ul>
-    <li><strong><?php esc_html_e( 'Ręcznie', 'openvote' ); ?></strong> — <?php esc_html_e( 'na ekranie Grupy wyszukaj użytkownika, wybierz grupę (lub kilka) i kliknij "Dodaj".', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Ręcznie', 'openvote' ); ?></strong> — <?php esc_html_e( 'na ekranie Grupy, w zakładce „Dodaj do grup”, wyszukaj użytkownika po adresie e-mail, wybierz grupę (lub kilka) i kliknij „Dodaj do grup”.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Automatycznie (przycisk "Auto")', 'openvote' ); ?></strong> — <?php esc_html_e( 'system przeszukuje wszystkich użytkowników z wypełnionym polem "Miasto" i przypisuje ich do grupy o tej samej nazwie. Grupy, które nie istnieją, zostaną automatycznie utworzone.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Z pliku CSV', 'openvote' ); ?></strong> — <?php esc_html_e( 'zakładka „Import CSV” (opis poniżej).', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Przez rejestrację', 'openvote' ); ?></strong> — <?php esc_html_e( 'gdy nowy użytkownik się rejestruje lub uzupełnia profil, wtyczka automatycznie sprawdza czy pasuje do aktywnych głosowań z trybem dołączania "Otwarte" i dodaje go do odpowiedniej grupy.', 'openvote' ); ?></li>
 </ul>
+
+<h3><?php esc_html_e( 'Import z pliku CSV', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Grupy → zakładka „Import CSV”: wybierz grupę, wskaż plik .csv lub .txt (maks. 2 MB) z adresami e-mail w kolumnie „email” (albo same adresy, jeden w wierszu; separator: przecinek, średnik lub tabulator; kodowanie Windows-1250 jest obsługiwane). Do grupy trafią tylko osoby, które już mają konto — konta nie są tworzone. Po imporcie zobaczysz raport: ile adresów dodano, ile już było w grupie, ile nie ma konta i ile jest niepoprawnych (z listą odrzuconych adresów).', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Synchronizacja wszystkich grup-miast', 'openvote' ); ?></h3>
 <p><?php esc_html_e( 'Na stronie Członkowie i grupy w sekcji „Synchronizacja grup-miast” dostępne są dwa przyciski:', 'openvote' ); ?></p>
@@ -252,7 +256,7 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Tworzenie nowego głosowania', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do Open Vote → Głosowania → Dodaj nowe.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do OpenVote → Głosowania → Dodaj nowe.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Wypełnij formularz (opis pól poniżej).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Zapisz jako szkic" lub "Wystartuj głosowanie".', 'openvote' ); ?></li>
 </ol>
@@ -351,6 +355,15 @@ $brand = openvote_get_brand_short_name();
     <li><?php esc_html_e( 'Po oddaniu głosu formularz zostaje zablokowany i pojawia się potwierdzenie.', 'openvote' ); ?></li>
 </ol>
 
+<h3><?php esc_html_e( 'Głosowanie bez logowania (kod z e-maila)', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Jeśli administrator włączy tę opcję (Konfiguracja → zakładka „Role i dostęp”, „Pozwól głosować bez logowania”), osoba niezalogowana może zagłosować po potwierdzeniu adresu e-mail:', 'openvote' ); ?></p>
+<ol>
+    <li><?php esc_html_e( 'Uczestnik wpisuje adres e-mail powiązany z jego kontem na stronie głosowania.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Na ten adres wysyłany jest 4-cyfrowy kod. Kod jest ważny 15 minut, a ponowne wysłanie jest możliwe po 120 sekundach.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Po wpisaniu poprawnego kodu uczestnik głosuje jako właściciel tego konta (z tymi samymi uprawnieniami i ograniczeniami grup co zalogowany).', 'openvote' ); ?></li>
+</ol>
+<p><?php esc_html_e( 'Zabezpieczenia: maksymalnie 5 prób na adres IP w ciągu 24 godzin (także dla adresu, którego nie znaleziono). Anonimowość głosu jest nadal egzekwowana po stronie serwera — kod potwierdza tylko tożsamość, nie ujawnia wyboru.', 'openvote' ); ?></p>
+
 <h3><?php esc_html_e( 'Warunki uprawnienia do głosowania', 'openvote' ); ?></h3>
 <p><?php esc_html_e( 'Użytkownik może głosować tylko jeśli spełnia wszystkie poniższe warunki:', 'openvote' ); ?></p>
 <ol>
@@ -380,7 +393,7 @@ $brand = openvote_get_brand_short_name();
 </ul>
 
 <h3><?php esc_html_e( 'Widok admina', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'W panelu admina (Open Vote → kliknij głosowanie → Wyniki) dostępne są:', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'W panelu admina (OpenVote → kliknij głosowanie → Wyniki) dostępne są:', 'openvote' ); ?></p>
 <ul>
     <li><?php esc_html_e( 'Pełne wyniki z listą głosujących (jawnie lub anonimowo, zależnie od trybu).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Lista nieobecnych (uprawnionych, którzy nie zagłosowali).', 'openvote' ); ?></li>
@@ -430,18 +443,37 @@ $brand = openvote_get_brand_short_name();
 <div class="openvote-manual__tip">
     <?php esc_html_e( 'Limity pomagają uniknąć zablokowania przez dostawcę poczty (np. Brevo free, WordPress) przy dużej liczbie odbiorców. Ustaw wartości zgodne z limitami Twojego planu. Do limitu wliczane są wyłącznie e-maile faktycznie dostarczone (zaakceptowane przez SMTP lub dostawcę); odrzucone próby wysyłki nie zwiększają licznika.', 'openvote' ); ?>
 </div>
+
+<h3 id="manual-cron"><?php esc_html_e( 'Automatyczne zaproszenia i cron serwera', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'W formularzu głosowania pole „Automatycznie wyślij zaproszenia po rozpoczęciu głosowania” działa tylko wtedy, gdy na serwerze skonfigurowano cron. Cron to zadanie hostingu, które co 15 minut uruchamia plik PHP wtyczki z wiersza poleceń — dzięki temu wtyczka pracuje także wtedy, gdy nikt nie jest zalogowany.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co robi cron:', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Wysyła zaproszenia e-mail na trwające głosowania z zaznaczoną opcją automatycznej wysyłki. Dotyczy wyłącznie głosowań rozpoczętych po włączeniu tej funkcji i tylko jeśli dla głosowania nie wysłano jeszcze zaproszeń (ani automatycznie, ani ręcznie) — nikt nie dostanie zaproszenia dwa razy, a głosowania sprzed aktualizacji wtyczki nie są wysyłane automatycznie. Duże listy są wysyłane partiami w kolejnych wywołaniach, z poszanowaniem limitów wysyłki.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wznawia wysyłkę zaproszeń i wiadomości wstrzymaną przez limity (15 minut, godzina, doba), gdy limit znów na to pozwala — bez konieczności logowania.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wykonuje zaległe zadania harmonogramu wtyczki (np. automatyczną synchronizację grup).', 'openvote' ); ?></li>
+</ul>
+<p><strong><?php esc_html_e( 'Jak skonfigurować (cPanel):', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Wejdź w Konfiguracja → zakładka „Cron” i skopiuj gotową komendę (przycisk „Kopiuj”).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W panelu hostingu (cPanel) otwórz „Zadania Cron” (Cron Jobs), w „Ustawieniach zwykłych” wybierz „Co 15 minut”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W polu „Polecenie” wklej komendę z zakładki Cron (zaczyna się od „/usr/local/bin/php -q”). Jeśli PHP jest na serwerze w innym miejscu, zamień ścieżkę (np. na /usr/bin/php). Nie są potrzebne ani wget, ani curl, ani żaden klucz. Każde uruchomienie dopisuje do pliku cron/cron-log.php w katalogu wtyczki datę, wersję PHP i wynik — po pierwszym uruchomieniu sprawdź ten plik przez FTP. Wtyczka wymaga PHP 8.1 lub nowszego; przy starszej wersji cron tylko zapisze błąd w logu.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Po kilkunastu minutach zakładka „Cron” pokaże zielony znacznik „Działa”. Przycisk „Uruchom teraz” pozwala sprawdzić działanie od ręki.', 'openvote' ); ?></li>
+</ol>
+<div class="openvote-manual__tip">
+    <?php esc_html_e( 'Katalog „cron” wtyczki jest zablokowany dla przeglądarek plikiem .htaccess, a skrypt uruchamia się wyłącznie z wiersza poleceń. Bez crona zaproszenia nadal można wysłać ręcznie z ekranu Zaproszenia.', 'openvote' ); ?>
+</div>
 </div>
 
 
 <!-- 9. Komunikacja -->
 <div class="openvote-manual__section" id="manual-communication">
-<h2>9. <?php esc_html_e( 'Komunikacja — masowa wysyłka wiadomości', 'openvote' ); ?></h2>
-<p><?php esc_html_e( 'Moduł Komunikacja (menu Open Vote → Komunikacja) umożliwia tworzenie i wysyłkę masowych wiadomości e-mail do wybranych grup użytkowników — niezależnie od głosowań. Przydatne do ogłoszeń, powiadomień lub newslettera.', 'openvote' ); ?></p>
+<h2>9. <?php esc_html_e( 'Wysyłka — masowa wysyłka wiadomości', 'openvote' ); ?></h2>
+<p><?php esc_html_e( 'Moduł Wysyłka (menu OpenVote → Wysyłka) umożliwia tworzenie i wysyłkę masowych wiadomości e-mail do wybranych grup użytkowników — niezależnie od głosowań. Przydatne do ogłoszeń, powiadomień lub newslettera.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Tworzenie i wysyłka', 'openvote' ); ?></h3>
 <ol>
     <li><?php esc_html_e( 'Wpisz tytuł wysyłki i treść wiadomości w sekcji "Nowa wysyłka" (lub edytuj istniejącą w pozycji "Edytuj" na liście).', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'Wybierz grupy docelowe (Ctrl+klik dla wielu). Tylko członkowie tych grup otrzymają wiadomość.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wybierz co najmniej jedną grupę docelową (Ctrl lub Cmd + klik dla wielu). Tylko członkowie tych grup otrzymają wiadomość.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Zapisz", a następnie "Wyślij" przy danej wiadomości — otworzy się ekran wysyłki z podglądem i przyciskiem "Wyślij wiadomości e-mailem".', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Wysyłka odbywa się partiami (jak zaproszenia). Postęp i ewentualne błędy są widoczne na ekranie.', 'openvote' ); ?></li>
 </ol>
@@ -457,20 +489,20 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Statusy i akcje na liście', 'openvote' ); ?></h3>
 <ul>
-    <li><strong><?php esc_html_e( 'Szkic', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość nie została jeszcze wysłana. Dostępne: Edytuj, Duplikuj, Kasuj, Wyślij.', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Wysłano', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość została wysłana. Dostępne: Podgląd (wyszarzony widok bez edycji), Duplikuj, Kasuj. Link "Wyślij" nie jest wyświetlany.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Szkic', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość nie została jeszcze wysłana. Dostępne: Edytuj, Duplikuj, Usuń, Wyślij.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Wysłano', 'openvote' ); ?></strong> — <?php esc_html_e( 'wiadomość została wysłana. Dostępne: Podgląd (wyszarzony widok bez edycji), Duplikuj, Usuń. Link "Wyślij" nie jest wyświetlany.', 'openvote' ); ?></li>
 </ul>
 <p><?php esc_html_e( 'Wysłanej wiadomości nie można już edytować; można ją zduplikować i edytować kopię.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Limity i statystyki', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Te same limity co dla zaproszeń (na 15 min, godzinę, dobę) dotyczą wysyłki z modułu Komunikacja. Do limitu i statystyk "Ilość wysłanych e-maili" wliczane są tylko e-maile faktycznie dostarczone do serwera SMTP lub dostawcy; odrzucone adresy (np. nieaktywne) nie zwiększają licznika.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Te same limity co dla zaproszeń (na 15 min, godzinę, dobę) dotyczą wysyłki z modułu Wysyłka. Do limitu i statystyk "Liczba wysłanych e-maili" wliczane są tylko e-maile faktycznie dostarczone do serwera SMTP lub dostawcy; odrzucone adresy (np. nieaktywne) nie zwiększają licznika.', 'openvote' ); ?></p>
 </div>
 
 
 <!-- 10. Konfiguracja -->
 <div class="openvote-manual__section" id="manual-config">
 <h2>10. <?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></h2>
-<p><?php esc_html_e( 'Dostępna w menu Open Vote → Konfiguracja (tylko Administrator WordPress).', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Dostępna w menu OpenVote → Konfiguracja (tylko Administrator WordPress). Ekran ma zakładki: Ogólne, Pola użytkownika, Role i dostęp, Wysyłka e-mail, Szablon zaproszenia, Auto-synchronizacja, Nieaktywni, Narzędzia.', 'openvote' ); ?></p>
 
 <table class="openvote-manual__table">
     <thead><tr>
@@ -504,7 +536,7 @@ $brand = openvote_get_brand_short_name();
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Metoda wysyłki e-mail', 'openvote' ); ?></strong></td>
-        <td><?php esc_html_e( 'WordPress (wp_mail), SMTP zewnętrzny, SendGrid API, Brevo (darmowy i płatny), Freshmail API, GetResponse API. Wybór dotyczy zarówno zaproszeń do głosowań, jak i wysyłki z modułu Komunikacja.', 'openvote' ); ?></td>
+        <td><?php esc_html_e( 'WordPress (wp_mail), SMTP zewnętrzny, SendGrid API, Brevo (darmowy i płatny), Freshmail API, GetResponse API. Wybór dotyczy zarówno zaproszeń do głosowań, jak i wysyłki z modułu Wysyłka.', 'openvote' ); ?></td>
     </tr>
     <tr>
         <td><strong><?php esc_html_e( 'Warunki wysyłki e-maili', 'openvote' ); ?></strong></td>
@@ -561,7 +593,7 @@ $brand = openvote_get_brand_short_name();
 
 <h3><?php esc_html_e( 'Gdzie znajdziesz ankiety', 'openvote' ); ?></h3>
 <ul>
-    <li><?php esc_html_e( 'Lista ankiet: Open Vote → Ankiety (lub z menu listy głosowań — opcja "Ankiety").', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Lista ankiet: OpenVote → Ankiety (lub z menu listy głosowań — opcja "Ankiety").', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Na górze listy ankiet wyświetlane jest okienko z adresami strony ankiet i strony zgłoszeń (linki do wypełniania ankiet i przeglądania zgłoszeń). Okienko można zamknąć krzyżykiem; stan zamknięcia jest zapamiętany do końca sesji przeglądarki.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Tworzenie i edycja: tytuł, opis, czas trwania, pola ankiety (etykieta, typ pola, opcjonalnie checkbox informacja wrażliwa).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Dla każdej ankiety: lista zgłoszeń ze statusem (oczekuje / nie spam / spam), przycisk "To nie spam" do zatwierdzania zgłoszeń.', 'openvote' ); ?></li>

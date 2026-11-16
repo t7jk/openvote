@@ -18,7 +18,8 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
 }
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline"><?php esc_html_e( 'Komunikacja', 'openvote' ); ?></h1>
+    <h1 class="wp-heading-inline"><?php esc_html_e( 'Wysyłka', 'openvote' ); ?></h1>
+    <hr class="wp-header-end"><?php // komunikaty WP trafiają tu (nad zakładkami), nie do ukrytego panelu ?>
 
     <?php if ( isset( $_GET['bulk_deleted'] ) ) : ?>
         <?php $count = absint( $_GET['bulk_deleted'] ); ?>
@@ -53,10 +54,30 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
 
     <?php if ( isset( $_GET['save_error'] ) ) : ?>
         <div class="notice notice-error is-dismissible"><p>
-            <?php esc_html_e( 'Zapis nie powiódł się. Sprawdź tytuł i czy wiadomość nie została już wysłana.', 'openvote' ); ?>
+            <?php
+            if ( '2' === (string) $_GET['save_error'] ) {
+                esc_html_e( 'Wybierz co najmniej jedną grupę docelową.', 'openvote' );
+            } else {
+                esc_html_e( 'Zapis nie powiódł się. Sprawdź tytuł i czy wiadomość nie została już wysłana.', 'openvote' );
+            }
+            ?>
         </p></div>
     <?php endif; ?>
 
+    <?php if ( isset( $_GET['delete_blocked'] ) ) : ?>
+        <div class="notice notice-warning is-dismissible"><p>
+            <?php esc_html_e( 'Nie można usunąć wiadomości w trakcie wysyłki. Poczekaj na zakończenie wysyłki.', 'openvote' ); ?>
+        </p></div>
+    <?php endif; ?>
+
+    <?php // Zakładki (client-side, openvote-settings-tabs.js) — formularze i akcje bez zmian; bez JS wszystkie sekcje widoczne. ?>
+    <h2 class="nav-tab-wrapper openvote-admin-tabs" id="openvote-communication-tabs" data-tabs-key="communication" role="tablist" aria-label="<?php echo esc_attr__( 'Sekcje ekranu', 'openvote' ); ?>">
+        <a href="#tab-list" id="tabbtn-list" class="nav-tab nav-tab-active" role="tab" aria-controls="tab-list" aria-selected="true" data-tab="list"><?php esc_html_e( 'Wiadomości', 'openvote' ); ?></a>
+        <a href="#tab-form" id="tabbtn-form" class="nav-tab" role="tab" aria-controls="tab-form" aria-selected="false" data-tab="form"><?php esc_html_e( 'Nowa wysyłka', 'openvote' ); ?></a>
+        <a href="#tab-audit" id="tabbtn-audit" class="nav-tab" role="tab" aria-controls="tab-audit" aria-selected="false" data-tab="audit"><?php esc_html_e( 'Dziennik zmian', 'openvote' ); ?></a>
+    </h2>
+
+    <div class="openvote-tab-panel" id="tab-list" data-tab="list" role="tabpanel" aria-labelledby="tabbtn-list">
     <form method="post">
         <input type="hidden" name="page" value="openvote-communication">
         <?php
@@ -65,8 +86,9 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         ?>
     </form>
 
-    <hr class="wp-header-end">
+    </div>
 
+    <div class="openvote-tab-panel" id="tab-form" data-tab="form" role="tabpanel" aria-labelledby="tabbtn-form">
     <div id="openvote-communication-form" style="scroll-margin-top: 32px;">
     <h2><?php
         if ( ! empty( $is_preview ) ) {
@@ -78,6 +100,9 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
     <?php include OPENVOTE_PLUGIN_DIR . 'admin/partials/communication-form.php'; ?>
     </div>
 
+    </div>
+
+    <div class="openvote-tab-panel" id="tab-audit" data-tab="audit" role="tabpanel" aria-labelledby="tabbtn-audit">
     <?php
     $messages_audit_all   = function_exists( 'openvote_messages_audit_log_get' ) ? openvote_messages_audit_log_get() : [];
     $audit_per            = 20;
@@ -90,7 +115,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
     $audit_base_url       = add_query_arg( [ 'page' => 'openvote-communication' ], admin_url( 'admin.php' ) );
     ?>
     <section class="openvote-messages-audit-log" style="margin-top:32px; max-width:900px;">
-        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Log wysyłki', 'openvote' ); ?></h2>
+        <h2 class="openvote-section-title" style="margin:0 0 8px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Dziennik zmian', 'openvote' ); ?></h2>
         <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Kto i kiedy uruchomił wysyłkę lub wykonał inne działania na wysyłkach. Lista niekasowalna, w celach bezpieczeństwa.', 'openvote' ); ?></p>
         <div class="openvote-audit-log-box" style="background:#1d2327; color:#f0f0f1; padding:12px 16px; border-radius:4px; max-height:220px; overflow-y:auto; font-family:Consolas, Monaco, monospace; font-size:12px; line-height:1.5;">
             <?php
@@ -112,12 +137,13 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                 <?php echo esc_html( sprintf( __( 'Strona %1$d z %2$d (%3$d wpisów)', 'openvote' ), $audit_page, $audit_pages, $audit_total ) ); ?>
             </span>
             <?php if ( $audit_page > 1 ) : ?>
-                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page - 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page - 1, $audit_base_url ) . '#tab-audit' ); ?>" class="button button-small"><?php esc_html_e( 'Poprzedni', 'openvote' ); ?></a>
             <?php endif; ?>
             <?php if ( $audit_page < $audit_pages ) : ?>
-                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page + 1, $audit_base_url ) ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
+                <a href="<?php echo esc_url( add_query_arg( 'audit_page', $audit_page + 1, $audit_base_url ) . '#tab-audit' ); ?>" class="button button-small"><?php esc_html_e( 'Następny', 'openvote' ); ?></a>
             <?php endif; ?>
         </p>
         <?php endif; ?>
     </section>
+    </div>
 </div>

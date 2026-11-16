@@ -54,6 +54,36 @@ if ( $is_edit && ! empty( $poll->target_groups ) ) {
     }
 }
 
+// A2: dane wpisane przed błędem walidacji (redirect nie może ich gubić).
+$poll_form_draft_key = 'openvote_poll_form_draft_' . get_current_user_id();
+$poll_form_draft     = get_transient( $poll_form_draft_key );
+if ( is_array( $poll_form_draft ) ) {
+    delete_transient( $poll_form_draft_key );
+    $draft_for = (int) ( $poll_form_draft['poll_id'] ?? 0 );
+    $cur_id    = $is_edit ? (int) $poll->id : 0;
+    if ( ! $is_read_only && $draft_for === $cur_id ) {
+        $title              = (string) ( $poll_form_draft['title'] ?? $title );
+        $desc               = (string) ( $poll_form_draft['description'] ?? $desc );
+        $selected_duration  = isset( $duration_options[ $poll_form_draft['duration'] ?? '' ] ) ? $poll_form_draft['duration'] : $selected_duration;
+        $selected_group_ids = array_map( 'absint', (array) ( $poll_form_draft['target_groups'] ?? [] ) );
+        $notify_start       = ! empty( $poll_form_draft['notify_start'] );
+        if ( ! empty( $poll_form_draft['questions'] ) ) {
+            $questions = [];
+            foreach ( $poll_form_draft['questions'] as $dq ) {
+                $answers = [];
+                $dan     = array_values( (array) ( $dq['answers'] ?? [] ) );
+                foreach ( $dan as $ai => $atext ) {
+                    $answers[] = (object) [
+                        'body'       => (string) $atext,
+                        'is_abstain' => ( $ai === count( $dan ) - 1 ) ? 1 : 0,
+                    ];
+                }
+                $questions[] = (object) [ 'body' => (string) ( $dq['text'] ?? '' ), 'answers' => $answers ];
+            }
+        }
+    }
+}
+
 // Get all groups for multiselect (dla koordynatora z ograniczeniem „własne” tylko jego grupy).
 global $wpdb;
 $groups_table = $wpdb->prefix . 'openvote_groups';
@@ -87,7 +117,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Głosowanie zostało zaktualizowane.', 'openvote' ); ?></p></div>
     <?php endif; ?>
     <?php if ( isset( $_GET['started'] ) ) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Głosowanie zostało uruchomione. Data rozpoczęcia ustawiona na dziś.', 'openvote' ); ?></p></div>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Głosowanie wystartowało. Data rozpoczęcia ustawiona na dziś.', 'openvote' ); ?></p></div>
     <?php endif; ?>
     <?php if ( isset( $_GET['duplicated'] ) ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Utworzono kopię głosowania. Możesz ją teraz edytować.', 'openvote' ); ?></p></div>
@@ -98,12 +128,12 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
     if ( $error ) :
         delete_transient( 'openvote_admin_error' );
         ?>
-        <div class="notice notice-error is-dismissible"><p><?php echo esc_html( $error ); ?></p></div>
+        <div class="notice notice-error is-dismissible" role="alert"><p><?php echo esc_html( $error ); ?></p></div>
     <?php endif; ?>
 
     <form method="post" action="" id="openvote-poll-form"<?php echo $is_read_only ? ' class="openvote-form-readonly"' : ''; ?>
-          <?php if ( ! $is_read_only ) : ?>onsubmit="var b=this.querySelectorAll('button[type=submit],input[type=submit]');for(var i=0;i<b.length;i++)b[i].disabled=true;"<?php endif; ?>>
-        <?php if ( $is_read_only && $is_edit && $poll && in_array( $poll->status ?? '', [ 'open', 'closed' ], true ) ) : ?>
+          <?php if ( ! $is_read_only ) : ?>onsubmit="var f=this;setTimeout(function(){var b=f.querySelectorAll('button[type=submit],input[type=submit]');for(var i=0;i<b.length;i++)b[i].disabled=true;},0);"<?php endif; ?>>
+        <?php if ( $is_read_only && $is_edit && $poll && 'open' === ( $poll->status ?? '' ) ) : ?>
             <?php wp_nonce_field( 'openvote_save_poll', 'openvote_poll_nonce' ); ?>
             <input type="hidden" name="poll_id" value="<?php echo esc_attr( $poll->id ); ?>">
             <input type="hidden" name="openvote_action" value="update">
@@ -148,12 +178,18 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             <tr>
                 <th scope="row"><label for="poll_duration"><?php esc_html_e( 'Czas trwania głosowania', 'openvote' ); ?> <span class="required">*</span></label></th>
                 <td>
-                    <select id="poll_duration" name="poll_duration" <?php echo $is_read_only ? '' : ''; ?>>
+                    <select id="poll_duration" name="poll_duration"<?php echo ( $is_read_only && ( ! $is_edit || 'open' !== ( $poll->status ?? '' ) ) ) ? ' disabled' : ''; ?>>
                         <?php foreach ( $duration_options as $val => $label ) : ?>
                             <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $selected_duration, $val ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description"><?php esc_html_e( 'Od momentu startu głosowania.', 'openvote' ); ?></p>
+                    <p class="description"><?php
+                        if ( $is_read_only && $is_edit && 'open' === ( $poll->status ?? '' ) ) {
+                            esc_html_e( 'Od momentu startu głosowania. Możesz wydłużyć trwające głosowanie (nowy termin musi być w przyszłości).', 'openvote' );
+                        } else {
+                            esc_html_e( 'Od momentu startu głosowania.', 'openvote' );
+                        }
+                    ?></p>
                 </td>
             </tr>
             <tr>
@@ -170,7 +206,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                             <?php endforeach; ?>
                         </select>
                         <?php if ( ! $is_read_only ) : ?>
-                            <p class="description"><?php esc_html_e( 'Ctrl+klik aby wybrać wiele grup. Zostaw puste = wszyscy uprawnieni użytkownicy.', 'openvote' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Ctrl+klik wybiera wiele grup. Do startu głosowania zaznacz co najmniej jedną grupę.', 'openvote' ); ?></p>
                         <?php endif; ?>
                     <?php else : ?>
                         <p class="description"><?php esc_html_e( 'Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>
@@ -181,15 +217,15 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                 <th scope="row"><?php esc_html_e( 'Powiadomienia e-mail', 'openvote' ); ?></th>
                 <td>
                     <label>
-                        <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?>>
-                        <?php esc_html_e( 'Wyślij e-mail przy otwarciu głosowania', 'openvote' ); ?>
+                        <input type="checkbox" name="notify_start" value="1" <?php checked( $notify_start ); ?><?php echo $is_read_only ? ' disabled' : ''; ?>>
+                        <?php esc_html_e( 'Automatycznie wyślij zaproszenia po rozpoczęciu głosowania (wymaga skonfigurowanego crona)', 'openvote' ); ?>
                     </label>
-                    <p class="description"><?php esc_html_e( 'Zaznaczone domyślnie.', 'openvote' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Zaznaczone domyślnie. Zaproszenia wyśle automatycznie cron serwera (Konfiguracja → Cron), najpóźniej do 15 minut po starcie, tylko jeśli dla tego głosowania nie wysłano wcześniej zaproszeń. Bez crona użyj ekranu Zaproszenia.', 'openvote' ); ?></p>
                 </td>
             </tr>
         </table>
 
-        <h2><?php esc_html_e( 'Pytania', 'openvote' ); ?> <small>(<?php esc_html_e( '1–24 pytania, 3–12 odpowiedzi per pytanie', 'openvote' ); ?>)</small></h2>
+        <h2><?php esc_html_e( 'Pytania', 'openvote' ); ?> <small>(<?php esc_html_e( '1–24 pytania; każde: min. 2 własne odpowiedzi + „Wstrzymuję się”, razem 3–12', 'openvote' ); ?>)</small></h2>
         <?php if ( ! $is_read_only ) : ?>
             <p class="description"><?php esc_html_e( 'Ostatnia odpowiedź każdego pytania to obowiązkowe "Wstrzymuję się" (doliczane do nieuczestniczących).', 'openvote' ); ?></p>
         <?php endif; ?>
@@ -207,7 +243,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                                    placeholder="<?php esc_attr_e( 'Treść pytania', 'openvote' ); ?>"
                                    <?php echo $is_read_only ? 'readonly disabled' : ''; ?>>
                             <?php if ( ! $is_read_only ) : ?>
-                                <button type="button" class="button openvote-remove-question">&times;</button>
+                                <button type="button" class="button openvote-remove-question" aria-label="<?php echo esc_attr( sprintf( __( 'Usuń pytanie %d', 'openvote' ), $qi + 1 ) ); ?>">&times;</button>
                             <?php endif; ?>
                         </div>
                         <div class="openvote-answers-container">
@@ -223,7 +259,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                                            <?php echo $answer->is_abstain ? 'data-abstain="1"' : ''; ?>
                                            <?php echo $is_read_only ? 'readonly disabled' : ''; ?>>
                                     <?php if ( ! $answer->is_abstain && ! $is_read_only ) : ?>
-                                        <button type="button" class="button openvote-remove-answer">&times;</button>
+                                        <button type="button" class="button openvote-remove-answer" aria-label="<?php esc_attr_e( 'Usuń odpowiedź', 'openvote' ); ?>">&times;</button>
                                     <?php elseif ( $answer->is_abstain ) : ?>
                                         <span class="openvote-abstain-label"><?php esc_html_e( '(wstrzymanie – auto)', 'openvote' ); ?></span>
                                     <?php endif; ?>
@@ -302,7 +338,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
 
         <?php if ( $is_read_only ) : ?>
             <p class="submit">
-                <?php if ( $is_edit && $poll && in_array( $poll->status ?? '', [ 'open', 'closed' ], true ) ) : ?>
+                <?php if ( $is_edit && $poll && 'open' === ( $poll->status ?? '' ) ) : ?>
                 <button type="submit" class="button button-primary" name="openvote_extend_duration_submit" value="1"><?php esc_html_e( 'Zapisz zmiany czasu trwania', 'openvote' ); ?></button>
                 <?php endif; ?>
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote' ) ); ?>" class="button"><?php esc_html_e( 'Wróć do listy', 'openvote' ); ?></a>
@@ -313,12 +349,13 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             </p>
         <?php else : ?>
             <p class="submit openvote-poll-actions">
-                <button type="submit" class="button button-primary" onmousedown="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='save_draft';}">
+                <button type="submit" class="button button-primary" onclick="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='save_draft';}">
                     <?php esc_html_e( 'Zapisz jako szkic', 'openvote' ); ?>
                 </button>
-                <button type="submit" id="openvote-btn-start-poll" class="button openvote-btn-start-poll" disabled onmousedown="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='start_now';}">
+                <button type="submit" id="openvote-btn-start-poll" class="button openvote-btn-start-poll" disabled onclick="var h=document.getElementById('openvote-poll-submit-action');if(h){h.value='start_now';}">
                     <?php esc_html_e( 'Wystartuj głosowanie', 'openvote' ); ?>
                 </button>
+                <span id="openvote-start-hint" class="description" aria-live="polite" style="margin-left:8px;"></span>
             </p>
             <?php if ( $is_edit ) : ?>
                 <hr>

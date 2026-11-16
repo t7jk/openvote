@@ -592,6 +592,46 @@ class Openvote_Mailer {
         }
     }
 
+    /**
+     * Wysyła pojedynczą wiadomość tekstową skonfigurowaną metodą wysyłki (SMTP / SendGrid / Brevo /
+     * Freshmail / GetResponse / wp_mail) — nadawca jak w zaproszeniach.
+     *
+     * @return true|\WP_Error
+     */
+    public static function send_single( string $to, string $subject, string $body_plain ): true|\WP_Error {
+        $to = sanitize_email( $to );
+        if ( ! is_email( $to ) ) {
+            return new \WP_Error( 'mail_invalid_to', 'Invalid recipient' );
+        }
+        $method    = openvote_get_mail_method();
+        $recipient = [ [ 'email' => $to, 'name' => '' ] ];
+        $result    = null;
+
+        if ( $method === 'sendgrid' ) {
+            $result = self::send_via_sendgrid( $recipient, $subject, $body_plain, '', 'text/plain' );
+        } elseif ( $method === 'brevo' || $method === 'brevo_paid' ) {
+            $result = self::send_via_brevo( $recipient, $subject, $body_plain, '', 'text/plain' );
+        } elseif ( $method === 'freshmail' ) {
+            $result = self::send_via_freshmail( $recipient, $subject, $body_plain, '', '', 'text/plain' );
+        } elseif ( $method === 'getresponse' ) {
+            $result = self::send_via_getresponse( $recipient, $subject, $body_plain, '', '', 'text/plain' );
+        }
+
+        if ( is_array( $result ) ) {
+            if ( ( $result['sent'] ?? 0 ) > 0 ) {
+                return true;
+            }
+            return new \WP_Error( 'mail_failed', (string) ( $result['error'] ?? 'send failed' ) );
+        }
+
+        // wordpress / smtp (SMTP konfiguruje hook phpmailer_init).
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . openvote_get_brand_short_name() . ' <' . openvote_get_from_email() . '>',
+        ];
+        return wp_mail( $to, $subject, $body_plain, $headers ) ? true : new \WP_Error( 'mail_failed', 'wp_mail failed' );
+    }
+
     private static function record_test_email_sent(): void {
         if ( class_exists( 'Openvote_Email_Rate_Limits', false ) ) {
             Openvote_Email_Rate_Limits::increment( 1 );

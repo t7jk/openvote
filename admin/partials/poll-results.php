@@ -22,93 +22,27 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
     <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote' ) ); ?>" class="page-title-action">
         <?php esc_html_e( 'Wszystkie głosowania', 'openvote' ); ?>
     </a>
-    <?php if ( 'open' === ( $poll->status ?? '' ) ) : ?>
-        <button type="button" class="page-title-action button-primary" id="openvote-send-invitations-btn"
-                data-poll-id="<?php echo (int) $poll->id; ?>"
-                data-nonce="<?php echo esc_attr( wp_create_nonce( 'openvote_send_invitations' ) ); ?>">
-            <?php esc_html_e( 'Wyślij zaproszenia', 'openvote' ); ?>
-        </button>
-        <span id="openvote-invitations-status" style="margin-left:12px;font-weight:500;font-size:13px;"></span>
+    <?php if ( 'open' === ( $poll->status ?? '' ) && ! Openvote_Poll::is_time_expired( $poll ) ) : ?>
+        <?php /* Jedna implementacja wysyłki zaproszeń — na ekranie „Zaproszenia” (obsługa limitów, potwierdzenie, postęp). */ ?>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote&action=invitations&poll_id=' . (int) $poll->id ) ); ?>" class="page-title-action">
+            <?php esc_html_e( 'Zaproszenia (wysyłka)', 'openvote' ); ?>
+        </a>
     <?php endif; ?>
     <hr class="wp-header-end">
 
-    <?php /* Kontener paska postępu wysyłki */ ?>
-    <div id="openvote-invitations-progress" style="display:none;max-width:600px;margin:12px 0 0;"></div>
-
     <?php if ( 'open' === ( $poll->status ?? '' ) ) : ?>
-    <script>
-    (function(){
-        var btn      = document.getElementById('openvote-send-invitations-btn');
-        var statusEl = document.getElementById('openvote-invitations-status');
-        var progressEl = document.getElementById('openvote-invitations-progress');
-        var pollId   = btn ? btn.dataset.pollId : '';
-        var nonce    = btn ? btn.dataset.nonce  : '';
-        var apiRoot  = window.openvoteBatch?.apiRoot || '/wp-json/openvote/v1';
-        var batchNonce = window.openvoteBatch?.nonce || '';
-        var emailDelayMs = (window.openvoteBatch?.emailDelay || 3) * 1000;
-
-        function startOrResume(jobId) {
-            if (btn) btn.disabled = true;
-            progressEl.style.display = '';
-            statusEl.textContent = '<?php echo esc_js( __( 'Wysyłanie…', 'openvote' ) ); ?>';
-            statusEl.style.color = '#666';
-
-            openvoteRunBatchJob(
-                jobId,
-                function(processed, total, pct) {
-                    openvoteRenderProgress(progressEl, processed, total, pct);
-                    statusEl.textContent = processed + ' / ' + total;
-                },
-                function(job) {
-                    statusEl.textContent = '<?php echo esc_js( __( 'Wysyłka zakończona!', 'openvote' ) ); ?>';
-                    statusEl.style.color = 'green';
-                    openvoteClearJobId(pollId);
-                    if (btn) { btn.textContent = '<?php echo esc_js( __( 'Wyślij ponownie', 'openvote' ) ); ?>'; btn.disabled = false; }
-                },
-                function(err) {
-                    statusEl.textContent = '<?php echo esc_js( __( 'Błąd:', 'openvote' ) ); ?> ' + err.message;
-                    statusEl.style.color = '#c00';
-                    if (btn) btn.disabled = false;
-                },
-                emailDelayMs
-            );
-        }
-
-        // Sprawdź czy jest wznowienie z localStorage.
-        var savedJob = openvoteGetSavedJobId(pollId);
-        if (savedJob && btn) {
-            btn.textContent = '<?php echo esc_js( __( 'Wznów wysyłkę', 'openvote' ) ); ?>';
-            btn.style.background = '#f0a500';
-            btn.addEventListener('click', function() {
-                startOrResume(savedJob);
-            }, { once: true });
-        }
-
-        if (btn && !savedJob) {
-            btn.addEventListener('click', function() {
-                fetch(apiRoot + '/polls/<?php echo (int) $poll->id; ?>/send-invitations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-WP-Nonce': batchNonce,
-                    },
-                    body: JSON.stringify({ nonce: nonce }),
-                })
-                .then(r => r.json())
-                .then(function(data) {
-                    if (!data.job_id) throw new Error(data.message || 'Brak job_id');
-                    openvoteSaveJobId(pollId, data.job_id);
-                    startOrResume(data.job_id);
-                })
-                .catch(function(err) {
-                    statusEl.textContent = '<?php echo esc_js( __( 'Błąd startu:', 'openvote' ) ); ?> ' + err.message;
-                    statusEl.style.color = '#c00';
-                    if (btn) btn.disabled = false;
-                });
-            });
-        }
-    })();
-    </script>
+        <div class="notice notice-warning inline" role="alert" style="max-width:800px;"><p>
+            <strong><?php esc_html_e( 'Wyniki cząstkowe.', 'openvote' ); ?></strong>
+            <?php
+            if ( Openvote_Poll::is_time_expired( $poll ) ) {
+                esc_html_e( 'Termin zakończenia minął, ale głosowanie nie zostało jeszcze formalnie zakończone (kliknij „Zakończ” na liście głosowań). Wyniki mogą się jeszcze zmienić.', 'openvote' );
+            } else {
+                esc_html_e( 'Głosowanie trwa — poniższe liczby mogą się jeszcze zmienić. Wyniki ostateczne będą po zakończeniu.', 'openvote' );
+            }
+            ?>
+        </p></div>
+    <?php elseif ( 'draft' === ( $poll->status ?? '' ) ) : ?>
+        <div class="notice notice-info inline" style="max-width:800px;"><p><?php esc_html_e( 'To jest szkic — głosowanie jeszcze nie wystartowało, więc nie ma wyników.', 'openvote' ); ?></p></div>
     <?php endif; ?>
 
     <?php // ── Participation summary ── ?>
@@ -116,10 +50,10 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
         <h2><?php esc_html_e( 'Frekwencja', 'openvote' ); ?></h2>
 
         <p>
-            <strong><?php esc_html_e( 'Status:', 'openvote' ); ?></strong> <?php echo esc_html( $poll->status ); ?>
+            <strong><?php esc_html_e( 'Status:', 'openvote' ); ?></strong> <?php echo esc_html( Openvote_Poll::status_label( (string) $poll->status, $poll ) ); ?>
             &nbsp;|&nbsp;
             <strong><?php esc_html_e( 'Okres:', 'openvote' ); ?></strong>
-            <?php echo esc_html( $poll->date_start . ' — ' . $poll->date_end ); ?>
+            <?php echo esc_html( Openvote_Poll::format_dt( $poll->date_start ) . ' — ' . Openvote_Poll::format_dt( $poll->date_end ) ); ?>
         </p>
 
         <table class="openvote-freq-table">
@@ -171,15 +105,14 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                     </thead>
                     <tbody>
                         <?php foreach ( $q['answers'] as $ai => $answer ) :
-                            $bar_class = $answer['is_abstain']
-                                ? 'openvote-bar--wstrzymuje'
-                                : ( 0 === $ai ? 'openvote-bar--za' : 'openvote-bar--przeciw' );
+                            // Neutralny kolor dla odpowiedzi merytorycznych (pierwsza nie musi oznaczać „za”).
+                            $bar_class = $answer['is_abstain'] ? 'openvote-bar--wstrzymuje' : 'openvote-bar--neutral';
                         ?>
                             <tr>
                                 <td>
                                     <?php if ( $answer['is_abstain'] ) : ?>
                                         <?php echo esc_html( __( 'Wstrzymuję się', 'openvote' ) ); ?>
-                                        <em style="color:#999;font-size:11px;"><?php esc_html_e( '(inc. brak głosu)', 'openvote' ); ?></em>
+                                        <em style="color:#999;font-size:11px;"><?php esc_html_e( '(wliczając brak głosu)', 'openvote' ); ?></em>
                                     <?php else : ?>
                                         <?php echo esc_html( $answer['text'] ); ?>
                                     <?php endif; ?>
@@ -189,12 +122,18 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                                 <td class="openvote-result-bar-cell">
                                     <div class="openvote-bar-track">
                                         <div class="openvote-bar <?php echo esc_attr( $bar_class ); ?>"
-                                             style="width:<?php echo esc_attr( $answer['pct'] ); ?>%"></div>
+                                             style="width:<?php echo esc_attr( $answer['pct'] ); ?>%<?php echo $answer['is_abstain'] ? '' : ';background:#2271b1'; ?>"></div>
                                     </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong><?php esc_html_e( 'Razem głosów', 'openvote' ); ?></strong></td>
+                            <td colspan="3"><strong><?php echo esc_html( array_sum( array_map( fn( $a ) => (int) $a['count'], $q['answers'] ) ) ); ?></strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         <?php endforeach; ?>
@@ -224,7 +163,7 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
                     <tr>
                         <td><?php echo esc_html( $voter['name'] ); ?></td>
                         <td><code><?php echo esc_html( $voter['email_anon'] ); ?></code></td>
-                        <td><?php echo esc_html( $voter['voted_at'] ); ?></td>
+                        <td><?php echo esc_html( Openvote_Poll::format_dt( $voter['voted_at'] ) ); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -350,7 +289,7 @@ $pct_absent  = $total_eligible > 0 ? round( $non_voters  / $total_eligible * 100
     <hr id="invitations" style="margin:32px 0 20px;">
     <h2><?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></h2>
 
-    <?php if ( 'open' === ( $poll->status ?? '' ) && current_user_can( 'manage_options' ) ) : ?>
+    <?php if ( 'open' === ( $poll->status ?? '' ) && ! Openvote_Poll::is_time_expired( $poll ) && current_user_can( 'manage_options' ) ) : ?>
     <p>
         <button type="button" class="button button-primary" id="openvote-send-invitations-btn2"
                 data-poll-id="<?php echo (int) $poll->id; ?>"

@@ -128,10 +128,26 @@ function openvote_settings_select( string $logical, string $current, array $core
         <div id="openvote-check-config-result" class="openvote-check-config-result" style="display:none;margin-top:12px;max-width:720px;"></div>
     </div>
 
+    <?php // Zakładki — panele pozostają w DOM jednego formularza, przełączanie po stronie klienta (openvote-settings-tabs.js). ?>
+    <h2 class="nav-tab-wrapper openvote-settings-tabs" id="openvote-settings-tabs" role="tablist" aria-label="<?php echo esc_attr__( 'Sekcje konfiguracji', 'openvote' ); ?>">
+        <a href="#tab-general" id="tabbtn-general" class="nav-tab nav-tab-active" role="tab" aria-controls="tab-general" aria-selected="true" data-tab="general"><?php esc_html_e( 'Ogólne', 'openvote' ); ?></a>
+        <a href="#tab-fields" id="tabbtn-fields" class="nav-tab" role="tab" aria-controls="tab-fields" aria-selected="false" data-tab="fields"><?php esc_html_e( 'Pola użytkownika', 'openvote' ); ?></a>
+        <a href="#tab-roles" id="tabbtn-roles" class="nav-tab" role="tab" aria-controls="tab-roles" aria-selected="false" data-tab="roles"><?php esc_html_e( 'Role i dostęp', 'openvote' ); ?></a>
+        <a href="#tab-email" id="tabbtn-email" class="nav-tab" role="tab" aria-controls="tab-email" aria-selected="false" data-tab="email"><?php esc_html_e( 'Wysyłka e-mail', 'openvote' ); ?></a>
+        <a href="#tab-template" id="tabbtn-template" class="nav-tab" role="tab" aria-controls="tab-template" aria-selected="false" data-tab="template"><?php esc_html_e( 'Szablon zaproszenia', 'openvote' ); ?></a>
+        <a href="#tab-groups" id="tabbtn-groups" class="nav-tab" role="tab" aria-controls="tab-groups" aria-selected="false" data-tab="groups"><?php esc_html_e( 'Auto-synchronizacja', 'openvote' ); ?></a>
+        <a href="#tab-stats" id="tabbtn-stats" class="nav-tab" role="tab" aria-controls="tab-stats" aria-selected="false" data-tab="stats"><?php esc_html_e( 'Nieaktywni', 'openvote' ); ?></a>
+        <a href="#tab-cron" id="tabbtn-cron" class="nav-tab" role="tab" aria-controls="tab-cron" aria-selected="false" data-tab="cron"><?php esc_html_e( 'Cron', 'openvote' ); ?></a>
+        <a href="#tab-tools" id="tabbtn-tools" class="nav-tab" role="tab" aria-controls="tab-tools" aria-selected="false" data-tab="tools"><?php esc_html_e( 'Narzędzia', 'openvote' ); ?></a>
+    </h2>
+
     <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-settings' ) ); ?>" id="openvote-settings-form">
         <?php wp_nonce_field( 'openvote_save_settings', 'openvote_settings_nonce' ); ?>
+        <input type="hidden" name="openvote_main_settings_form" value="1" />
         <?php wp_nonce_field( 'openvote_create_page', 'openvote_create_page_nonce' ); ?>
 
+
+        <div class="openvote-tab-panel" id="tab-general" data-tab="general" role="tabpanel" aria-labelledby="tabbtn-general">
         <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Nazwa systemu', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
             <?php esc_html_e( 'Skrót nazwy wyświetlany w menu panelu. Pełna nazwa i logo pobierane są z ustawień WordPress (Ustawienia → Ogólne).', 'openvote' ); ?>
@@ -146,6 +162,221 @@ function openvote_settings_select( string $logical, string $current, array $core
             </tr>
         </table>
 
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony głosowania', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Adres ma postać: adres instalacji + slug w ścieżce (np. /glosuj/). Użytkownicy wchodzą pod link pokazany poniżej.', 'openvote' ); ?>
+        </p>
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_vote_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
+                <td>
+                    <input type="text" name="openvote_vote_page_slug" id="openvote_vote_page_slug" value="<?php echo esc_attr( openvote_get_vote_page_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="glosuj" />
+                    <?php
+                    $slug_param = openvote_get_vote_page_slug();
+                    $wp_vote_page = get_page_by_path( $slug_param, OBJECT, 'page' );
+                    if ( $wp_vote_page && $wp_vote_page->post_status === 'publish' ) {
+                        $vote_page_url = get_permalink( $wp_vote_page );
+                        $url_note      = __( 'Strona WordPress (możesz ją edytować w Gutenberg):', 'openvote' );
+                    } else {
+                        $vote_page_url = openvote_get_vote_page_url();
+                        $url_note      = __( 'Adres strony głosowania:', 'openvote' );
+                    }
+                    ?>
+                    <p class="description" style="margin-top:6px;">
+                        <?php echo esc_html( $url_note ); ?>
+                        <strong><a href="<?php echo esc_url( $vote_page_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $vote_page_url ); ?></a></strong>
+                        <?php if ( $wp_vote_page ) : ?>
+                        &nbsp;|&nbsp;
+                        <a href="<?php echo esc_url( get_edit_post_link( $wp_vote_page->ID ) ); ?>" target="_blank">
+                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
+                        </a>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ( ! $wp_vote_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_create_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Utwórz stronę głosowania', 'openvote' ); ?>
+                        </button>
+                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Stworzy stronę WordPress z blokiem zakładek (Trwające / Zakończone głosowania).', 'openvote' ); ?></span>
+                    </p>
+                    <?php elseif ( $wp_vote_page && ! openvote_vote_page_has_tabs_block() ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_update_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Zaktualizuj stronę głosowania (dodaj blok)', 'openvote' ); ?>
+                        </button>
+                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Zastąpi treść strony blokiem zakładek.', 'openvote' ); ?></span>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        </div>
+
+        <!-- ── URL strony ankiet ──────────────────────────────────────────── -->
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony ankiet', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Adres publicznej strony z ankietami. Najlepiej stwórz stronę WordPress i wstaw blok "Ankiety (Open Vote)", aby korzystać z edytora Gutenberg.', 'openvote' ); ?>
+        </p>
+        <?php
+        if ( isset( $_GET['survey_page_created'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została utworzona.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['survey_page_updated'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została zaktualizowana.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['survey_page_update_error'] ) ) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony ankiet. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Ankiety (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
+        <?php endif; ?>
+
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_survey_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
+                <td>
+                    <input type="text" name="openvote_survey_page_slug" id="openvote_survey_page_slug"
+                           value="<?php echo esc_attr( class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_slug() : get_option( 'openvote_survey_page_slug', 'ankieta' ) ); ?>"
+                           class="regular-text" style="width:140px;" placeholder="ankieta" />
+                    <?php
+                    $surv_slug = class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_slug() : 'ankieta';
+                    $surv_page = get_page_by_path( $surv_slug, OBJECT, 'page' );
+                    if ( $surv_page && 'publish' === $surv_page->post_status ) {
+                        $surv_url = get_permalink( $surv_page->ID );
+                    } else {
+                        $surv_url = class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_url() : home_url( '/' . $surv_slug . '/' );
+                    }
+                    ?>
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Adres strony ankiet:', 'openvote' ); ?>
+                        <strong><a href="<?php echo esc_url( $surv_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $surv_url ); ?></a></strong>
+                        <?php if ( $surv_page ) : ?>
+                        &nbsp;|&nbsp;
+                        <a href="<?php echo esc_url( get_edit_post_link( $surv_page->ID ) ); ?>" target="_blank">
+                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
+                        </a>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ( ! $surv_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_create_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Utwórz stronę ankiet', 'openvote' ); ?>
+                        </button>
+                    </p>
+                    <?php elseif ( $surv_page && class_exists( 'Openvote_Survey_Page' ) && ! Openvote_Survey_Page::page_has_survey_block() ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_update_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Zaktualizuj stronę ankiet (dodaj blok)', 'openvote' ); ?>
+                        </button>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        </div>
+
+        <!-- ── URL strony zgłoszeń ─────────────────────────────────────────── -->
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony zgłoszeń', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Adres publicznej strony ze zgłoszeniami oznaczonymi jako „Nie spam”. Stwórz stronę i wstaw blok „Zgłoszenia (Open Vote)” lub użyj przycisków poniżej.', 'openvote' ); ?>
+        </p>
+        <?php
+        if ( isset( $_GET['submissions_page_created'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została utworzona.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['submissions_page_updated'] ) ) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została zaktualizowana.', 'openvote' ); ?></p></div>
+        <?php elseif ( isset( $_GET['submissions_page_update_error'] ) ) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony zgłoszeń. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Zgłoszenia (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
+        <?php endif; ?>
+
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_submissions_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
+                <td>
+                    <?php $subm_slug = get_option( 'openvote_submissions_page_slug', 'zgloszenia' ); ?>
+                    <input type="text" name="openvote_submissions_page_slug" id="openvote_submissions_page_slug"
+                           value="<?php echo esc_attr( $subm_slug ); ?>"
+                           class="regular-text" style="width:140px;" placeholder="zgloszenia" />
+                    <?php
+                    $subm_page = get_page_by_path( $subm_slug, OBJECT, 'page' );
+                    if ( $subm_page && 'publish' === $subm_page->post_status ) {
+                        $subm_url = get_permalink( $subm_page->ID );
+                    } else {
+                        $subm_url = home_url( '/' . $subm_slug . '/' );
+                    }
+                    $has_block = class_exists( 'Openvote_Admin_Settings' ) && Openvote_Admin_Settings::page_has_submissions_block( $subm_slug );
+                    ?>
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Adres strony zgłoszeń:', 'openvote' ); ?>
+                        <strong><a href="<?php echo esc_url( $subm_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $subm_url ); ?></a></strong>
+                        <?php if ( $subm_page ) : ?>
+                        &nbsp;|&nbsp;
+                        <a href="<?php echo esc_url( get_edit_post_link( $subm_page->ID ) ); ?>" target="_blank">
+                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
+                        </a>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ( ! $subm_page ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_create_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Utwórz stronę zgłoszeń', 'openvote' ); ?>
+                        </button>
+                    </p>
+                    <?php elseif ( $subm_page && ! $has_block ) : ?>
+                    <p style="margin-top:8px;">
+                        <button type="submit" name="openvote_update_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
+                            <?php esc_html_e( 'Zaktualizuj stronę zgłoszeń (dodaj blok)', 'openvote' ); ?>
+                        </button>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        </div>
+
+        <div class="openvote-settings-url-section openvote-settings-time-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania liczników.', 'openvote' ); ?>
+        </p>
+        <?php
+        $current_offset = openvote_get_time_offset_hours();
+        $server_time    = current_time( 'Y-m-d H:i:s' );
+        $voting_time    = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
+        ?>
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_time_offset_hours"><?php esc_html_e( 'Przesunięcie czasu', 'openvote' ); ?></label></th>
+                <td>
+                    <select name="openvote_time_offset_hours" id="openvote_time_offset_hours">
+                        <?php for ( $h = -12; $h <= 12; $h++ ) : ?>
+                            <option value="<?php echo (int) $h; ?>" <?php selected( $current_offset, $h ); ?>>
+                                <?php echo esc_html( $h === 0 ? __( '0 (bez zmiany)', 'openvote' ) : sprintf( __( '%+d h', 'openvote' ), $h ) ); ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Czas na serwerze', 'openvote' ); ?></th>
+                <td>
+                    <code id="openvote-server-time"><?php echo esc_html( $server_time ); ?></code>
+                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Aktualny czas według ustawień WordPress (strefa z Ustawienia → Ogólne).', 'openvote' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e( 'Czas dla głosowań', 'openvote' ); ?></th>
+                <td>
+                    <strong id="openvote-voting-time"><?php echo esc_html( $voting_time ); ?></strong>
+                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Czas używany przy sprawdzaniu rozpoczęcia i zakończenia głosowania (serwer + przesunięcie).', 'openvote' ); ?></p>
+                </td>
+            </tr>
+        </table>
+        </div>
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+        </div>
+
+        <div class="openvote-tab-panel" id="tab-fields" data-tab="fields" role="tabpanel" aria-labelledby="tabbtn-fields">
         <h2 class="title" style="margin-top:28px;"><?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
         <p class="description" style="max-width:700px;margin:8px 0 12px;">
             <?php esc_html_e(
@@ -305,11 +536,152 @@ function openvote_settings_select( string $logical, string $current, array $core
             </tbody>
         </table>
         </div>
-
         <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
+        </div>
 
+        <div class="openvote-tab-panel" id="tab-roles" data-tab="roles" role="tabpanel" aria-labelledby="tabbtn-roles">
+        <?php
+        $role_screen_map = openvote_get_role_screen_map();
+        $role_labels = [
+            'subscriber'          => __( 'Subskrybent', 'openvote' ),
+            'administrator'       => __( 'Administrator', 'openvote' ),
+            'openvote_coordinator' => __( 'Koordynator', 'openvote' ),
+        ];
+        $role_labels_en = [
+            'subscriber'          => 'Subscriber',
+            'administrator'       => 'Administrator',
+            'openvote_coordinator' => 'Coordinator',
+        ];
+        $screen_labels = [
+            'openvote'           => __( 'Głosowania', 'openvote' ),
+            'openvote-surveys'  => __( 'Ankiety', 'openvote' ),
+            'openvote-groups'   => __( 'Grupy', 'openvote' ),
+            'openvote-roles'    => __( 'Koordynatorzy', 'openvote' ),
+            'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
+            'openvote-statistics' => __( 'Statystyka', 'openvote' ),
+            'openvote-communication' => __( 'Wysyłka', 'openvote' ),
+            'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
+        ];
+        $screen_labels_en = [
+            'openvote'           => 'Polls',
+            'openvote-surveys'  => 'Surveys',
+            'openvote-groups'   => 'Groups',
+            'openvote-roles'    => 'Coordinators',
+            'openvote-manual'   => 'Manual',
+            'openvote-statistics' => 'Statistics',
+            'openvote-communication' => 'Newsletter',
+            'openvote-settings' => 'Configuration',
+        ];
+        // Kolumny = role (pierwsza kolumna = Koordynator), wiersze = ekrany.
+        $role_order = [ 'openvote_coordinator', 'subscriber', 'administrator' ];
+        ?>
+        <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Mapowanie roli', 'openvote' ); ?></h2>
+        <p class="description" style="max-width:700px;margin:8px 0 16px;">
+            <?php esc_html_e( 'Zaznaczenie decyduje o tym, które role mogą wyświetlać dane menu i mieć dostęp do danego ekranu. Odznaczenie blokuje widoczność pozycji w menu oraz dostęp do strony.', 'openvote' ); ?>
+        </p>
+        <table class="widefat fixed openvote-settings-table openvote-role-map-table" style="max-width:900px;">
+            <thead>
+                <tr>
+                    <th scope="col" style="width:140px;"></th>
+                    <?php foreach ( $role_order as $role_slug ) : ?>
+                        <th scope="col"><span class="openvote-label-pl"><?php echo esc_html( $role_labels[ $role_slug ] ); ?></span><br><span class="openvote-label-en"><?php echo esc_html( $role_labels_en[ $role_slug ] ); ?></span></th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $locale_is_pl = ( strpos( get_locale(), 'pl' ) === 0 );
+                foreach ( $screen_labels as $screen_slug => $screen_label ) :
+                    $row_label = $locale_is_pl ? $screen_label : $screen_labels_en[ $screen_slug ];
+                ?>
+                <tr<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-row-config"' : ''; ?>>
+                    <th scope="row" class="openvote-role-map-row-label"><?php echo esc_html( $row_label ); ?></th>
+                    <?php foreach ( $role_order as $role_slug ) :
+                        $is_admin      = ( $role_slug === 'administrator' );
+                        $is_subscriber = ( $role_slug === 'subscriber' );
+                    ?>
+                        <td>
+                            <?php if ( $is_admin ) : ?>
+                                <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="1">
+                                <input type="checkbox"
+                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
+                                       checked
+                                       disabled
+                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
+                            <?php elseif ( $is_subscriber ) : ?>
+                                <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="0">
+                                <input type="checkbox"
+                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
+                                       disabled
+                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
+                            <?php else : ?>
+                                <label class="screen-reader-text" for="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"><?php echo esc_html( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?></label>
+                                <input type="checkbox"
+                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
+                                       name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]"
+                                       value="1"
+                                       <?php checked( ! empty( $role_screen_map[ $role_slug ][ $screen_slug ] ) ); ?>>
+                            <?php endif; ?>
+                        </td>
+                    <?php endforeach; ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <p class="description" style="margin-top:16px;max-width:700px;">
+            <strong><?php esc_html_e( 'Dostęp Koordynatatora do głosowań', 'openvote' ); ?></strong>
+        </p>
+        <p class="description" style="max-width:700px;margin:4px 0 8px;">
+            <?php esc_html_e( 'Gdy wybrano „Do tylko własnych grup”, koordynator widzi na liście tylko głosowania i ankiety dotyczące swoich grup oraz na stronie Członkowie i grupy tylko swoje grupy. Może organizować głosowania wyłącznie w przypisanych grupach. Domyślnie koordynator ma dostęp do wszystkich grup.', 'openvote' ); ?>
+        </p>
+        <?php
+        $coordinator_access = get_option( 'openvote_coordinator_poll_access', 'all' );
+        $coordinator_access = ( $coordinator_access === 'own' ) ? 'own' : 'all';
+        ?>
+        <p>
+            <label for="openvote_coordinator_poll_access"><?php esc_html_e( 'Zakres dostępu koordynatora:', 'openvote' ); ?></label>
+            <select name="openvote_coordinator_poll_access" id="openvote_coordinator_poll_access">
+                <option value="all" <?php selected( $coordinator_access, 'all' ); ?>><?php esc_html_e( 'Do wszystkich grup (Miast)', 'openvote' ); ?></option>
+                <option value="own" <?php selected( $coordinator_access, 'own' ); ?>><?php esc_html_e( 'Do tylko własnych grup (Miast)', 'openvote' ); ?></option>
+            </select>
+        </p>
+
+        <?php $identity_voting = (int) get_option( 'openvote_identity_voting_enabled', 1 ) === 1; ?>
+        <div class="openvote-settings-identity-option" style="margin-top:12px;">
+            <p style="margin:0 0 6px 0;">
+                <label for="openvote_identity_voting_enabled">
+                    <input type="checkbox" name="openvote_identity_voting_enabled" id="openvote_identity_voting_enabled" value="1" <?php checked( $identity_voting ); ?> />
+                    <?php esc_html_e( 'Pozwól głosować bez logowania — potwierdzenie kodem wysłanym na e-mail', 'openvote' ); ?>
+                </label>
+            </p>
+            <p class="description" style="max-width:700px;margin:0;">
+                <?php esc_html_e( 'Niezalogowany użytkownik podaje adres e-mail konta, a następnie 4-cyfrowy kod wysłany na ten adres (maks. 5 błędnych prób wyszukania adresu na IP w 24 h). Głos jest przypisany do tego konta i podlega tym samym zasadom uprawnień.', 'openvote' ); ?>
+            </p>
+        </div>
+
+        <?php
+        $create_test_group = (int) get_option( 'openvote_create_test_group', 1 ) === 1;
+        ?>
+        <div class="openvote-settings-test-group-option" style="margin-top:12px;">
+            <p style="margin:0 0 6px 0;">
+                <label for="openvote_create_test_group">
+                    <input type="checkbox" name="openvote_create_test_group" id="openvote_create_test_group" value="1" <?php checked( $create_test_group ); ?> />
+                    <?php esc_html_e( 'Utwórz grupę do testowania : Test', 'openvote' ); ?>
+                </label>
+            </p>
+            <p class="description" style="max-width:700px;margin:0;">
+                <?php esc_html_e( 'Grupa Test jest tworzona przy instalacji, nie można jej usunąć z listy grup (tylko wyłączyć tutaj). Każdy koordynator ma do niej dostęp; nie obowiązują na niej limity koordynatorów.', 'openvote' ); ?>
+            </p>
+        </div>
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+        </div>
+
+        <div class="openvote-tab-panel" id="tab-email" data-tab="email" role="tabpanel" aria-labelledby="tabbtn-email">
         <div class="openvote-settings-email-section">
         <?php
         global $wpdb;
@@ -734,10 +1106,6 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
         </div>
 
-        <p class="openvote-settings-save-wrap">
-            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
-        </p>
-
         <script>
         (function(){
             var radioWp        = document.getElementById('openvote_mail_wp');
@@ -790,502 +1158,12 @@ function openvote_settings_select( string $logical, string $current, array $core
             }
         })();
         </script>
-
-        <div class="openvote-settings-url-section">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony głosowania', 'openvote' ); ?></h2>
-        <p class="description openvote-settings-url-section__desc">
-            <?php esc_html_e( 'Adres ma postać: adres instalacji + slug w ścieżce (np. /glosuj/). Użytkownicy wchodzą pod link pokazany poniżej.', 'openvote' ); ?>
-        </p>
-        <table class="form-table openvote-settings-url-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_vote_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
-                <td>
-                    <input type="text" name="openvote_vote_page_slug" id="openvote_vote_page_slug" value="<?php echo esc_attr( openvote_get_vote_page_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="glosuj" />
-                    <?php
-                    $slug_param = openvote_get_vote_page_slug();
-                    $wp_vote_page = get_page_by_path( $slug_param, OBJECT, 'page' );
-                    if ( $wp_vote_page && $wp_vote_page->post_status === 'publish' ) {
-                        $vote_page_url = get_permalink( $wp_vote_page );
-                        $url_note      = __( 'Strona WordPress (możesz ją edytować w Gutenberg):', 'openvote' );
-                    } else {
-                        $vote_page_url = openvote_get_vote_page_url();
-                        $url_note      = __( 'Adres strony głosowania:', 'openvote' );
-                    }
-                    ?>
-                    <p class="description" style="margin-top:6px;">
-                        <?php echo esc_html( $url_note ); ?>
-                        <strong><a href="<?php echo esc_url( $vote_page_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $vote_page_url ); ?></a></strong>
-                        <?php if ( $wp_vote_page ) : ?>
-                        &nbsp;|&nbsp;
-                        <a href="<?php echo esc_url( get_edit_post_link( $wp_vote_page->ID ) ); ?>" target="_blank">
-                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
-                        </a>
-                        <?php endif; ?>
-                    </p>
-                    <?php if ( ! $wp_vote_page ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_create_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Utwórz stronę głosowania', 'openvote' ); ?>
-                        </button>
-                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Stworzy stronę WordPress z blokiem zakładek (Trwające / Zakończone głosowania).', 'openvote' ); ?></span>
-                    </p>
-                    <?php elseif ( $wp_vote_page && ! openvote_vote_page_has_tabs_block() ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_update_vote_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Zaktualizuj stronę głosowania (dodaj blok)', 'openvote' ); ?>
-                        </button>
-                        <span class="description" style="margin-left:8px;"><?php esc_html_e( 'Zastąpi treść strony blokiem zakładek.', 'openvote' ); ?></span>
-                    </p>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        </table>
-        </div>
-
-        <!-- ── URL strony ankiet ──────────────────────────────────────────── -->
-        <div class="openvote-settings-url-section">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony ankiet', 'openvote' ); ?></h2>
-        <p class="description openvote-settings-url-section__desc">
-            <?php esc_html_e( 'Adres publicznej strony z ankietami. Najlepiej stwórz stronę WordPress i wstaw blok "Ankiety (Open Vote)", aby korzystać z edytora Gutenberg.', 'openvote' ); ?>
-        </p>
-        <?php
-        if ( isset( $_GET['survey_page_created'] ) ) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została utworzona.', 'openvote' ); ?></p></div>
-        <?php elseif ( isset( $_GET['survey_page_updated'] ) ) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona ankiet została zaktualizowana.', 'openvote' ); ?></p></div>
-        <?php elseif ( isset( $_GET['survey_page_update_error'] ) ) : ?>
-            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony ankiet. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Ankiety (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
-        <?php endif; ?>
-
-        <table class="form-table openvote-settings-url-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_survey_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
-                <td>
-                    <input type="text" name="openvote_survey_page_slug" id="openvote_survey_page_slug"
-                           value="<?php echo esc_attr( class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_slug() : get_option( 'openvote_survey_page_slug', 'ankieta' ) ); ?>"
-                           class="regular-text" style="width:140px;" placeholder="ankieta" />
-                    <?php
-                    $surv_slug = class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_slug() : 'ankieta';
-                    $surv_page = get_page_by_path( $surv_slug, OBJECT, 'page' );
-                    if ( $surv_page && 'publish' === $surv_page->post_status ) {
-                        $surv_url = get_permalink( $surv_page->ID );
-                    } else {
-                        $surv_url = class_exists( 'Openvote_Survey_Page' ) ? Openvote_Survey_Page::get_url() : home_url( '/' . $surv_slug . '/' );
-                    }
-                    ?>
-                    <p class="description" style="margin-top:6px;">
-                        <?php esc_html_e( 'Adres strony ankiet:', 'openvote' ); ?>
-                        <strong><a href="<?php echo esc_url( $surv_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $surv_url ); ?></a></strong>
-                        <?php if ( $surv_page ) : ?>
-                        &nbsp;|&nbsp;
-                        <a href="<?php echo esc_url( get_edit_post_link( $surv_page->ID ) ); ?>" target="_blank">
-                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
-                        </a>
-                        <?php endif; ?>
-                    </p>
-                    <?php if ( ! $surv_page ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_create_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Utwórz stronę ankiet', 'openvote' ); ?>
-                        </button>
-                    </p>
-                    <?php elseif ( $surv_page && class_exists( 'Openvote_Survey_Page' ) && ! Openvote_Survey_Page::page_has_survey_block() ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_update_survey_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Zaktualizuj stronę ankiet (dodaj blok)', 'openvote' ); ?>
-                        </button>
-                    </p>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        </table>
-        </div>
-
-        <!-- ── URL strony zgłoszeń ─────────────────────────────────────────── -->
-        <div class="openvote-settings-url-section">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL strony zgłoszeń', 'openvote' ); ?></h2>
-        <p class="description openvote-settings-url-section__desc">
-            <?php esc_html_e( 'Adres publicznej strony ze zgłoszeniami oznaczonymi jako „Nie spam”. Stwórz stronę i wstaw blok „Zgłoszenia (Open Vote)” lub użyj przycisków poniżej.', 'openvote' ); ?>
-        </p>
-        <?php
-        if ( isset( $_GET['submissions_page_created'] ) ) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została utworzona.', 'openvote' ); ?></p></div>
-        <?php elseif ( isset( $_GET['submissions_page_updated'] ) ) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Strona zgłoszeń została zaktualizowana.', 'openvote' ); ?></p></div>
-        <?php elseif ( isset( $_GET['submissions_page_update_error'] ) ) : ?>
-            <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Nie udało się zaktualizować strony zgłoszeń. Sprawdź, czy strona o podanym slugu istnieje i czy masz uprawnienia do jej edycji. Możesz dodać blok „Zgłoszenia (Open Vote)” ręcznie w edytorze strony.', 'openvote' ); ?></p></div>
-        <?php endif; ?>
-
-        <table class="form-table openvote-settings-url-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_submissions_page_slug"><?php esc_html_e( 'Slug strony', 'openvote' ); ?></label></th>
-                <td>
-                    <?php $subm_slug = get_option( 'openvote_submissions_page_slug', 'zgloszenia' ); ?>
-                    <input type="text" name="openvote_submissions_page_slug" id="openvote_submissions_page_slug"
-                           value="<?php echo esc_attr( $subm_slug ); ?>"
-                           class="regular-text" style="width:140px;" placeholder="zgloszenia" />
-                    <?php
-                    $subm_page = get_page_by_path( $subm_slug, OBJECT, 'page' );
-                    if ( $subm_page && 'publish' === $subm_page->post_status ) {
-                        $subm_url = get_permalink( $subm_page->ID );
-                    } else {
-                        $subm_url = home_url( '/' . $subm_slug . '/' );
-                    }
-                    $has_block = class_exists( 'Openvote_Admin_Settings' ) && Openvote_Admin_Settings::page_has_submissions_block( $subm_slug );
-                    ?>
-                    <p class="description" style="margin-top:6px;">
-                        <?php esc_html_e( 'Adres strony zgłoszeń:', 'openvote' ); ?>
-                        <strong><a href="<?php echo esc_url( $subm_url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $subm_url ); ?></a></strong>
-                        <?php if ( $subm_page ) : ?>
-                        &nbsp;|&nbsp;
-                        <a href="<?php echo esc_url( get_edit_post_link( $subm_page->ID ) ); ?>" target="_blank">
-                            <?php esc_html_e( 'Edytuj w Gutenberg', 'openvote' ); ?>
-                        </a>
-                        <?php endif; ?>
-                    </p>
-                    <?php if ( ! $subm_page ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_create_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Utwórz stronę zgłoszeń', 'openvote' ); ?>
-                        </button>
-                    </p>
-                    <?php elseif ( $subm_page && ! $has_block ) : ?>
-                    <p style="margin-top:8px;">
-                        <button type="submit" name="openvote_update_submissions_page" value="1" class="button button-primary" data-loading="<?php echo esc_attr( __( 'Zapisywanie…', 'openvote' ) ); ?>">
-                            <?php esc_html_e( 'Zaktualizuj stronę zgłoszeń (dodaj blok)', 'openvote' ); ?>
-                        </button>
-                    </p>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        </table>
-        </div>
-
         <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
-
-        <div class="openvote-settings-url-section openvote-settings-time-section">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
-        <p class="description openvote-settings-url-section__desc">
-            <?php esc_html_e( 'Jeśli serwer ma inną strefę czasową niż Twoja, ustaw przesunięcie. Czas po przesunięciu jest używany do sprawdzania okresu głosowania i wyświetlania liczników.', 'openvote' ); ?>
-        </p>
-        <?php
-        $current_offset = openvote_get_time_offset_hours();
-        $server_time    = current_time( 'Y-m-d H:i:s' );
-        $voting_time    = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
-        ?>
-        <table class="form-table openvote-settings-url-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_time_offset_hours"><?php esc_html_e( 'Przesunięcie czasu', 'openvote' ); ?></label></th>
-                <td>
-                    <select name="openvote_time_offset_hours" id="openvote_time_offset_hours">
-                        <?php for ( $h = -12; $h <= 12; $h++ ) : ?>
-                            <option value="<?php echo (int) $h; ?>" <?php selected( $current_offset, $h ); ?>>
-                                <?php echo esc_html( $h === 0 ? __( '0 (bez zmiany)', 'openvote' ) : sprintf( __( '%+d h', 'openvote' ), $h ) ); ?>
-                            </option>
-                        <?php endfor; ?>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Czas na serwerze', 'openvote' ); ?></th>
-                <td>
-                    <code id="openvote-server-time"><?php echo esc_html( $server_time ); ?></code>
-                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Aktualny czas według ustawień WordPress (strefa z Ustawienia → Ogólne).', 'openvote' ); ?></p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><?php esc_html_e( 'Czas dla głosowań', 'openvote' ); ?></th>
-                <td>
-                    <strong id="openvote-voting-time"><?php echo esc_html( $voting_time ); ?></strong>
-                    <p class="description" style="margin-top:4px;"><?php esc_html_e( 'Czas używany przy sprawdzaniu rozpoczęcia i zakończenia głosowania (serwer + przesunięcie).', 'openvote' ); ?></p>
-                </td>
-            </tr>
-        </table>
         </div>
 
-        <div class="openvote-settings-url-section openvote-settings-cron-sync-section" style="margin-top:28px;">
-        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Automatyczna synchronizacja grup-miast (wp-cron)', 'openvote' ); ?></h2>
-        <p class="description openvote-settings-url-section__desc">
-            <?php esc_html_e( 'Cron uruchamia proces synchronizacji o 00:00 w strefie czasu WordPress (w niedziele według wybranego harmonogramu).', 'openvote' ); ?>
-        </p>
-        <?php
-        $auto_sync_schedule = get_option( 'openvote_auto_sync_schedule', 'first_sunday' );
-        $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
-        if ( ! in_array( $auto_sync_schedule, $allowed_schedules, true ) ) {
-            $auto_sync_schedule = 'first_sunday';
-        }
-        $last_sync_date = get_option( 'openvote_last_cron_sync_date', '' );
-        ?>
-        <table class="form-table openvote-settings-url-section__table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_auto_sync_schedule"><?php esc_html_e( 'Harmonogram', 'openvote' ); ?></label></th>
-                <td>
-                    <select name="openvote_auto_sync_schedule" id="openvote_auto_sync_schedule" class="regular-text">
-                        <option value="manual" <?php selected( $auto_sync_schedule, 'manual' ); ?>><?php esc_html_e( 'Tylko ręcznie', 'openvote' ); ?></option>
-                        <option value="first_sunday" <?php selected( $auto_sync_schedule, 'first_sunday' ); ?>><?php esc_html_e( 'Automatycznie w pierwszą niedzielę miesiąca', 'openvote' ); ?></option>
-                        <option value="second_sunday" <?php selected( $auto_sync_schedule, 'second_sunday' ); ?>><?php esc_html_e( 'Automatycznie co drugą niedzielę miesiąca', 'openvote' ); ?></option>
-                        <option value="weekly" <?php selected( $auto_sync_schedule, 'weekly' ); ?>><?php esc_html_e( 'Automatycznie co niedzielę', 'openvote' ); ?></option>
-                        <option value="daily" <?php selected( $auto_sync_schedule, 'daily' ); ?>><?php esc_html_e( 'Automatycznie codziennie (Nie zalecane przy dużej ilości użytkowników)', 'openvote' ); ?></option>
-                    </select>
-                    <p class="description" style="margin-top:8px;padding:8px 12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;max-width:480px;">
-                        <?php if ( $last_sync_date !== '' && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $last_sync_date ) ) : ?>
-                            <?php
-                            /* translators: %s: date in Y-m-d format */
-                            echo esc_html( sprintf( __( 'Ostatnia synchronizacja zakończona dnia %s.', 'openvote' ), $last_sync_date ) );
-                            ?>
-                        <?php else : ?>
-                            <?php esc_html_e( 'Nie było jeszcze synchronizacji.', 'openvote' ); ?>
-                        <?php endif; ?>
-                    </p>
-                </td>
-            </tr>
-        </table>
-        </div>
-
-        <p class="openvote-settings-save-wrap">
-            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
-        </p>
-
-        <?php // ─── Synchronizacja grup (tylko admin) ──────────────────────── ?>
-        <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-            <strong><?php esc_html_e( 'Synchronizacja grup (ver.2.14)', 'openvote' ); ?></strong>
-            <p class="description" style="margin:4px 0 8px;">
-                <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać bardzo długo. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora.', 'openvote' ); ?>
-            </p>
-            <p style="margin:0 0 8px;">
-                <button type="button" id="openvote-cfg-sync-all-btn" class="button button-primary">
-                    <?php esc_html_e( 'Synchronizuj wszystkie grupy', 'openvote' ); ?>
-                </button>
-                <button type="button" id="openvote-cfg-sync-all-reset-btn" class="button" style="margin-left:8px;background:#b32d2e;border-color:#b32d2e;color:#fff;">
-                    <?php esc_html_e( 'Synchronizuj od początku wszystkie grupy (Nie zalecane)', 'openvote' ); ?>
-                </button>
-            </p>
-            <button type="button" id="openvote-cfg-sync-all-stop-btn" class="button" style="display:none;">
-                <?php esc_html_e( 'Zatrzymaj synchronizację grup', 'openvote' ); ?>
-            </button>
-            <div id="openvote-cfg-sync-all-progress" style="margin-top:10px;"></div>
-        </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var syncBtn      = document.getElementById('openvote-cfg-sync-all-btn');
-            var syncResetBtn = document.getElementById('openvote-cfg-sync-all-reset-btn');
-            var syncStopBtn  = document.getElementById('openvote-cfg-sync-all-stop-btn');
-
-            function runCfgSyncAll(resetFromStart) {
-                var container = document.getElementById('openvote-cfg-sync-all-progress');
-                var apiRoot   = (window.openvoteBatch && window.openvoteBatch.apiRoot) ? window.openvoteBatch.apiRoot : '/wp-json/openvote/v1';
-                var nonce     = (window.openvoteBatch && window.openvoteBatch.nonce)   ? window.openvoteBatch.nonce   : '';
-
-                if (syncBtn)      syncBtn.disabled      = true;
-                if (syncResetBtn) syncResetBtn.disabled = true;
-                if (syncStopBtn)  syncStopBtn.style.display = 'inline-block';
-                if (container)    container.innerHTML   = '<p class="openvote-progress-label">Uruchamianie synchronizacji\u2026</p>';
-
-                var logPanel = (typeof openvoteCreateSyncLogPanel === 'function') ? openvoteCreateSyncLogPanel(container) : { update: function(){} };
-
-                function doStart(retries) {
-                    retries = retries || 0;
-                    return fetch(apiRoot + '/groups/sync-all', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
-                        body: resetFromStart ? JSON.stringify({ reset: true }) : undefined,
-                    }).then(function (r) {
-                        if (r.status === 503 && retries < 1) {
-                            if (container) container.innerHTML = '<p class="openvote-progress-label">Serwer zaj\u0119ty (503). Ponawiam za 2 s\u2026</p>';
-                            return new Promise(function (res) { setTimeout(res, 2000); }).then(function () { return doStart(retries + 1); });
-                        }
-                        return r.json().then(function (data) {
-                            if (!data.job_id) throw new Error(data.message || 'B\u0142\u0105d uruchamiania zadania.');
-                            return data;
-                        });
-                    });
-                }
-
-                doStart(0).then(function (data) {
-                    if (syncStopBtn) {
-                        syncStopBtn.onclick = function () {
-                            syncStopBtn.disabled = true;
-                            fetch(apiRoot + '/jobs/' + encodeURIComponent(data.job_id) + '/stop', {
-                                method: 'POST', headers: { 'X-WP-Nonce': nonce },
-                            }).finally(function () { syncStopBtn.disabled = false; });
-                        };
-                    }
-                    if (typeof openvoteRunBatchJob === 'function') {
-                        openvoteRunBatchJob(
-                            data.job_id,
-                            function (processed, total, pct, job) {
-                                if (typeof openvoteRenderProgress === 'function') openvoteRenderProgress(container, processed, total, pct, job);
-                                logPanel.update(job);
-                            },
-                            function (job) {
-                                if (container) {
-                                    container.innerHTML = job.status === 'cancelled'
-                                        ? '<p class="openvote-progress-label">Zatrzymano. Przetworzone: ' + job.processed + '</p>'
-                                        : '<p class="openvote-progress-done">\u2713 Synchronizacja zako\u0144czona. Przetworzone grupy: ' + job.processed + '</p>';
-                                }
-                                logPanel.update(job);
-                                if (syncBtn)      syncBtn.disabled      = false;
-                                if (syncResetBtn) syncResetBtn.disabled = false;
-                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
-                            },
-                            function (err) {
-                                if (container) {
-                                    var p = document.createElement('p');
-                                    p.className   = 'openvote-progress-error';
-                                    p.textContent = 'B\u0142\u0105d: ' + err.message;
-                                    container.innerHTML = '';
-                                    container.appendChild(p);
-                                }
-                                if (syncBtn)      syncBtn.disabled      = false;
-                                if (syncResetBtn) syncResetBtn.disabled = false;
-                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
-                            },
-                            10000
-                        );
-                    }
-                }).catch(function (err) {
-                    if (container) {
-                        var p = document.createElement('p');
-                        p.className   = 'openvote-progress-error';
-                        p.textContent = 'B\u0142\u0105d: ' + err.message;
-                        container.innerHTML = '';
-                        container.appendChild(p);
-                    }
-                    if (syncBtn)      syncBtn.disabled      = false;
-                    if (syncResetBtn) syncResetBtn.disabled = false;
-                    if (syncStopBtn)  syncStopBtn.style.display = 'none';
-                });
-            }
-
-            if (syncBtn)      syncBtn.addEventListener('click',      function () { runCfgSyncAll(false); });
-            if (syncResetBtn) syncResetBtn.addEventListener('click', function () { runCfgSyncAll(true);  });
-        });
-        </script>
-
-        <?php
-        $role_screen_map = openvote_get_role_screen_map();
-        $role_labels = [
-            'subscriber'          => __( 'Subskrybent', 'openvote' ),
-            'administrator'       => __( 'Administrator', 'openvote' ),
-            'openvote_coordinator' => __( 'Koordynator', 'openvote' ),
-        ];
-        $role_labels_en = [
-            'subscriber'          => 'Subscriber',
-            'administrator'       => 'Administrator',
-            'openvote_coordinator' => 'Coordinator',
-        ];
-        $screen_labels = [
-            'openvote'           => __( 'Głosowania', 'openvote' ),
-            'openvote-surveys'  => __( 'Ankiety', 'openvote' ),
-            'openvote-groups'   => __( 'Grupy', 'openvote' ),
-            'openvote-roles'    => __( 'Koordynatorzy', 'openvote' ),
-            'openvote-manual'   => __( 'Podręcznik', 'openvote' ),
-            'openvote-statistics' => __( 'Statystyka', 'openvote' ),
-            'openvote-communication' => __( 'Komunikacja', 'openvote' ),
-            'openvote-settings' => __( 'Konfiguracja', 'openvote' ),
-        ];
-        $screen_labels_en = [
-            'openvote'           => 'Polls',
-            'openvote-surveys'  => 'Surveys',
-            'openvote-groups'   => 'Groups',
-            'openvote-roles'    => 'Coordinators',
-            'openvote-manual'   => 'Manual',
-            'openvote-statistics' => 'Statistics',
-            'openvote-communication' => 'Communication',
-            'openvote-settings' => 'Configuration',
-        ];
-        // Kolumny = role (pierwsza kolumna = Koordynator), wiersze = ekrany.
-        $role_order = [ 'openvote_coordinator', 'subscriber', 'administrator' ];
-        ?>
-        <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Mapowanie roli', 'openvote' ); ?></h2>
-        <p class="description" style="max-width:700px;margin:8px 0 16px;">
-            <?php esc_html_e( 'Zaznaczenie decyduje o tym, które role mogą wyświetlać dane menu i mieć dostęp do danego ekranu. Odznaczenie blokuje widoczność pozycji w menu oraz dostęp do strony.', 'openvote' ); ?>
-        </p>
-        <table class="widefat fixed openvote-settings-table openvote-role-map-table" style="max-width:900px;">
-            <thead>
-                <tr>
-                    <th scope="col" style="width:140px;"></th>
-                    <?php foreach ( $role_order as $role_slug ) : ?>
-                        <th scope="col"><span class="openvote-label-pl"><?php echo esc_html( $role_labels[ $role_slug ] ); ?></span><br><span class="openvote-label-en"><?php echo esc_html( $role_labels_en[ $role_slug ] ); ?></span></th>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $locale_is_pl = ( strpos( get_locale(), 'pl' ) === 0 );
-                foreach ( $screen_labels as $screen_slug => $screen_label ) :
-                    $row_label = $locale_is_pl ? $screen_label : $screen_labels_en[ $screen_slug ];
-                ?>
-                <tr<?php echo ( $screen_slug === 'openvote-settings' ) ? ' class="openvote-row-config"' : ''; ?>>
-                    <th scope="row" class="openvote-role-map-row-label"><?php echo esc_html( $row_label ); ?></th>
-                    <?php foreach ( $role_order as $role_slug ) :
-                        $is_admin      = ( $role_slug === 'administrator' );
-                        $is_subscriber = ( $role_slug === 'subscriber' );
-                    ?>
-                        <td>
-                            <?php if ( $is_admin ) : ?>
-                                <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="1">
-                                <input type="checkbox"
-                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
-                                       checked
-                                       disabled
-                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
-                            <?php elseif ( $is_subscriber ) : ?>
-                                <input type="hidden" name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]" value="0">
-                                <input type="checkbox"
-                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
-                                       disabled
-                                       aria-label="<?php echo esc_attr( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?>">
-                            <?php else : ?>
-                                <label class="screen-reader-text" for="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"><?php echo esc_html( $role_labels[ $role_slug ] . ' — ' . $screen_label ); ?></label>
-                                <input type="checkbox"
-                                       id="openvote_role_screen_<?php echo esc_attr( $role_slug ); ?>_<?php echo esc_attr( $screen_slug ); ?>"
-                                       name="openvote_role_screen[<?php echo esc_attr( $role_slug ); ?>][<?php echo esc_attr( $screen_slug ); ?>]"
-                                       value="1"
-                                       <?php checked( ! empty( $role_screen_map[ $role_slug ][ $screen_slug ] ) ); ?>>
-                            <?php endif; ?>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <p class="description" style="margin-top:16px;max-width:700px;">
-            <strong><?php esc_html_e( 'Dostęp Koordynatatora do głosowań', 'openvote' ); ?></strong>
-        </p>
-        <p class="description" style="max-width:700px;margin:4px 0 8px;">
-            <?php esc_html_e( 'Gdy wybrano „Do tylko własnych grup”, koordynator widzi na liście tylko głosowania i ankiety dotyczące swoich grup oraz na stronie Członkowie i grupy tylko swoje grupy. Może organizować głosowania wyłącznie w przypisanych grupach. Domyślnie koordynator ma dostęp do wszystkich grup.', 'openvote' ); ?>
-        </p>
-        <?php
-        $coordinator_access = get_option( 'openvote_coordinator_poll_access', 'all' );
-        $coordinator_access = ( $coordinator_access === 'own' ) ? 'own' : 'all';
-        ?>
-        <p>
-            <label for="openvote_coordinator_poll_access"><?php esc_html_e( 'Zakres dostępu koordynatora:', 'openvote' ); ?></label>
-            <select name="openvote_coordinator_poll_access" id="openvote_coordinator_poll_access">
-                <option value="all" <?php selected( $coordinator_access, 'all' ); ?>><?php esc_html_e( 'Do wszystkich grup (Miast)', 'openvote' ); ?></option>
-                <option value="own" <?php selected( $coordinator_access, 'own' ); ?>><?php esc_html_e( 'Do tylko własnych grup (Miast)', 'openvote' ); ?></option>
-            </select>
-        </p>
-
-        <?php
-        $create_test_group = (int) get_option( 'openvote_create_test_group', 1 ) === 1;
-        ?>
-        <div class="openvote-settings-test-group-option" style="margin-top:12px;">
-            <p style="margin:0 0 6px 0;">
-                <label for="openvote_create_test_group">
-                    <input type="checkbox" name="openvote_create_test_group" id="openvote_create_test_group" value="1" <?php checked( $create_test_group ); ?> />
-                    <?php esc_html_e( 'Utwórz grupę do testowania : Test', 'openvote' ); ?>
-                </label>
-            </p>
-            <p class="description" style="max-width:700px;margin:0;">
-                <?php esc_html_e( 'Grupa Test jest tworzona przy instalacji, nie można jej usunąć z listy grup (tylko wyłączyć tutaj). Każdy koordynator ma do niej dostęp; nie obowiązują na niej limity koordynatorów.', 'openvote' ); ?>
-            </p>
-        </div>
-
+        <div class="openvote-tab-panel" id="tab-template" data-tab="template" role="tabpanel" aria-labelledby="tabbtn-template">
         <!-- ── Szablon e-maila zapraszającego ─────────────────────────────── -->
 
         <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Szablon e-maila zapraszającego', 'openvote' ); ?></h2>
@@ -1434,9 +1312,172 @@ function openvote_settings_select( string $logical, string $current, array $core
             });
         } )();
         </script>
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+        </div>
 
-        <hr style="margin-top:32px;margin-bottom:24px;">
+        <div class="openvote-tab-panel" id="tab-groups" data-tab="groups" role="tabpanel" aria-labelledby="tabbtn-groups">
+        <div class="openvote-settings-url-section openvote-settings-cron-sync-section" style="margin-top:28px;">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Automatyczna synchronizacja grup-miast (wp-cron)', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Cron uruchamia proces synchronizacji o 00:00 w strefie czasu WordPress (w niedziele według wybranego harmonogramu).', 'openvote' ); ?>
+        </p>
+        <?php
+        $auto_sync_schedule = get_option( 'openvote_auto_sync_schedule', 'first_sunday' );
+        $allowed_schedules = [ 'manual', 'first_sunday', 'second_sunday', 'weekly', 'daily' ];
+        if ( ! in_array( $auto_sync_schedule, $allowed_schedules, true ) ) {
+            $auto_sync_schedule = 'first_sunday';
+        }
+        $last_sync_date = get_option( 'openvote_last_cron_sync_date', '' );
+        ?>
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_auto_sync_schedule"><?php esc_html_e( 'Harmonogram', 'openvote' ); ?></label></th>
+                <td>
+                    <select name="openvote_auto_sync_schedule" id="openvote_auto_sync_schedule" class="regular-text">
+                        <option value="manual" <?php selected( $auto_sync_schedule, 'manual' ); ?>><?php esc_html_e( 'Tylko ręcznie', 'openvote' ); ?></option>
+                        <option value="first_sunday" <?php selected( $auto_sync_schedule, 'first_sunday' ); ?>><?php esc_html_e( 'Automatycznie w pierwszą niedzielę miesiąca', 'openvote' ); ?></option>
+                        <option value="second_sunday" <?php selected( $auto_sync_schedule, 'second_sunday' ); ?>><?php esc_html_e( 'Automatycznie co drugą niedzielę miesiąca', 'openvote' ); ?></option>
+                        <option value="weekly" <?php selected( $auto_sync_schedule, 'weekly' ); ?>><?php esc_html_e( 'Automatycznie co niedzielę', 'openvote' ); ?></option>
+                        <option value="daily" <?php selected( $auto_sync_schedule, 'daily' ); ?>><?php esc_html_e( 'Automatycznie codziennie (Nie zalecane przy dużej ilości użytkowników)', 'openvote' ); ?></option>
+                    </select>
+                    <p class="description" style="margin-top:8px;padding:8px 12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;max-width:480px;">
+                        <?php if ( $last_sync_date !== '' && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $last_sync_date ) ) : ?>
+                            <?php
+                            /* translators: %s: date in Y-m-d format */
+                            echo esc_html( sprintf( __( 'Ostatnia synchronizacja zakończona dnia %s.', 'openvote' ), $last_sync_date ) );
+                            ?>
+                        <?php else : ?>
+                            <?php esc_html_e( 'Nie było jeszcze synchronizacji.', 'openvote' ); ?>
+                        <?php endif; ?>
+                    </p>
+                </td>
+            </tr>
+        </table>
+        </div>
 
+        <?php // ─── Synchronizacja grup (tylko admin) ──────────────────────── ?>
+        <div style="margin-top:24px;margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
+            <strong><?php esc_html_e( 'Synchronizacja grup', 'openvote' ); ?></strong>
+            <p class="description" style="margin:4px 0 8px;">
+                <?php esc_html_e( 'Odkrywa unikalne wartości pola "miasto" w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników automatycznie. Proces może trwać kilka minut przy kilku tysiącach użytkowników — nie zamykaj karty do końca. Synchronizacja uruchamiana jest automatycznie, według ustawień administratora.', 'openvote' ); ?>
+            </p>
+            <p style="margin:0 0 8px;">
+                <button type="button" id="openvote-cfg-sync-all-btn" class="button button-primary">
+                    <?php esc_html_e( 'Synchronizuj wszystkie grupy', 'openvote' ); ?>
+                </button>
+                <button type="button" id="openvote-cfg-sync-all-reset-btn" class="button" style="margin-left:8px;background:#b32d2e;border-color:#b32d2e;color:#fff;">
+                    <?php esc_html_e( 'Synchronizuj od początku wszystkie grupy (Nie zalecane)', 'openvote' ); ?>
+                </button>
+            </p>
+            <button type="button" id="openvote-cfg-sync-all-stop-btn" class="button" style="display:none;">
+                <?php esc_html_e( 'Zatrzymaj synchronizację grup', 'openvote' ); ?>
+            </button>
+            <div id="openvote-cfg-sync-all-progress" style="margin-top:10px;"></div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var syncBtn      = document.getElementById('openvote-cfg-sync-all-btn');
+            var syncResetBtn = document.getElementById('openvote-cfg-sync-all-reset-btn');
+            var syncStopBtn  = document.getElementById('openvote-cfg-sync-all-stop-btn');
+
+            function runCfgSyncAll(resetFromStart) {
+                var container = document.getElementById('openvote-cfg-sync-all-progress');
+                var apiRoot   = (window.openvoteBatch && window.openvoteBatch.apiRoot) ? window.openvoteBatch.apiRoot : '/wp-json/openvote/v1';
+                var nonce     = (window.openvoteBatch && window.openvoteBatch.nonce)   ? window.openvoteBatch.nonce   : '';
+
+                if (syncBtn)      syncBtn.disabled      = true;
+                if (syncResetBtn) syncResetBtn.disabled = true;
+                if (syncStopBtn)  syncStopBtn.style.display = 'inline-block';
+                if (container)    container.innerHTML   = '<p class="openvote-progress-label">Uruchamianie synchronizacji\u2026</p>';
+
+                var logPanel = (typeof openvoteCreateSyncLogPanel === 'function') ? openvoteCreateSyncLogPanel(container) : { update: function(){} };
+
+                function doStart(retries) {
+                    retries = retries || 0;
+                    return fetch(apiRoot + '/groups/sync-all', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+                        body: resetFromStart ? JSON.stringify({ reset: true }) : undefined,
+                    }).then(function (r) {
+                        if (r.status === 503 && retries < 1) {
+                            if (container) container.innerHTML = '<p class="openvote-progress-label">Serwer zaj\u0119ty (503). Ponawiam za 2 s\u2026</p>';
+                            return new Promise(function (res) { setTimeout(res, 2000); }).then(function () { return doStart(retries + 1); });
+                        }
+                        return r.json().then(function (data) {
+                            if (!data.job_id) throw new Error(data.message || 'B\u0142\u0105d uruchamiania zadania.');
+                            return data;
+                        });
+                    });
+                }
+
+                doStart(0).then(function (data) {
+                    if (syncStopBtn) {
+                        syncStopBtn.onclick = function () {
+                            syncStopBtn.disabled = true;
+                            fetch(apiRoot + '/jobs/' + encodeURIComponent(data.job_id) + '/stop', {
+                                method: 'POST', headers: { 'X-WP-Nonce': nonce },
+                            }).finally(function () { syncStopBtn.disabled = false; });
+                        };
+                    }
+                    if (typeof openvoteRunBatchJob === 'function') {
+                        openvoteRunBatchJob(
+                            data.job_id,
+                            function (processed, total, pct, job) {
+                                if (typeof openvoteRenderProgress === 'function') openvoteRenderProgress(container, processed, total, pct, job);
+                                logPanel.update(job);
+                            },
+                            function (job) {
+                                if (container) {
+                                    container.innerHTML = job.status === 'cancelled'
+                                        ? '<p class="openvote-progress-label">Zatrzymano. Przetworzone: ' + job.processed + '</p>'
+                                        : '<p class="openvote-progress-done">\u2713 Synchronizacja zako\u0144czona. Przetworzone grupy: ' + job.processed + '</p>';
+                                }
+                                logPanel.update(job);
+                                if (syncBtn)      syncBtn.disabled      = false;
+                                if (syncResetBtn) syncResetBtn.disabled = false;
+                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                            },
+                            function (err) {
+                                if (container) {
+                                    var p = document.createElement('p');
+                                    p.className   = 'openvote-progress-error';
+                                    p.textContent = 'B\u0142\u0105d: ' + err.message;
+                                    container.innerHTML = '';
+                                    container.appendChild(p);
+                                }
+                                if (syncBtn)      syncBtn.disabled      = false;
+                                if (syncResetBtn) syncResetBtn.disabled = false;
+                                if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                            },
+                            10000
+                        );
+                    }
+                }).catch(function (err) {
+                    if (container) {
+                        var p = document.createElement('p');
+                        p.className   = 'openvote-progress-error';
+                        p.textContent = 'B\u0142\u0105d: ' + err.message;
+                        container.innerHTML = '';
+                        container.appendChild(p);
+                    }
+                    if (syncBtn)      syncBtn.disabled      = false;
+                    if (syncResetBtn) syncResetBtn.disabled = false;
+                    if (syncStopBtn)  syncStopBtn.style.display = 'none';
+                });
+            }
+
+            if (syncBtn)      syncBtn.addEventListener('click',      function () { runCfgSyncAll(false); });
+            if (syncResetBtn) syncResetBtn.addEventListener('click', function () { runCfgSyncAll(true);  });
+        });
+        </script>
+        <p class="openvote-settings-save-wrap">
+            <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
+        </p>
+        </div>
+
+        <div class="openvote-tab-panel" id="tab-stats" data-tab="stats" role="tabpanel" aria-labelledby="tabbtn-stats">
         <?php
         $communication_do_not_skip_inactive = (int) get_option( 'openvote_communication_do_not_skip_inactive', 0 ) === 1;
         ?>
@@ -1467,13 +1508,13 @@ function openvote_settings_select( string $logical, string $current, array $core
                 </td>
             </tr>
             <tr>
-                <th scope="row"><?php esc_html_e( 'Komunikacja', 'openvote' ); ?></th>
+                <th scope="row"><?php esc_html_e( 'Wysyłka', 'openvote' ); ?></th>
                 <td>
                     <label for="openvote_communication_do_not_skip_inactive">
                         <input type="checkbox" name="openvote_communication_do_not_skip_inactive" id="openvote_communication_do_not_skip_inactive" value="1" <?php checked( $communication_do_not_skip_inactive ); ?>>
                         <?php esc_html_e( 'Nie pomijaj nieaktywnych', 'openvote' ); ?>
                     </label>
-                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Komunikacja trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani zgodnie z regułami powyższych suwaków.', 'openvote' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani zgodnie z regułami powyższych suwaków.', 'openvote' ); ?></p>
                 </td>
             </tr>
         </table>
@@ -1492,10 +1533,10 @@ function openvote_settings_select( string $logical, string $current, array $core
         </div>
         <?php endif; ?>
         </div>
-
-        <p class="openvote-settings-save-wrap" style="margin-top:16px;">
+        <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
         </p>
+        </div>
     </form>
 
     <script>
@@ -1595,6 +1636,7 @@ function openvote_settings_select( string $logical, string $current, array $core
     } )();
     </script>
 
+    <div class="openvote-tab-panel" data-tab="fields" role="presentation">
     <hr>
     <h2 style="font-size:14px;"><?php esc_html_e( 'Jak to działa?', 'openvote' ); ?></h2>
     <ul style="list-style:disc;padding-left:20px;max-width:700px;color:#555;font-size:13px;">
@@ -1604,7 +1646,137 @@ function openvote_settings_select( string $logical, string $current, array $core
         <li><?php esc_html_e( 'Pozostałe pola są odczytywane z tabeli wp_usermeta.', 'openvote' ); ?></li>
         <li><?php esc_html_e( 'Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają nowych kluczy.', 'openvote' ); ?></li>
     </ul>
+    </div>
 
+    <?php
+    // Panel „Cron” — poza głównym formularzem (żadnych pól do zapisu; akcje przez REST z nonce).
+    $openvote_hb_status = Openvote_Heartbeat::status();
+    $openvote_hb_cmd    = Openvote_Heartbeat::get_cron_command();
+    $openvote_hb_fmt    = static function ( int $ts ): string {
+        return $ts ? wp_date( 'Y-m-d H:i:s', $ts ) : '—';
+    };
+    ?>
+    <div class="openvote-tab-panel" id="tab-cron" data-tab="cron" role="tabpanel" aria-labelledby="tabbtn-cron">
+    <style>
+        .openvote-cron-card{background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 20px;margin:16px 0;max-width:900px;box-sizing:border-box}
+        .openvote-cron-card h3{margin-top:0}
+        .openvote-cron-cmd{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+        .openvote-cron-cmd textarea{flex:1 1 320px;min-width:0;max-width:100%;font-family:monospace;font-size:12px;box-sizing:border-box;word-break:break-all}
+        .openvote-cron-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:600;color:#fff}
+        .openvote-cron-badge--ok{background:#1a7f37}
+        .openvote-cron-badge--bad{background:#b32d2e}
+        .openvote-cron-steps li{margin-bottom:6px}
+    </style>
+
+    <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Harmonogram (cron)', 'openvote' ); ?></h2>
+    <p style="max-width:800px;">
+        <?php esc_html_e( 'Aby wtyczka mogła sama wysyłać zaproszenia na rozpoczęte głosowania i wznawiać wysyłkę wstrzymaną limitami (np. dziennym limitem Brevo) — także wtedy, gdy nikt nie jest zalogowany — serwer musi co 15 minut uruchamiać plik PHP wtyczki. Robi się to raz, w panelu hostingu.', 'openvote' ); ?>
+    </p>
+
+    <div class="openvote-cron-card">
+        <h3><?php esc_html_e( 'Stan', 'openvote' ); ?></h3>
+        <p>
+            <?php if ( $openvote_hb_status['ok'] ) : ?>
+                <span class="openvote-cron-badge openvote-cron-badge--ok" id="openvote-cron-badge"><?php esc_html_e( 'Działa', 'openvote' ); ?></span>
+            <?php else : ?>
+                <span class="openvote-cron-badge openvote-cron-badge--bad" id="openvote-cron-badge"><?php esc_html_e( 'Brak sygnału', 'openvote' ); ?></span>
+            <?php endif; ?>
+            &nbsp;<?php esc_html_e( 'Ostatnie wywołanie z crona serwera:', 'openvote' ); ?>
+            <strong id="openvote-cron-last"><?php echo esc_html( $openvote_hb_fmt( $openvote_hb_status['last'] ) ); ?></strong>
+        </p>
+        <?php if ( $openvote_hb_status['summary'] !== '' ) : ?>
+            <p class="description" id="openvote-cron-summary"><?php echo esc_html( $openvote_hb_status['summary'] ); ?></p>
+        <?php else : ?>
+            <p class="description" id="openvote-cron-summary"><?php esc_html_e( 'Jeszcze nie odebrano żadnego sygnału. Skonfiguruj cron według instrukcji poniżej.', 'openvote' ); ?></p>
+        <?php endif; ?>
+        <p class="description"><?php esc_html_e( 'Zielony stan oznacza sygnał z crona serwera w ciągu ostatnich 20 minut.', 'openvote' ); ?></p>
+        <p>
+            <button type="button" class="button" id="openvote-cron-run"><?php esc_html_e( 'Uruchom teraz', 'openvote' ); ?></button>
+            <span id="openvote-cron-run-result" class="description" role="status" aria-live="polite" style="margin-left:8px;"></span>
+        </p>
+        <?php if ( $openvote_hb_status['manual_last'] ) : ?>
+            <p class="description" id="openvote-cron-manual"><?php
+                /* translators: %s: date and time */
+                echo esc_html( sprintf( __( 'Ostatnie ręczne uruchomienie: %s', 'openvote' ), $openvote_hb_fmt( $openvote_hb_status['manual_last'] ) ) );
+            ?></p>
+        <?php endif; ?>
+    </div>
+
+    <div class="openvote-cron-card">
+        <h3><?php esc_html_e( 'Jak to ustawić (cPanel)', 'openvote' ); ?></h3>
+        <ol class="openvote-cron-steps">
+            <li><?php esc_html_e( 'Zaloguj się do panelu hostingu (cPanel) i otwórz „Zadania Cron” (Cron Jobs).', 'openvote' ); ?></li>
+            <li><?php esc_html_e( 'W polu „Ustawienia zwykłe” wybierz „Co 15 minut” (Once Per Fifteen Minutes — */15).', 'openvote' ); ?></li>
+            <li><?php esc_html_e( 'W polu „Polecenie” wklej poniższą komendę (przycisk „Kopiuj”) i zapisz („Dodaj nowe zadanie cron”).', 'openvote' ); ?></li>
+            <li><?php esc_html_e( 'Po 15 minutach odśwież tę stronę — stan powinien zmienić się na „Działa”.', 'openvote' ); ?></li>
+        </ol>
+        <p><strong><?php esc_html_e( 'Harmonogram: co 15 minut (*/15 * * * *). Polecenie:', 'openvote' ); ?></strong></p>
+        <div class="openvote-cron-cmd">
+            <textarea id="openvote-cron-cmd" rows="3" readonly aria-label="<?php echo esc_attr__( 'Polecenie crona (PHP)', 'openvote' ); ?>"><?php echo esc_textarea( $openvote_hb_cmd ); ?></textarea>
+            <button type="button" class="button" data-copy="openvote-cron-cmd"><?php esc_html_e( 'Kopiuj', 'openvote' ); ?></button>
+        </div>
+        <p class="description" style="margin-top:10px;"><?php esc_html_e( 'Polecenie używa ścieżki /usr/local/bin/php (standard cPanel). Jeśli na Twoim serwerze PHP jest gdzie indziej, zamień ją na właściwą (np. /usr/bin/php). Każde uruchomienie zapisuje wersję PHP i wynik w pliku cron/cron-log.php w katalogu wtyczki (dostępny przez FTP, zablokowany dla przeglądarki).', 'openvote' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Nie są potrzebne ani wget, ani curl, ani żaden klucz. Katalog „cron” jest zablokowany dla przeglądarek plikiem .htaccess, a skrypt uruchamia się wyłącznie z wiersza poleceń.', 'openvote' ); ?></p>
+    </div>
+
+    <div class="openvote-cron-card">
+        <h3><?php esc_html_e( 'Co robi cron?', 'openvote' ); ?></h3>
+        <ul style="list-style:disc;padding-left:20px;">
+            <li><?php esc_html_e( 'Wysyła zaproszenia na głosowania z zaznaczoną opcją automatycznej wysyłki po rozpoczęciu (tylko głosowania rozpoczęte po włączeniu tej funkcji i bez wcześniejszej wysyłki zaproszeń).', 'openvote' ); ?></li>
+            <li><?php esc_html_e( 'Wznawia wysyłkę zaproszeń i wiadomości wstrzymaną przez limity (15 minut / godzina / doba), gdy limit znów na to pozwala.', 'openvote' ); ?></li>
+            <li><?php esc_html_e( 'Wykonuje zaległe zadania harmonogramu wtyczki (np. synchronizację grup).', 'openvote' ); ?></li>
+        </ul>
+    </div>
+
+    <script>
+    ( function () {
+        var apiRoot = <?php echo wp_json_encode( esc_url_raw( rest_url( 'openvote/v1' ) ) ); ?>;
+        var nonce   = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
+        var i18n    = <?php echo wp_json_encode( [
+            'copied'  => __( 'Skopiowano.', 'openvote' ),
+            'copyErr' => __( 'Zaznaczono tekst — skopiuj go (Ctrl+C).', 'openvote' ),
+            'running' => __( 'Uruchamianie…', 'openvote' ),
+            'error'   => __( 'Błąd.', 'openvote' ),
+        ] ); ?>;
+        function post( path ) {
+            return fetch( apiRoot + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce } } )
+                .then( function ( r ) { return r.json(); } );
+        }
+        document.querySelectorAll( '[data-copy]' ).forEach( function ( btn ) {
+            btn.addEventListener( 'click', function () {
+                var ta = document.getElementById( btn.getAttribute( 'data-copy' ) );
+                if ( ! ta ) return;
+                var old = btn.textContent;
+                function done( ok ) {
+                    btn.textContent = ok ? i18n.copied : i18n.copyErr;
+                    setTimeout( function () { btn.textContent = old; }, 2500 );
+                }
+                function fallback() {
+                    var ok = false;
+                    try { ta.focus(); ta.select(); ok = document.execCommand( 'copy' ); } catch ( e ) {}
+                    done( ok );
+                }
+                ta.focus(); ta.select();
+                if ( navigator.clipboard && window.isSecureContext ) {
+                    navigator.clipboard.writeText( ta.value ).then( function () { done( true ); }, fallback );
+                } else {
+                    fallback();
+                }
+            } );
+        } );
+        var run = document.getElementById( 'openvote-cron-run' );
+        var res = document.getElementById( 'openvote-cron-run-result' );
+        if ( run ) run.addEventListener( 'click', function () {
+            run.disabled = true; res.textContent = i18n.running;
+            post( '/cron/run-now' ).then( function ( d ) {
+                res.textContent = ( d && d.summary ) ? d.summary : i18n.error;
+            } ).catch( function () { res.textContent = i18n.error; } ).then( function () { run.disabled = false; } );
+        } );
+    } )();
+    </script>
+    </div>
+
+    <div class="openvote-tab-panel" id="tab-tools" data-tab="tools" role="tabpanel" aria-labelledby="tabbtn-tools">
     <hr style="margin-top:32px;margin-bottom:20px;">
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Wyczyść bazę danych wtyczki i przywróć wartości fabryczne', 'openvote' ); ?></h2>
 
@@ -1786,5 +1958,6 @@ function openvote_settings_select( string $logical, string $current, array $core
     <hr style="margin-top:32px;margin-bottom:20px;">
     <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Odinstaluj wtyczkę', 'openvote' ); ?></h2>
     <?php include OPENVOTE_PLUGIN_DIR . 'admin/partials/uninstall.php'; ?>
+    </div>
 
     </div>

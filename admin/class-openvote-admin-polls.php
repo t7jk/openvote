@@ -23,37 +23,51 @@ class Openvote_Admin_Polls {
         $extend_duration = ! empty( $_POST['openvote_extend_duration'] );
 
         if ( 'delete' === $action && $poll_id ) {
-            Openvote_Poll::delete( $poll_id );
+            // Te same kontrole co w ścieżce GET (uprawnienia, status != open, dostęp do grup, wpis w logu).
+            $res = self::delete_checked( $poll_id );
+            if ( is_wp_error( $res ) ) {
+                set_transient( 'openvote_admin_error', $res->get_error_message(), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote' ) );
+                exit;
+            }
             wp_safe_redirect( admin_url( 'admin.php?page=openvote&deleted=1' ) );
             exit;
         }
 
-        // Z podglądu: tylko aktualizacja czasu trwania i powiadomienia (wydłużenie głosowania).
+        // A5: koordynator ograniczony do własnych grup nie zmienia cudzych głosowań.
+        if ( $poll_id ) {
+            $guard = Openvote_Poll::get( $poll_id );
+            if ( $guard && ! Openvote_Poll::current_user_can_access( $guard ) ) {
+                wp_die( esc_html__( 'Brak uprawnień do tego głosowania.', 'openvote' ), '', [ 'response' => 403 ] );
+            }
+        }
+
+        // Z podglądu: tylko aktualizacja czasu trwania (wydłużenie TRWAJĄCEGO głosowania).
         if ( $extend_duration && $poll_id && 'update' === $action ) {
             $existing = Openvote_Poll::get( $poll_id );
-            if ( $existing && in_array( $existing->status, [ 'open', 'closed' ], true ) && ! empty( $existing->date_start ) ) {
-                $duration_seconds = [
-                    '1h'  => 3600,
-                    '12h' => 12 * 3600,
-                    '1d'  => DAY_IN_SECONDS,
-                    '7d'  => 7 * DAY_IN_SECONDS,
-                    '14d' => 14 * DAY_IN_SECONDS,
-                    '21d' => 21 * DAY_IN_SECONDS,
-                    '28d' => 28 * DAY_IN_SECONDS,
-                ];
+            if ( $existing && 'open' === $existing->status && ! empty( $existing->date_start ) ) {
+                $duration_seconds = self::duration_seconds_map();
                 $duration_key = sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) );
                 if ( isset( $duration_seconds[ $duration_key ] ) ) {
                     $start_ts = strtotime( $existing->date_start );
                     $date_end = wp_date( 'Y-m-d H:i:s', $start_ts + $duration_seconds[ $duration_key ] );
-                    $notify_start = ! empty( $_POST['notify_start'] );
-                    Openvote_Poll::update( $poll_id, [
-                        'date_end'     => $date_end,
-                        'notify_start' => $notify_start ? 1 : 0,
-                    ] );
+                    if ( $date_end <= current_time( 'Y-m-d H:i:s' ) ) {
+                        set_transient( 'openvote_admin_error', __( 'Nowy termin zakończenia musi być w przyszłości. Wybierz dłuższy czas trwania albo użyj „Zakończ”.', 'openvote' ), 30 );
+                        wp_safe_redirect( add_query_arg( [ 'action' => 'view', 'poll_id' => $poll_id ], admin_url( 'admin.php?page=openvote' ) ) );
+                        exit;
+                    }
+                    // notify_start celowo NIE jest ruszane (formularz podglądu go nie zawiera).
+                    Openvote_Poll::update( $poll_id, [ 'date_end' => $date_end ] );
+                    if ( ! empty( $existing->title ) ) {
+                        openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zmienił czas trwania głosowania %s', 'openvote' ), $existing->title ) );
+                    }
                     wp_safe_redirect( add_query_arg( [ 'action' => 'view', 'poll_id' => $poll_id, 'updated' => 1 ], admin_url( 'admin.php?page=openvote' ) ) );
                     exit;
                 }
             }
+            set_transient( 'openvote_admin_error', __( 'Czas trwania można zmienić tylko dla trwającego głosowania.', 'openvote' ), 30 );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote' ) );
+            exit;
         }
 
         if ( $poll_id && ! $extend_duration ) {
@@ -73,7 +87,12 @@ class Openvote_Admin_Polls {
 
         if ( is_wp_error( $data ) ) {
             set_transient( 'openvote_admin_error', $data->get_error_message(), 30 );
-            wp_safe_redirect( wp_get_referer() ?: admin_url( 'admin.php?page=openvote' ) );
+            // Zachowaj wpisane dane — formularz odtworzy je po przekierowaniu.
+            set_transient( 'openvote_poll_form_draft_' . get_current_user_id(), $this->collect_form_draft( $poll_id ), 120 );
+            $back = $poll_id
+                ? admin_url( 'admin.php?page=openvote&action=edit&poll_id=' . $poll_id )
+                : admin_url( 'admin.php?page=openvote&action=new' );
+            wp_safe_redirect( $back );
             exit;
         }
         if ( $poll_id ) {
@@ -106,6 +125,8 @@ class Openvote_Admin_Polls {
             $redirect = add_query_arg( 'updated', 1, admin_url( 'admin.php?page=openvote' ) );
             if ( 'start_now' === $submit_action ) {
                 $redirect = add_query_arg( 'started', 1, $redirect );
+            } elseif ( ! empty( $data['_incomplete'] ) ) {
+                $redirect = add_query_arg( 'draft_incomplete', 1, $redirect );
             }
         } else {
             $new_id = Openvote_Poll::create( $data );
@@ -124,6 +145,9 @@ class Openvote_Admin_Polls {
             $redirect = ( 'start_now' === $submit_action )
                 ? add_query_arg( 'started', 1, admin_url( 'admin.php?page=openvote' ) )
                 : admin_url( 'admin.php?page=openvote&created=1' );
+            if ( 'start_now' !== $submit_action && ! empty( $data['_incomplete'] ) ) {
+                $redirect = add_query_arg( 'draft_incomplete', 1, $redirect );
+            }
         }
 
         // Nie przekierowujemy na ekran wysyłki — użytkownik sam wchodzi w „Wysyłki”, jeśli chce wysłać zaproszenia (np. może rozreklamować głosowanie w mediach społecznościowych).
@@ -139,7 +163,7 @@ class Openvote_Admin_Polls {
         $title = trim( sanitize_text_field( wp_unslash( $_POST['poll_title'] ?? '' ) ) );
         if ( '' === $title ) {
             if ( $is_draft_save ) {
-                $title = __( 'Szkic', 'openvote' );
+                $title = sprintf( __( 'Szkic %s', 'openvote' ), wp_date( 'd.m.Y H:i' ) );
             } else {
                 return new \WP_Error( 'missing_title', __( 'Tytuł jest wymagany.', 'openvote' ) );
             }
@@ -149,15 +173,7 @@ class Openvote_Admin_Polls {
         }
 
         $duration_key = sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) );
-        $duration_seconds = [
-            '1h'  => 3600,
-            '12h' => 12 * 3600,
-            '1d'  => DAY_IN_SECONDS,
-            '7d'  => 7 * DAY_IN_SECONDS,
-            '14d' => 14 * DAY_IN_SECONDS,
-            '21d' => 21 * DAY_IN_SECONDS,
-            '28d' => 28 * DAY_IN_SECONDS,
-        ];
+        $duration_seconds = self::duration_seconds_map();
         if ( ! isset( $duration_seconds[ $duration_key ] ) ) {
             if ( $is_draft_save ) {
                 $duration_key = '7d';
@@ -171,6 +187,7 @@ class Openvote_Admin_Polls {
         // Parse questions with nested answers.
         $raw_questions = (array) ( $_POST['questions'] ?? [] );
         $questions     = [];
+        $incomplete    = false;
 
         foreach ( array_values( $raw_questions ) as $q ) {
             if ( ! is_array( $q ) ) {
@@ -189,20 +206,38 @@ class Openvote_Admin_Polls {
             $answers     = [];
 
             foreach ( $raw_answers as $a_text ) {
-                $a_text = trim( sanitize_text_field( wp_unslash( $a_text ) ) );
+                $a_text = is_scalar( $a_text ) ? trim( sanitize_text_field( wp_unslash( (string) $a_text ) ) ) : '';
                 if ( '' !== $a_text ) {
+                    if ( mb_strlen( $a_text ) > 512 ) {
+                        return new \WP_Error( 'answer_too_long', __( 'Każda odpowiedź może zawierać maksymalnie 512 znaków.', 'openvote' ) );
+                    }
                     $answers[] = $a_text;
                 }
             }
 
+            // Duplikaty odpowiedzi (bez względu na wielkość liter) są niedozwolone.
+            $seen = [];
+            foreach ( $answers as $a ) {
+                $k = mb_strtolower( $a );
+                if ( isset( $seen[ $k ] ) ) {
+                    return new \WP_Error(
+                        'duplicate_answers',
+                        sprintf( __( 'Odpowiedzi w pytaniu „%s” nie mogą się powtarzać.', 'openvote' ), $q_text )
+                    );
+                }
+                $seen[ $k ] = true;
+            }
+
             if ( count( $answers ) < 3 ) {
                 if ( $is_draft_save ) {
-                    continue;
+                    // Szkic: zachowujemy pytanie z tym, co wpisano (walidacja dopiero przy starcie).
+                    $incomplete = true;
+                } else {
+                    return new \WP_Error( 'too_few_answers', __( 'Każde pytanie: min. 2 własne odpowiedzi + „Wstrzymuję się” (razem 3–12).', 'openvote' ) );
                 }
-                return new \WP_Error( 'too_few_answers', __( 'Każde pytanie musi mieć co najmniej 3 odpowiedzi (w tym obowiązkową abstencję).', 'openvote' ) );
             }
             if ( count( $answers ) > 12 ) {
-                return new \WP_Error( 'too_many_answers', __( 'Maksymalnie 12 odpowiedzi per pytanie.', 'openvote' ) );
+                return new \WP_Error( 'too_many_answers', __( 'Maksymalnie 12 odpowiedzi na pytanie.', 'openvote' ) );
             }
 
             $questions[] = [
@@ -220,6 +255,17 @@ class Openvote_Admin_Polls {
 
         // target_groups: multi-select of group IDs → store as JSON.
         $raw_groups    = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
+        // A5: koordynator ograniczony do własnych grup może wskazać wyłącznie swoje grupy (egzekwowane po stronie serwera).
+        if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
+            $own = array_map( 'absint', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+            if ( openvote_create_test_group_enabled() && openvote_get_test_group_id() ) {
+                $own[] = openvote_get_test_group_id();
+            }
+            $raw_groups = array_values( array_intersect( $raw_groups, $own ) );
+            if ( empty( $raw_groups ) ) {
+                return new \WP_Error( 'missing_group', __( 'Wybierz co najmniej jedną ze swoich grup docelowych.', 'openvote' ) );
+            }
+        }
         $target_groups = ! empty( $raw_groups ) ? wp_json_encode( array_values( $raw_groups ) ) : '';
 
         return [
@@ -230,77 +276,78 @@ class Openvote_Admin_Polls {
             'target_groups' => $target_groups,
             'notify_start'  => ! empty( $_POST['notify_start'] ),
             'questions'     => $questions,
+            '_incomplete'   => $incomplete,
         ];
     }
 
     /**
-     * Normalizes datetime from form (YYYY-MM-DD, YYYY-MM-DDTHH:mm, or Y-m-d H:i:s) to DB format Y-m-d H:i:s.
+     * Mapa kluczy czasu trwania → sekundy (jedno miejsce dla formularza i podglądu).
      *
-     * @param string $raw Sanitized POST value.
-     * @return string|false DB datetime 'Y-m-d H:i:s' or false if invalid.
+     * @return array<string,int>
      */
-    private static function normalize_datetime_for_db( string $raw ): string|false {
-        $raw = trim( $raw );
-        if ( '' === $raw ) {
-            return false;
-        }
-        // datetime-local: YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
-        if ( preg_match( '/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $raw, $m ) ) {
-            $d = $m[1];
-            $h = (int) $m[2];
-            $i = (int) $m[3];
-            $s = isset( $m[4] ) ? (int) $m[4] : 0;
-            if ( $h < 0 || $h > 23 || $i < 0 || $i > 59 || $s < 0 || $s > 59 ) {
-                return false;
-            }
-            return sprintf( '%s %02d:%02d:%02d', $d, $h, $i, $s );
-        }
-        // date only: YYYY-MM-DD
-        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw ) ) {
-            return $raw . ' 00:00:00';
-        }
-        // already Y-m-d H:i or Y-m-d H:i:s
-        if ( preg_match( '/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $raw, $m ) ) {
-            $d = $m[1];
-            $h = (int) $m[2];
-            $i = (int) $m[3];
-            $s = isset( $m[4] ) ? (int) $m[4] : 0;
-            if ( $h < 0 || $h > 23 || $i < 0 || $i > 59 || $s < 0 || $s > 59 ) {
-                return false;
-            }
-            return sprintf( '%s %02d:%02d:%02d', $d, $h, $i, $s );
-        }
-        return false;
+    public static function duration_seconds_map(): array {
+        return [
+            '1h'  => 3600,
+            '12h' => 12 * 3600,
+            '1d'  => DAY_IN_SECONDS,
+            '7d'  => 7 * DAY_IN_SECONDS,
+            '14d' => 14 * DAY_IN_SECONDS,
+            '21d' => 21 * DAY_IN_SECONDS,
+            '28d' => 28 * DAY_IN_SECONDS,
+        ];
     }
 
     /**
-     * Legacy: wysyłka powiadomień e-mail do użytkowników (max 500 w jednym żądaniu).
-     * Dla dużych baz (np. 10k+) należy używać systemu zaproszeń (batch) z ekranu Wyniki / Zaproszenia.
+     * Usuń głosowanie z pełnymi kontrolami (wspólne dla GET, POST i akcji zbiorczych):
+     * manage_options, status inny niż „trwa”, dostęp do grup, wpis w logu czynności.
+     *
+     * @return true|\WP_Error
      */
-    private function send_notifications( int $poll_id, string $title ): void {
-        $max_recipients = 500;
-        $users = get_users( [
-            'fields'  => [ 'user_email' ],
-            'number'  => $max_recipients,
-            'orderby' => 'ID',
-        ] );
-
-        if ( empty( $users ) ) {
-            return;
+    public static function delete_checked( int $poll_id ): bool|\WP_Error {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return new \WP_Error( 'forbidden', __( 'Tylko administrator może usuwać głosowania.', 'openvote' ) );
         }
+        $poll = Openvote_Poll::get( $poll_id );
+        if ( ! $poll ) {
+            return new \WP_Error( 'not_found', __( 'Głosowanie nie istnieje.', 'openvote' ) );
+        }
+        if ( 'open' === $poll->status ) {
+            return new \WP_Error( 'poll_open', __( 'Trwającego głosowania nie można usunąć. Najpierw je zakończ.', 'openvote' ) );
+        }
+        $title = (string) ( $poll->title ?? '' );
+        Openvote_Poll::delete( $poll_id );
+        if ( '' !== $title ) {
+            openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'usunął głosowanie %s', 'openvote' ), $title ) );
+        }
+        return true;
+    }
 
-        $subject = sprintf( __( 'Nowe głosowanie: %s', 'openvote' ), $title );
-        $message = sprintf(
-            __( "Zostało otwarte nowe głosowanie: %s\n\nZaloguj się, aby oddać swój głos.", 'openvote' ),
-            $title
-        );
-        $headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
-
-        foreach ( array_column( $users, 'user_email' ) as $email ) {
-            if ( ! is_email( $email ) ) {
+    /**
+     * Zbierz wpisane dane formularza (do odtworzenia po błędzie walidacji).
+     */
+    private function collect_form_draft( int $poll_id ): array {
+        $qs = [];
+        foreach ( array_values( (array) ( $_POST['questions'] ?? [] ) ) as $q ) {
+            if ( ! is_array( $q ) ) {
                 continue;
             }
-            wp_mail( $email, $subject, $message, $headers );
+            $answers = [];
+            foreach ( array_values( (array) ( $q['answers'] ?? [] ) ) as $a ) {
+                $answers[] = sanitize_text_field( wp_unslash( (string) $a ) );
+            }
+            $qs[] = [
+                'text'    => sanitize_text_field( wp_unslash( $q['text'] ?? '' ) ),
+                'answers' => $answers,
+            ];
         }
+        return [
+            'poll_id'       => $poll_id,
+            'title'         => sanitize_text_field( wp_unslash( $_POST['poll_title'] ?? '' ) ),
+            'description'   => sanitize_textarea_field( wp_unslash( $_POST['poll_description'] ?? '' ) ),
+            'duration'      => sanitize_text_field( wp_unslash( $_POST['poll_duration'] ?? '7d' ) ),
+            'target_groups' => array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) ),
+            'notify_start'  => ! empty( $_POST['notify_start'] ),
+            'questions'     => $qs,
+        ];
     }
 }

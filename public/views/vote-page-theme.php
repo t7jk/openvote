@@ -30,7 +30,13 @@ $active_tab = isset( $_GET['tab'] ) && sanitize_key( wp_unslash( $_GET['tab'] ) 
 $polls_active = [];
 $polls_closed = [];
 
-if ( $is_logged ) {
+if ( ! $is_logged ) {
+    if ( 'active' === $active_tab ) {
+        // Gość widzi pytania; głosuje po zalogowaniu lub weryfikacji danych.
+        $polls_active = array_values( Openvote_Poll::get_active_polls() );
+    }
+    openvote_identity_send_nocache();
+} else {
     if ( 'active' === $active_tab ) {
         $all_active   = Openvote_Poll::get_active_polls();
         $polls_active = array_values( array_filter( $all_active, function ( $poll ) use ( $user_id ) {
@@ -66,7 +72,7 @@ get_header();
 
     <div class="openvote-tab-content">
 
-    <?php if ( ! $is_logged ) : ?>
+    <?php if ( ! $is_logged && 'closed' === $active_tab ) : ?>
 
         <p class="openvote-poll__login-notice">
             <?php             printf(
@@ -100,8 +106,7 @@ get_header();
                 <?php esc_html_e( 'Brak trwających głosowań w tym momencie.', 'openvote' ); ?>
             </p>
         <?php else : ?>
-            <div class="openvote-poll-wrapper"
-                 data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>">
+            <div class="openvote-poll-wrapper"<?php echo $is_logged ? ' data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '"' : ''; ?>>
                 <?php foreach ( $polls_active as $poll ) : ?>
                     <?php openvote_render_single_poll( $poll, $user_id ); ?>
                 <?php endforeach; ?>

@@ -22,7 +22,17 @@ $list_table->prepare_items();
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ankieta została zakończona.', 'openvote' ); ?></p></div>
     <?php endif; ?>
     <?php if ( isset( $_GET['deleted'] ) || isset( $_GET['bulk_deleted'] ) ) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ankieta została usunięta.', 'openvote' ); ?></p></div>
+        <div class="notice notice-success is-dismissible"><p><?php
+            if ( isset( $_GET['bulk_deleted'] ) ) {
+                $bn = absint( $_GET['bulk_deleted'] );
+                echo esc_html( sprintf( _n( 'Usunięto %d ankietę.', 'Usunięto %d ankiet.', $bn, 'openvote' ), $bn ) );
+            } else {
+                esc_html_e( 'Ankieta została usunięta.', 'openvote' );
+            }
+        ?></p></div>
+    <?php endif; ?>
+    <?php if ( ! empty( $_GET['bulk_skipped'] ) ) : ?>
+        <div class="notice notice-warning is-dismissible"><p><?php echo esc_html( sprintf( __( 'Pominięto %d pozycji (trwające ankiety trzeba najpierw zakończyć).', 'openvote' ), absint( $_GET['bulk_skipped'] ) ) ); ?></p></div>
     <?php endif; ?>
     <?php if ( isset( $_GET['created'] ) ) : ?>
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ankieta została utworzona.', 'openvote' ); ?></p></div>
@@ -31,7 +41,7 @@ $list_table->prepare_items();
         <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ankieta została zaktualizowana.', 'openvote' ); ?></p></div>
     <?php endif; ?>
     <?php if ( isset( $_GET['bulk_closed'] ) ) : ?>
-        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ankiety zostały zakończone.', 'openvote' ); ?></p></div>
+        <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Zakończono ankiety.', 'openvote' ); ?></p></div>
     <?php endif; ?>
 
     <?php
@@ -50,7 +60,7 @@ $list_table->prepare_items();
     $subm_page  = get_page_by_path( $subm_slug, OBJECT, 'page' );
     $subm_url   = ( $subm_page && 'publish' === $subm_page->post_status ) ? get_permalink( $subm_page->ID ) : home_url( '/' . $subm_slug . '/' );
     ?>
-    <div class="notice notice-info inline openvote-survey-list-info" id="openvote-survey-list-info" style="max-width:560px;margin-bottom:16px;padding:8px 32px 8px 12px;position:relative;">
+    <div class="notice notice-info inline openvote-survey-list-info" id="openvote-survey-list-info" style="max-width:560px;margin-bottom:16px;padding:8px 32px 8px 12px;position:relative;overflow-wrap:anywhere;">
         <button type="button" class="openvote-survey-list-info-dismiss" aria-label="<?php esc_attr_e( 'Zamknij', 'openvote' ); ?>" style="position:absolute;top:6px;right:8px;background:none;border:none;padding:0;cursor:pointer;font-size:18px;line-height:1;color:#2271b1;opacity:.8;">&times;</button>
         <p style="margin:0;font-size:13px;">
             <?php esc_html_e( 'Ankiety:', 'openvote' ); ?>
@@ -76,8 +86,14 @@ $list_table->prepare_items();
     })();
     </script>
 
-    <form method="post">
+    <form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+        <input type="hidden" name="page" value="openvote-surveys">
+        <?php if ( ! empty( $_GET['survey_status'] ) ) : ?>
+            <input type="hidden" name="survey_status" value="<?php echo esc_attr( sanitize_text_field( $_GET['survey_status'] ) ); ?>">
+        <?php endif; ?>
         <?php $list_table->search_box( __( 'Szukaj ankiety', 'openvote' ), 'survey-search' ); ?>
+    </form>
+    <form method="post">
         <?php $list_table->display(); ?>
     </form>
 

@@ -16,6 +16,8 @@
                 var re = new RegExp( 'page=' + slugs[i].replace( /[.*+?^${}()|[\]\\]/g, '\\$&' ) + '(?:&|$)' );
                 if ( re.test( href ) ) {
                     a.classList.add( 'openvote-submenu-disabled' );
+                    a.setAttribute( 'aria-disabled', 'true' );
+                    a.setAttribute( 'tabindex', '-1' );
                     break;
                 }
             }

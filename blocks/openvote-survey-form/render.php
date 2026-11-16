@@ -18,7 +18,7 @@ wp_enqueue_style(
 wp_enqueue_script(
     'openvote-survey-public',
     OPENVOTE_PLUGIN_URL . 'public/js/survey-public.js',
-    [],
+    [ 'openvote-identity' ],
     OPENVOTE_VERSION,
     true
 );
@@ -33,7 +33,7 @@ wp_enqueue_script(
 
 wp_localize_script( 'openvote-survey-public', 'openvoteSurveyPublic', [
     'restUrl'  => esc_url_raw( rest_url( 'openvote/v1' ) ),
-    'nonce'    => wp_create_nonce( 'wp_rest' ),
+    'nonce'    => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
     'loggedIn' => is_user_logged_in() ? 1 : 0,
     'loginUrl' => esc_url( wp_login_url( Openvote_Survey_Page::get_url() ) ),
     'i18n'     => [
@@ -55,23 +55,6 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
 
 ?>
 <div class="openvote-survey-wrap">
-
-    <?php if ( ! $logged_in ) : ?>
-        <div class="openvote-survey-login-notice">
-            <p>
-                <?php esc_html_e( 'Zaloguj się, aby wypełnić ankietę.', 'openvote' ); ?>
-                <a href="<?php echo esc_url( wp_login_url( Openvote_Survey_Page::get_url() ) ); ?>">
-                    <?php esc_html_e( 'Zaloguj się', 'openvote' ); ?>
-                </a>
-                . <a href="<?php echo esc_url( wp_lostpassword_url() ); ?>">
-                    <?php esc_html_e( 'Nie pamiętam hasła', 'openvote' ); ?>
-                </a>
-                . <a href="<?php echo esc_url( wp_registration_url() ); ?>">
-                    <?php esc_html_e( 'zarejestruj się', 'openvote' ); ?>
-                </a>
-            </p>
-        </div>
-    <?php endif; ?>
 
     <?php if ( empty( $active_surveys ) ) : ?>
         <div class="openvote-survey-empty">
@@ -115,7 +98,7 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                     $nonce   = wp_create_nonce( 'wp_rest' );
                     include OPENVOTE_PLUGIN_DIR . 'public/views/partials/profile-complete.php';
                     ?>
-                <?php elseif ( $logged_in ) : ?>
+                <?php else : ?>
 
                     <?php
                     // Status banner — jeśli użytkownik ma już odpowiedź.
@@ -163,7 +146,7 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                             </dl>
                             <p class="openvote-survey-profile__actions">
                                 <button type="button" class="openvote-survey-profile__edit-btn" data-action="openvote-edit-profile">
-                                    <?php esc_html_e( 'Edytuj Profil', 'openvote' ); ?>
+                                    <?php esc_html_e( 'Edytuj profil', 'openvote' ); ?>
                                 </button>
                             </p>
                         </div>
@@ -224,13 +207,15 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                     </div>
                     <?php endif; ?>
 
+                    <?php if ( ! $logged_in ) { openvote_identity_render_slot( 'survey', $survey_id ); } ?>
+
                     <!-- Formularz ankiety -->
-                    <form class="openvote-survey-form"
-                          data-survey-id="<?php echo esc_attr( $survey_id ); ?>"
+                    <form class="openvote-survey-form<?php echo $logged_in ? '' : ' openvote-survey-form--locked'; ?>"
+                          data-survey-id="<?php echo esc_attr( $survey_id ); ?>"<?php echo $logged_in ? '' : ' data-identity-required="1"'; ?>
                           novalidate>
 
                         <p class="openvote-survey-intro">
-                            <em><?php esc_html_e( 'Proszę o uzupełnienie.', 'openvote' ); ?></em>
+                            <strong><?php esc_html_e( 'Wypełnij ankietę', 'openvote' ); ?></strong>
                         </p>
 
                         <?php foreach ( $questions as $q ) :
@@ -263,6 +248,7 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                                         name="answers[<?php echo esc_attr( $qid ); ?>]"
                                         class="openvote-survey-field__input"
                                         maxlength="<?php echo esc_attr( $q->max_chars ); ?>"
+                                        <?php echo $logged_in ? '' : 'disabled'; ?>
                                         rows="4"><?php echo esc_textarea( $saved_value ); ?></textarea>
                                 <?php else : ?>
                                     <input
@@ -271,6 +257,7 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                                         name="answers[<?php echo esc_attr( $qid ); ?>]"
                                         class="openvote-survey-field__input"
                                         maxlength="<?php echo esc_attr( $q->max_chars ); ?>"
+                                        <?php echo $logged_in ? '' : 'disabled'; ?>
                                         value="<?php echo esc_attr( $saved_value ); ?>">
                                 <?php endif; ?>
                                 <span class="openvote-survey-field__limit">
@@ -287,16 +274,18 @@ $active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && 
                         <div class="openvote-survey-form__actions">
                             <button type="submit"
                                     class="openvote-survey-btn openvote-survey-btn--ready"
+                                    <?php echo $logged_in ? '' : 'disabled'; ?>
                                     data-status="ready">
-                                <?php esc_html_e( 'Zapisz zmiany i aplikuj', 'openvote' ); ?>
+                                <?php echo $my_response ? esc_html__( 'Zapisz zmiany', 'openvote' ) : esc_html__( 'Wyślij odpowiedzi', 'openvote' ); ?>
                             </button>
                         </div>
+                        <p class="openvote-survey-form__hint" aria-live="polite" data-locked-text="<?php echo esc_attr__( 'Aby wysłać odpowiedzi, najpierw zaloguj się lub potwierdź adres e-mail (ramka wyżej).', 'openvote' ); ?>"><?php echo $logged_in ? '' : esc_html__( 'Aby wysłać odpowiedzi, najpierw zaloguj się lub potwierdź adres e-mail (ramka wyżej).', 'openvote' ); ?></p>
 
                         <div class="openvote-survey-form__message" style="display:none;"></div>
 
                     </form>
 
-                <?php endif; // logged_in + profile_ok ?>
+                <?php endif; // profile ?>
 
             </div><!-- .openvote-survey-card -->
 

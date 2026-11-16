@@ -5,6 +5,7 @@
     if ( typeof openvoteSurveyPublic === 'undefined' ) return;
 
     var cfg = openvoteSurveyPublic;
+    cfg.loggedIn = ( cfg.loggedIn === 1 || cfg.loggedIn === '1' || cfg.loggedIn === true );
 
     document.querySelectorAll( '.openvote-survey-form' ).forEach( function ( form ) {
         var surveyId     = form.dataset.surveyId;
@@ -14,6 +15,31 @@
         // Przywróć zapisane odpowiedzi z API przy załadowaniu strony (jeśli zalogowany).
         if ( cfg.loggedIn ) {
             fetchMyResponse( surveyId, form );
+        }
+
+        // Gość: panel weryfikacji (wspólny moduł OpenvoteIdentity); pola odblokowuje dopiero weryfikacja.
+        var identityCtrl = null;
+        if ( form.dataset.identityRequired === '1' && window.OpenvoteIdentity ) {
+            var card = form.closest( '.openvote-survey-card' );
+            var slot = card ? card.querySelector( '.openvote-identity' ) : null;
+            if ( slot ) {
+                identityCtrl = window.OpenvoteIdentity.mount( slot, {
+                    type: 'survey',
+                    id: surveyId,
+                    onVerified: function ( sess ) {
+                        var sv = sess.survey || {};
+                        if ( sv.profile_error ) { setFormLocked( form, true ); return; }
+                        if ( sv.my_response && sv.my_response.answers ) {
+                            Object.keys( sv.my_response.answers ).forEach( function ( qid ) {
+                                var input = form.querySelector( '[name="answers[' + qid + ']"]' );
+                                if ( input ) input.value = sv.my_response.answers[ qid ];
+                            } );
+                        }
+                        setFormLocked( form, false );
+                    },
+                    onReset: function () { setFormLocked( form, true ); }
+                } );
+            }
         }
 
         form.addEventListener( 'submit', function ( e ) {
@@ -34,12 +60,18 @@
             showMessage( msgBox, cfg.i18n.saving, 'info' );
             setButtonsDisabled( submitBtns, true );
 
+            var submitHeaders = { 'Content-Type': 'application/json' };
+            if ( cfg.nonce ) {
+                submitHeaders[ 'X-WP-Nonce' ] = cfg.nonce;
+            } else if ( window.OpenvoteIdentity ) {
+                var ah = window.OpenvoteIdentity.authHeaders( 'survey', surveyId );
+                if ( ah[ 'X-Openvote-Identity' ] ) submitHeaders[ 'X-Openvote-Identity' ] = ah[ 'X-Openvote-Identity' ];
+            }
+
             fetch( cfg.restUrl + '/surveys/' + surveyId + '/submit', {
                 method:  'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce':   cfg.nonce,
-                },
+                credentials: cfg.nonce ? 'same-origin' : 'omit',
+                headers: submitHeaders,
                 body: JSON.stringify( { status: status, answers: answers } ),
             } )
             .then( function ( res ) { return res.json(); } )
@@ -49,6 +81,9 @@
                     showMessage( msgBox, msg, status === 'ready' ? 'success' : 'draft' );
                     // Zaktualizuj banner statusu.
                     updateStatusBanner( form.closest( '.openvote-survey-card' ), status );
+                } else if ( data.code === 'identity_invalid' && identityCtrl ) {
+                    showMessage( msgBox, '', 'info' );
+                    identityCtrl.invalidate( data.message );
                 } else {
                     showMessage( msgBox, data.message || cfg.i18n.error, 'error' );
                 }
@@ -57,16 +92,28 @@
                 showMessage( msgBox, cfg.i18n.error, 'error' );
             } )
             .finally( function () {
-                setButtonsDisabled( submitBtns, false );
+                // Po unieważnieniu weryfikacji formularz pozostaje zablokowany.
+                if ( ! form.classList.contains( 'openvote-survey-form--locked' ) ) {
+                    setButtonsDisabled( submitBtns, false );
+                }
             } );
         } );
     } );
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    function setFormLocked( form, locked ) {
+        form.classList.toggle( 'openvote-survey-form--locked', locked );
+        form.querySelectorAll( 'input, textarea, button' ).forEach( function ( el ) { el.disabled = locked; } );
+        var hint = form.querySelector( '.openvote-survey-form__hint' );
+        if ( hint ) {
+            hint.textContent = locked ? ( hint.getAttribute( 'data-locked-text' ) || '' ) : '';
+        }
+    }
+
     function fetchMyResponse( surveyId, form ) {
         fetch( cfg.restUrl + '/surveys/' + surveyId + '/my-response', {
-            headers: { 'X-WP-Nonce': cfg.nonce },
+            headers: cfg.nonce ? { 'X-WP-Nonce': cfg.nonce } : {},
         } )
         .then( function ( res ) { return res.ok ? res.json() : null; } )
         .then( function ( data ) {

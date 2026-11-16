@@ -26,6 +26,8 @@ class Openvote_Admin_Roles {
 
         $result = null;
         $log_group_ids = [];
+        // Zakładka docelowa po przekierowaniu (fragment obsługuje openvote-settings-tabs.js).
+        $tab_hash = in_array( $action, [ 'add_poll_editor', 'add_poll_admin' ], true ) ? '#tab-add' : '#tab-list';
 
         switch ( $action ) {
             case 'remove_group':
@@ -37,10 +39,17 @@ class Openvote_Admin_Roles {
             case 'add_poll_editor':
             case 'add_poll_admin':
                 if ( ! $user_id ) {
-                    return;
+                    set_transient( 'openvote_roles_error', __( 'Wybierz użytkownika z listy.', 'openvote' ), 30 );
+                    wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) . $tab_hash );
+                    exit;
                 }
                 $group_ids = array_map( 'absint', (array) ( $_POST['openvote_editor_groups'] ?? [] ) );
                 $group_ids = array_filter( $group_ids );
+                if ( empty( $group_ids ) ) {
+                    set_transient( 'openvote_roles_error', __( 'Wybierz co najmniej jedną grupę.', 'openvote' ), 30 );
+                    wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) . $tab_hash );
+                    exit;
+                }
                 if ( Openvote_Role_Manager::ROLE_POLL_ADMIN === Openvote_Role_Manager::get_user_role( $user_id ) ) {
                     $existing = Openvote_Role_Manager::get_user_groups( $user_id );
                     $group_ids = array_values( array_unique( array_merge( $existing, $group_ids ) ) );
@@ -50,7 +59,9 @@ class Openvote_Admin_Roles {
                 break;
             case 'remove_role':
                 if ( ! $user_id ) {
-                    return;
+                    set_transient( 'openvote_roles_error', __( 'Nie wybrano użytkownika.', 'openvote' ), 30 );
+                    wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) . $tab_hash );
+                    exit;
                 }
                 $log_group_ids = Openvote_Role_Manager::get_user_groups( $user_id );
                 $result = Openvote_Role_Manager::remove_role( $user_id, $current_user_id );
@@ -59,7 +70,7 @@ class Openvote_Admin_Roles {
 
         if ( $result === null ) {
             set_transient( 'openvote_roles_error', __( 'Nie wybrano użytkownika lub grupy.', 'openvote' ), 30 );
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) . $tab_hash );
             exit;
         }
 
@@ -74,13 +85,13 @@ class Openvote_Admin_Roles {
                 $group_names = self::get_group_names( [ $group_id ] );
                 openvote_coordinator_audit_log_append( $current_user_id, 'removed', $user_id, $group_names );
             }
-            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles', 'saved' => '1' ], admin_url( 'admin.php' ) ) );
+            wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles', 'saved' => '1' ], admin_url( 'admin.php' ) ) . $tab_hash );
             exit;
         }
 
         $message = $result instanceof \WP_Error ? $result->get_error_message() : __( 'Wystąpił błąd.', 'openvote' );
         set_transient( 'openvote_roles_error', $message, 30 );
-        wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) );
+        wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-roles' ], admin_url( 'admin.php' ) ) . $tab_hash );
         exit;
     }
 

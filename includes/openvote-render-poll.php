@@ -8,12 +8,35 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Jeden format daty dla głosowań: „16.12.2026, 13:35” (data bez godziny: sama data).
+ */
+if ( ! function_exists( 'openvote_fmt_poll_date' ) ) {
+    function openvote_fmt_poll_date( $raw ): string {
+        $raw = trim( (string) $raw );
+        if ( $raw === '' ) {
+            return '—';
+        }
+        try {
+            $dt = new DateTimeImmutable( $raw, wp_timezone() );
+        } catch ( Exception $e ) {
+            return $raw;
+        }
+        return wp_date( strlen( $raw ) === 10 ? 'j.m.Y' : 'j.m.Y, H:i', $dt->getTimestamp() );
+    }
+}
+
 function openvote_render_single_poll( object $poll, int $user_id ): void {
     $poll_id      = (int) $poll->id;
+    $is_guest     = $user_id <= 0;
+    if ( $is_guest ) {
+        // Gość widzi pytania; głosuje po zalogowaniu albo po weryfikacji danych (panel JS).
+        openvote_identity_enqueue();
+    }
     $is_active    = Openvote_Poll::is_active( $poll );
     $is_ended     = Openvote_Poll::is_ended( $poll );
-    $has_voted    = Openvote_Vote::has_voted( $poll_id, $user_id );
-    $eligible_check = $is_active && ! $has_voted ? Openvote_Eligibility::can_vote( $user_id, $poll_id ) : null;
+    $has_voted    = $user_id > 0 && Openvote_Vote::has_voted( $poll_id, $user_id );
+    $eligible_check = $user_id > 0 && $is_active && ! $has_voted ? Openvote_Eligibility::can_vote( $user_id, $poll_id ) : null;
     $eligible_error = ( $eligible_check && ! $eligible_check['eligible'] ) ? $eligible_check['reason'] : null;
 
     $end_raw = $poll->date_end;
@@ -26,26 +49,40 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
     <?php
     $poll_title       = isset( $poll->title ) ? trim( (string) $poll->title ) : '';
     $poll_description = isset( $poll->description ) ? trim( (string) $poll->description ) : '';
-    $title_display    = $poll_title !== '' ? $poll_title : __( '— nie podano.', 'openvote' );
-    $desc_display     = $poll_description !== '' ? $poll_description : __( '— nie podano.', 'openvote' );
+    $title_display    = $poll_title !== '' ? $poll_title : __( 'Głosowanie bez tytułu', 'openvote' );
     ?>
-    <div class="openvote-poll-block openvote-poll-block--single" data-poll-id="<?php echo esc_attr( $poll_id ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>">
-        <h3 class="openvote-poll__title"><?php echo esc_html__( 'Tytuł:', 'openvote' ); ?> <?php echo esc_html( $title_display ); ?></h3>
-        <p class="openvote-poll__description"><?php echo esc_html__( 'Opis:', 'openvote' ); ?> <?php echo esc_html( $desc_display ); ?></p>
+    <div class="openvote-poll-block openvote-poll-block--single" data-poll-id="<?php echo esc_attr( $poll_id ); ?>" <?php echo $is_guest ? '' : ' data-nonce="' . esc_attr( wp_create_nonce( 'wp_rest' ) ) . '"'; ?>>
+        <?php if ( ! ( $is_active && $has_voted ) ) : ?>
+        <h3 class="openvote-poll__title"><?php echo esc_html( $title_display ); ?></h3>
+        <?php if ( $poll_description !== '' ) : ?>
+        <p class="openvote-poll__description"><?php echo esc_html( $poll_description ); ?></p>
+        <?php endif; ?>
+        <?php endif; ?>
 
         <?php if ( $is_ended ) : ?>
-            <div class="openvote-poll__results" data-poll-id="<?php echo esc_attr( $poll_id ); ?>">
+            <div class="openvote-poll__results" role="status" aria-live="polite" data-poll-id="<?php echo esc_attr( $poll_id ); ?>">
                 <p class="openvote-poll__status"><?php esc_html_e( 'Głosowanie zakończone. Ładowanie wyników…', 'openvote' ); ?></p>
             </div>
 
         <?php elseif ( $is_active && $has_voted ) : ?>
-            <p class="openvote-poll__already-voted">
-                <?php esc_html_e( 'Już oddałeś głos w tym głosowaniu. Dziękujemy!', 'openvote' ); ?>
-            </p>
-            <div class="openvote-poll__countdown">
-                <?php esc_html_e( 'Głosowanie kończy się: ', 'openvote' ); ?>
-                <span class="openvote-countdown" data-end="<?php echo esc_attr( gmdate( 'c', $end_ts ) ); ?>"></span>
-            </div>
+            <details class="openvote-poll__voted-collapsed">
+                <summary class="openvote-poll__voted-summary">
+                    <span class="openvote-poll__voted-check" aria-hidden="true">✓</span>
+                    <span class="openvote-poll__voted-title"><?php echo esc_html( $title_display ); ?></span>
+                    <span class="openvote-poll__voted-badge"><?php esc_html_e( 'Głos oddany', 'openvote' ); ?></span>
+                </summary>
+                <?php if ( $poll_description !== '' ) : ?>
+                <p class="openvote-poll__description"><?php echo esc_html( $poll_description ); ?></p>
+                <?php endif; ?>
+                <p class="openvote-poll__already-voted">
+                    <?php esc_html_e( 'Już oddałeś głos w tym głosowaniu. Dziękujemy!', 'openvote' ); ?>
+                </p>
+                <div class="openvote-poll__countdown">
+                    <?php esc_html_e( 'Głosowanie kończy się: ', 'openvote' ); ?>
+                    <?php echo esc_html( wp_date( 'j.m.Y, H:i', $end_ts ) ); ?>
+                    (<span class="openvote-countdown" data-end="<?php echo esc_attr( gmdate( 'c', $end_ts ) ); ?>"></span>)
+                </div>
+            </details>
 
         <?php elseif ( $is_active && $eligible_error ) : ?>
             <div class="openvote-poll__questions-readonly">
@@ -76,9 +113,10 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
             <p class="openvote-poll__ineligible"><?php echo esc_html( $eligible_error ); ?></p>
 
         <?php elseif ( $is_active ) : ?>
-            <form class="openvote-poll__form" data-poll-id="<?php echo esc_attr( $poll_id ); ?>">
+            <?php if ( $is_guest ) { openvote_identity_render_slot( 'poll', $poll_id ); } ?>
+            <form class="openvote-poll__form<?php echo $is_guest ? ' openvote-poll__form--locked' : ''; ?>" data-poll-id="<?php echo esc_attr( $poll_id ); ?>"<?php echo $is_guest ? ' data-identity-required="1"' : ''; ?>>
                 <div class="openvote-poll__countdown">
-                    <?php esc_html_e( 'Pozostało: ', 'openvote' ); ?>
+                    <?php esc_html_e( 'Do końca głosowania: ', 'openvote' ); ?>
                     <span class="openvote-countdown" data-end="<?php echo esc_attr( gmdate( 'c', $end_ts ) ); ?>"></span>
                 </div>
                 <?php
@@ -100,14 +138,14 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                                 <input type="radio"
                                        name="question_<?php echo esc_attr( $question->id ); ?>"
                                        value="<?php echo esc_attr( $answer->id ); ?>"
-                                       required>
-                                <?php echo esc_html( $display_text ); ?>
+                                       required<?php echo $is_guest ? ' disabled' : ''; ?>>
+                                <span class="openvote-poll__option-text"><?php echo esc_html( $display_text ); ?></span>
                             </label>
                         <?php endforeach; ?>
                     </fieldset>
                 <?php endforeach; ?>
                 <?php
-                $user = get_userdata( $user_id );
+                $user = $is_guest ? false : get_userdata( $user_id );
                 $open_label = '';
                 if ( $user && $user->exists() ) {
                     $first = Openvote_Field_Map::get_user_value( $user, 'first_name' );
@@ -124,34 +162,35 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                     }
                     $open_label = sprintf(
                         /* translators: 1: full name, 2: city in parentheses, 3: masked email */
-                        __( 'Głosuj jawnie - wyniki będą zawierać %1$s (%2$s) %3$s.', 'openvote' ),
+                        __( 'Jawnie — w wynikach pojawi się: %1$s (%2$s), %3$s.', 'openvote' ),
                         $name_part,
                         $city,
                         $email_anon
                     );
                 } else {
-                    $open_label = __( 'Głosuj jawnie - wyniki będą zawierać imię nazwisko (miasto) email.', 'openvote' );
+                    $open_label = __( 'Jawnie — w wynikach pojawi się Twoje imię, nazwisko, miasto i zamaskowany e-mail.', 'openvote' );
                 }
                 $nickname = ( $user && $user->exists() ) ? Openvote_Field_Map::get_user_value( $user, 'nickname' ) : '';
                 $anon_label = ( $nickname !== '' )
-                    ? sprintf( __( 'Głosuj Anonimowo - wyniki zawierają tylko nazwę: %s.', 'openvote' ), $nickname )
-                    : __( 'Głosuj Anonimowo - wyniki zawierają tylko nazwę: —.', 'openvote' );
+                    ? sprintf( __( 'Anonimowo — w wynikach pojawi się tylko pseudonim: %s.', 'openvote' ), $nickname )
+                    : __( 'Anonimowo — w wynikach pojawi się tylko Twój pseudonim, bez imienia i nazwiska.', 'openvote' );
                 ?>
-                <fieldset class="openvote-poll__vote-mode" required>
+                <fieldset class="openvote-poll__vote-mode">
                     <legend><?php esc_html_e( 'Sposób oddania głosu', 'openvote' ); ?></legend>
                     <label class="openvote-poll__option">
-                        <input type="radio" name="openvote_vote_visibility" value="0" required>
-                        <?php echo esc_html( $open_label ); ?>
+                        <input type="radio" name="openvote_vote_visibility" value="0" required<?php echo $is_guest ? ' disabled' : ''; ?>>
+                        <span class="openvote-poll__option-text" data-ov-label="open" data-ov-default="<?php echo esc_attr( $open_label ); ?>"><?php echo esc_html( $open_label ); ?></span>
                     </label>
                     <label class="openvote-poll__option">
-                        <input type="radio" name="openvote_vote_visibility" value="1">
-                        <?php echo esc_html( $anon_label ); ?>
+                        <input type="radio" name="openvote_vote_visibility" value="1"<?php echo $is_guest ? ' disabled' : ''; ?>>
+                        <span class="openvote-poll__option-text" data-ov-label="anon" data-ov-default="<?php echo esc_attr( $anon_label ); ?>"><?php echo esc_html( $anon_label ); ?></span>
                     </label>
                 </fieldset>
-                <button type="submit" class="openvote-poll__submit wp-element-button">
+                <p class="openvote-poll__hint" id="openvote-hint-<?php echo esc_attr( $poll_id ); ?>" aria-live="polite"></p>
+                <button type="submit" class="openvote-poll__submit wp-element-button" aria-describedby="openvote-hint-<?php echo esc_attr( $poll_id ); ?>"<?php echo $is_guest ? ' disabled' : ''; ?>>
                     <?php esc_html_e( 'Oddaj głos', 'openvote' ); ?>
                 </button>
-                <div class="openvote-poll__message" aria-live="polite"></div>
+                <div class="openvote-poll__message" role="alert" aria-live="polite" tabindex="-1"></div>
             </form>
 
         <?php else : ?>
@@ -160,7 +199,7 @@ function openvote_render_single_poll( object $poll, int $user_id ): void {
                 printf(
                     /* translators: %s: start date */
                     esc_html__( 'Głosowanie rozpocznie się: %s', 'openvote' ),
-                    esc_html( $poll->date_start )
+                    esc_html( openvote_fmt_poll_date( $poll->date_start ) )
                 );
                 ?>
             </p>
