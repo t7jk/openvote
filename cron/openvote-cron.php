@@ -47,7 +47,27 @@ function openvote_cron_log( string $msg ): void {
 }
 
 if ( PHP_VERSION_ID < 80100 ) {
-	openvote_cron_log( 'BŁĄD: wymagane PHP 8.1+, zmień ścieżkę PHP w poleceniu crona' );
+	// Podpowiedź: znalezione na serwerze binarki PHP 8.x (cPanel EA4, CloudLinux alt-php, inne typowe miejsca).
+	$openvote_found = [];
+	$openvote_globs = [
+		'/opt/cpanel/ea-php8*/root/usr/bin/php',
+		'/opt/alt/php8*/usr/bin/php',
+		'/usr/local/bin/php8*',
+		'/usr/bin/php8*',
+		'/usr/local/php8*/bin/php',
+		'/opt/php8*/bin/php',
+	];
+	foreach ( $openvote_globs as $openvote_g ) {
+		foreach ( (array) @glob( $openvote_g ) as $openvote_f ) {
+			if ( $openvote_f && @is_file( $openvote_f ) && @is_executable( $openvote_f ) ) {
+				$openvote_found[] = $openvote_f;
+			}
+		}
+	}
+	openvote_cron_log(
+		'BŁĄD: wymagane PHP 8.1+, zmień ścieżkę PHP w poleceniu crona. Znalezione PHP 8: '
+		. ( $openvote_found ? implode( ', ', array_unique( $openvote_found ) ) : 'brak w typowych miejscach' )
+	);
 	fwrite( STDERR, 'OpenVote cron: wymagane PHP 8.1+, uruchomiono ' . PHP_VERSION . "\n" );
 	exit( 1 );
 }
