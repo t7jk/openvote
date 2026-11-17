@@ -1490,10 +1490,10 @@ function openvote_settings_select( string $logical, string $current, array $core
         <div class="openvote-inactivity-thresholds-block" style="background:#f6f7f7;padding:20px 24px;border-radius:8px;border:1px solid #c3c4c7;margin-bottom:24px;">
         <h2 class="title" style="margin-top:0;"><?php esc_html_e( 'Progi nieaktywności', 'openvote' ); ?></h2>
         <p class="description">
-            <?php esc_html_e( 'Członek jest uznawany za nieaktywnego, gdy opuści (nie weźmie w ogóle udziału) co najmniej tyle głosowań, ile ustawiono poniżej.', 'openvote' ); ?>
+            <?php esc_html_e( 'Członek jest uznawany za nieaktywnego, gdy od swojego ostatniego głosu opuści (nie weźmie udziału) co najmniej tyle głosowań, ile ustawiono poniżej. Oddanie głosu od razu przywraca status aktywnego.', 'openvote' ); ?>
         </p>
         <p class="description">
-            <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze wszyscy uprawnieni.', 'openvote' ); ?>
+            <?php esc_html_e( 'Nieaktywny nie dostaje żadnych powiadomień e-mail: zaproszeń do głosowań ani wiadomości masowych (newsletter). Nadal może głosować, np. wchodząc na stronę głosowania. Kody potwierdzające (PIN) i wiadomości dotyczące hasła dochodzą zawsze.', 'openvote' ); ?>
         </p>
 
         <table class="form-table" role="presentation">
@@ -1511,7 +1511,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                     <p class="description" style="margin-top:2px;"><?php echo esc_html( implode( ' · ', $ov_step_labels ) ); ?></p>
                     <p class="description" id="openvote_stat_missed_votes_inf_note"<?php echo $missed_votes === 0 ? '' : ' style="display:none"'; ?>><strong><?php esc_html_e( '∞ = nieskończoność: członek może opuścić dowolnie wiele głosowań — nikt nie jest uznawany za nieaktywnego.', 'openvote' ); ?></strong></p>
                     <p class="description"><?php esc_html_e( 'To ustawienie określa, ile głosowań musi opuścić (nie brać w ogóle udziału) członek, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
-                    <p class="description" id="openvote_stat_missed_votes_off_note"<?php echo $communication_do_not_skip_inactive ? '' : ' style="display:none"'; ?>><em><?php esc_html_e( 'Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — wysyłki trafiają do wszystkich, więc próg nie ma wpływu.', 'openvote' ); ?></em></p>
+                    <p class="description" id="openvote_stat_missed_votes_off_note"<?php echo $communication_do_not_skip_inactive ? '' : ' style="display:none"'; ?>><em><?php esc_html_e( 'Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — zaproszenia i wysyłki trafiają do wszystkich, więc próg nie ma wpływu.', 'openvote' ); ?></em></p>
                 </td>
             </tr>
             <tr>
@@ -1521,7 +1521,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                         <input type="checkbox" name="openvote_communication_do_not_skip_inactive" id="openvote_communication_do_not_skip_inactive" value="1" <?php checked( $communication_do_not_skip_inactive ); ?>>
                         <?php esc_html_e( 'Nie pomijaj nieaktywnych', 'openvote' ); ?>
                     </label>
-                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań.', 'openvote' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Gdy włączone: zaproszenia do głosowań i wiadomości masowe trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań.', 'openvote' ); ?></p>
                 </td>
             </tr>
         </table>

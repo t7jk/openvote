@@ -183,7 +183,7 @@ $chart_has_data = ! empty( $chart_data );
 						esc_html_e( 'Próg opuszczonych głosowań ustawiono na ∞ — żaden członek nie jest uznawany za nieaktywnego. Próg zmienisz w Konfiguracji → Nieaktywni.', 'openvote' );
 					} else {
 						/* translators: %d: missed polls */
-						printf( esc_html__( 'Członek nieaktywny = opuścił co najmniej %d głosowań. Próg zmienisz w Konfiguracji → Nieaktywni.', 'openvote' ), $ov_missed );
+						printf( esc_html__( 'Członek nieaktywny = od swojego ostatniego głosu opuścił co najmniej %d głosowań; nie dostaje powiadomień e-mail. Próg zmienisz w Konfiguracji → Nieaktywni.', 'openvote' ), $ov_missed );
 					}
 				?></span>
 			</div>

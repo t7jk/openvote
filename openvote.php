@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
- * Version:           1.0.39
+ * Version:           1.0.40
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.39' );
+define( 'OPENVOTE_VERSION', '1.0.40' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -570,6 +570,44 @@ function openvote_communication_do_not_skip_inactive(): bool {
 }
 
 /**
+ * Czy pominąć adresata w POWIADOMIENIACH e-mail (zaproszenia do głosowań, wiadomości masowe), bo jest nieaktywny.
+ * Nieaktywny nie dostaje żadnych powiadomień, dopóki znów nie zagłosuje (wtedy od razu jest aktywny).
+ * NIE używać dla maili transakcyjnych (kod potwierdzający/PIN, hasło) — te muszą dochodzić zawsze.
+ *
+ * @param int $user_id
+ * @return bool True = nie wysyłać powiadomienia.
+ */
+function openvote_skip_inactive_recipient( int $user_id ): bool {
+	return ! openvote_communication_do_not_skip_inactive() && openvote_is_user_inactive( $user_id );
+}
+
+/**
+ * Liczba nieaktywnych adresatów (z e-mailem) w grupach — tych, których ominą powiadomienia. Jedno zapytanie SQL.
+ *
+ * @param int[] $group_ids Grupy docelowe; pusta tablica = wszyscy użytkownicy.
+ * @return int 0, gdy zaznaczono „Nie pomijaj nieaktywnych” lub próg = ∞.
+ */
+function openvote_count_skipped_inactive_recipients( array $group_ids ): int {
+	global $wpdb;
+	$prog = openvote_get_stat_missed_votes();
+	if ( $prog <= 0 || openvote_communication_do_not_skip_inactive() ) {
+		return 0;
+	}
+	$ids = array_values( array_filter( array_map( 'absint', $group_ids ) ) );
+	$sql = "SELECT COUNT(DISTINCT u.ID) FROM {$wpdb->users} u
+		INNER JOIN {$wpdb->usermeta} um ON um.user_id = u.ID AND um.meta_key = 'openvote_missed_polls_count'";
+	$args = [];
+	if ( $ids ) {
+		$sql .= " INNER JOIN {$wpdb->prefix}openvote_group_members gm ON gm.user_id = u.ID AND gm.group_id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+		$args = $ids;
+	}
+	$sql   .= " WHERE u.user_email != '' AND CAST(um.meta_value AS UNSIGNED) >= %d";
+	$args[] = $prog;
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- tylko nazwy tabel i placeholdery
+	return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$args ) );
+}
+
+/**
  * Data ostatniego głosu użytkownika (MySQL datetime lub null).
  *
  * @param int $user_id
@@ -598,8 +636,8 @@ function openvote_get_missed_polls_count( int $user_id ): int {
 }
 
 /**
- * Czy użytkownik jest uznawany za nieaktywnego: opuścił co najmniej tyle głosowań, ile wynosi próg.
- * Próg ∞ (0) = nikt nie jest nieaktywny. Czas od ostatniego głosu nie ma znaczenia.
+ * Czy użytkownik jest uznawany za nieaktywnego: od swojego ostatniego głosu opuścił co najmniej tyle głosowań,
+ * ile wynosi próg (licznik zeruje się przy każdym oddanym głosie). Próg ∞ (0) = nikt nie jest nieaktywny.
  *
  * @param int $user_id
  * @return bool
@@ -613,8 +651,8 @@ function openvote_is_user_inactive( int $user_id ): bool {
 }
 
 /**
- * Aktualizuje statystyki użytkownika po oddaniu głosu: ustawia openvote_last_voted_at.
- * Opcjonalnie przelicza openvote_missed_polls_count (tylko głosowania z date_end < now()).
+ * Aktualizuje statystyki użytkownika po oddaniu głosu: ustawia openvote_last_voted_at i przelicza
+ * openvote_missed_polls_count (liczone od ostatniego głosu, więc po głosowaniu = 0 → użytkownik od razu aktywny).
  *
  * @param int $user_id
  */
@@ -640,14 +678,36 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 	$votes_table = $wpdb->prefix . 'openvote_votes';
 	// Zegar jak przy głosowaniu (z przesunięciem z Konfiguracji). date_end to DATETIME, więc porównanie
 	// „date_end < now” odpowiada Openvote_Poll::is_time_expired() (now > date_end).
-	$now         = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
-	$count       = 0;
-	$poll_ids    = $wpdb->get_col(
+	$now = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
+
+	// Data ostatniego głosu z tabeli głosów (po „Wyczyść liczniki” przeliczenie uzupełnia last_voted_at).
+	$last_voted = $wpdb->get_var(
 		$wpdb->prepare(
-			"SELECT id FROM {$polls_table} WHERE status = 'closed' AND date_end <= %s ORDER BY id ASC",
-			$now
+			"SELECT MAX(voted_at) FROM {$votes_table} WHERE user_id = %d",
+			$user_id
 		)
 	);
+	$last_voted = ( $last_voted && is_string( $last_voted ) ) ? $last_voted : null;
+
+	// Liczymy tylko głosowania zakończone PO ostatnim głosie — oddanie głosu natychmiast zeruje licznik
+	// (użytkownik wraca do aktywnych i znów dostaje powiadomienia).
+	if ( $last_voted !== null ) {
+		$poll_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM {$polls_table} WHERE status = 'closed' AND date_end <= %s AND date_end > %s ORDER BY id ASC",
+				$now,
+				$last_voted
+			)
+		);
+	} else {
+		$poll_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM {$polls_table} WHERE status = 'closed' AND date_end <= %s ORDER BY id ASC",
+				$now
+			)
+		);
+	}
+	$count = 0;
 	foreach ( (array) $poll_ids as $poll_id ) {
 		$poll_id = (int) $poll_id;
 		$poll    = Openvote_Poll::get( $poll_id );
@@ -664,14 +724,7 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 	}
 	update_user_meta( $user_id, 'openvote_missed_polls_count', $count );
 
-	// Przywróć datę ostatniego głosu z tabeli głosów (po „Wyczyść liczniki” przeliczenie uzupełnia last_voted_at).
-	$last_voted = $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT MAX(voted_at) FROM {$votes_table} WHERE user_id = %d",
-			$user_id
-		)
-	);
-	if ( $last_voted && is_string( $last_voted ) ) {
+	if ( $last_voted !== null ) {
 		update_user_meta( $user_id, 'openvote_last_voted_at', $last_voted );
 	} else {
 		delete_user_meta( $user_id, 'openvote_last_voted_at' );
@@ -699,6 +752,16 @@ function openvote_increment_missed_for_poll_non_voters( int $poll_id ): void {
 	do {
 		$user_ids = Openvote_Vote::get_eligible_non_voter_user_ids( $poll_id, $batch_size, $offset );
 		foreach ( $user_ids as $uid ) {
+			// Licznik liczy opuszczone głosowania od ostatniego głosu: kto zagłosował (gdziekolwiek) po zakończeniu
+			// tego głosowania, ma licznik wyzerowany i to głosowanie już go nie dotyczy.
+			$last = openvote_get_last_voted_at( (int) $uid );
+			$end  = (string) $poll->date_end;
+			if ( strlen( $end ) === 10 ) {
+				$end .= ' 23:59:59'; // data bez godziny = koniec dnia (jak w Openvote_Poll::is_ended()).
+			}
+			if ( $last !== null && $last > $end ) {
+				continue;
+			}
 			$cur = openvote_get_missed_polls_count( $uid );
 			update_user_meta( $uid, 'openvote_missed_polls_count', $cur + 1 );
 		}

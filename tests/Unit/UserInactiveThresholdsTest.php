@@ -20,14 +20,19 @@ class UserInactiveThresholdsTest extends TestCase {
                 define( $const, eval( 'return ' . $m[1] . ';' ) );
             }
         }
-        foreach ( [ 'openvote_snap_stat_missed_votes', 'openvote_get_stat_missed_votes', 'openvote_get_missed_polls_count', 'openvote_is_user_inactive' ] as $fn ) {
+        foreach ( [ 'openvote_snap_stat_missed_votes', 'openvote_get_stat_missed_votes', 'openvote_get_missed_polls_count', 'openvote_is_user_inactive', 'openvote_communication_do_not_skip_inactive', 'openvote_skip_inactive_recipient' ] as $fn ) {
             preg_match( '/^function ' . $fn . '\(.*?^\}/ms', $src, $m );
             eval( $m[0] );
         }
     }
 
-    private function setup_user( $missed_prog, int $missed ): void {
-        Functions\when( 'get_option' )->alias( fn( $k, $d = false ) => $missed_prog === null ? $d : $missed_prog );
+    private function setup_user( $missed_prog, int $missed, bool $do_not_skip = false ): void {
+        Functions\when( 'get_option' )->alias( function ( $k, $d = false ) use ( $missed_prog, $do_not_skip ) {
+            if ( $k === 'openvote_communication_do_not_skip_inactive' ) {
+                return $do_not_skip ? 1 : 0;
+            }
+            return $missed_prog === null ? $d : $missed_prog;
+        } );
         Functions\when( 'get_user_meta' )->alias( fn( $id, $k, $s = false ) => $k === 'openvote_missed_polls_count' ? $missed : '' );
     }
 
@@ -63,5 +68,27 @@ class UserInactiveThresholdsTest extends TestCase {
         $this->setup_user( 6, 7 );
         $this->assertSame( 8, openvote_get_stat_missed_votes(), 'stara wartość 6 → 8' );
         $this->assertFalse( openvote_is_user_inactive( 1 ) );
+    }
+
+    public function test_skip_recipient_blocks_notifications_for_inactive(): void {
+        // Nieaktywny (opuścił >= próg) jest pomijany w powiadomieniach.
+        $this->setup_user( 3, 5 );
+        $this->assertTrue( openvote_skip_inactive_recipient( 1 ) );
+        // Aktywny (poniżej progu) dostaje powiadomienia.
+        $this->setup_user( 3, 1 );
+        $this->assertFalse( openvote_skip_inactive_recipient( 1 ) );
+    }
+
+    public function test_do_not_skip_overrides_everything(): void {
+        // „Nie pomijaj nieaktywnych” = wszyscy dostają, nawet gdy nieaktywny.
+        $this->setup_user( 3, 99, true );
+        $this->assertTrue( openvote_is_user_inactive( 1 ), 'nadal jest nieaktywny' );
+        $this->assertFalse( openvote_skip_inactive_recipient( 1 ), 'ale nie jest pomijany w wysyłce' );
+    }
+
+    public function test_infinity_never_skips(): void {
+        // Próg ∞ — nikt nie jest nieaktywny, więc nikt nie jest pomijany.
+        $this->setup_user( 0, 999 );
+        $this->assertFalse( openvote_skip_inactive_recipient( 1 ) );
     }
 }

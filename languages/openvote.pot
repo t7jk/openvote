@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OpenVote\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 23:24+0100\n"
+"POT-Creation-Date: 2026-11-17 23:34+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -395,12 +395,12 @@ msgid "Szukaj głosowania"
 msgstr ""
 
 #: admin/class-openvote-admin.php:1293 admin/partials/poll-form.php:395
-#: admin/partials/poll-invitations.php:481 admin/partials/poll-results.php:540
+#: admin/partials/poll-invitations.php:497 admin/partials/poll-results.php:540
 msgid "Log czynności głosowań"
 msgstr ""
 
 #: admin/class-openvote-admin.php:1294 admin/partials/poll-form.php:396
-#: admin/partials/poll-invitations.php:482 admin/partials/poll-results.php:541
+#: admin/partials/poll-invitations.php:498 admin/partials/poll-results.php:541
 msgid ""
 "Kto i kiedy utworzył, edytował, wystartował, zakończył, skopiował lub usunął "
 "głosowanie albo wysłał zaproszenia. Lista niekasowalna, w celach "
@@ -410,7 +410,7 @@ msgstr ""
 #: admin/class-openvote-admin.php:1298
 #: admin/partials/communication-page.php:128 admin/partials/groups.php:487
 #: admin/partials/message-send.php:264 admin/partials/poll-form.php:400
-#: admin/partials/poll-invitations.php:486 admin/partials/poll-results.php:545
+#: admin/partials/poll-invitations.php:502 admin/partials/poll-results.php:545
 #: admin/partials/roles.php:252 admin/partials/survey-list.php:117
 msgid "Brak wpisów."
 msgstr ""
@@ -419,7 +419,7 @@ msgstr ""
 #: admin/class-openvote-admin.php:1313
 #: admin/partials/communication-page.php:142 admin/partials/groups.php:502
 #: admin/partials/message-send.php:278 admin/partials/poll-form.php:415
-#: admin/partials/poll-invitations.php:501 admin/partials/poll-results.php:560
+#: admin/partials/poll-invitations.php:517 admin/partials/poll-results.php:560
 #: admin/partials/roles.php:277 admin/partials/survey-list.php:132
 #, php-format
 msgid "Strona %1$d z %2$d (%3$d wpisów)"
@@ -428,7 +428,7 @@ msgstr ""
 #: admin/class-openvote-admin.php:1317
 #: admin/partials/communication-page.php:145 admin/partials/groups.php:260
 #: admin/partials/groups.php:506 admin/partials/message-send.php:281
-#: admin/partials/poll-form.php:419 admin/partials/poll-invitations.php:505
+#: admin/partials/poll-form.php:419 admin/partials/poll-invitations.php:521
 #: admin/partials/poll-results.php:564 admin/partials/roles.php:281
 #: admin/partials/survey-list.php:136
 msgid "Poprzedni"
@@ -437,7 +437,7 @@ msgstr ""
 #: admin/class-openvote-admin.php:1320
 #: admin/partials/communication-page.php:148 admin/partials/groups.php:509
 #: admin/partials/message-send.php:284 admin/partials/poll-form.php:422
-#: admin/partials/poll-invitations.php:508 admin/partials/poll-results.php:567
+#: admin/partials/poll-invitations.php:524 admin/partials/poll-results.php:567
 #: admin/partials/roles.php:284 admin/partials/survey-list.php:139
 msgid "Następny"
 msgstr ""
@@ -992,8 +992,8 @@ msgid "Zakończona"
 msgstr ""
 
 #: admin/class-openvote-surveys-list.php:167
-#: admin/class-openvote-surveys-list.php:187 openvote.php:1396
-#: openvote.php:1414
+#: admin/class-openvote-surveys-list.php:187 openvote.php:1459
+#: openvote.php:1477
 msgid "Zgłoszenia"
 msgstr ""
 
@@ -1592,7 +1592,7 @@ msgid "Jak odbywa się głosowanie (widok uczestnika)"
 msgstr ""
 
 #: admin/partials/manual.php:43 admin/partials/manual.php:627
-#: admin/partials/poll-invitations.php:65
+#: admin/partials/poll-invitations.php:69
 msgid "Wyniki głosowania"
 msgstr ""
 
@@ -2083,8 +2083,9 @@ msgstr ""
 #: admin/partials/manual.php:184
 msgid ""
 "Zajrzyj też do zakładki „Nieaktywni”: osoby uznane tam za nieaktywne nie "
-"dostają wiadomości masowych. Zaproszenia do głosowań otrzymują zawsze "
-"wszyscy uprawnieni, także nieaktywni."
+"dostają żadnych powiadomień e-mail (zaproszeń do głosowań ani wiadomości "
+"masowych), ale nadal mogą głosować. Po oddaniu głosu od razu wracają do "
+"aktywnych."
 msgstr ""
 
 #: admin/partials/manual.php:186
@@ -3821,7 +3822,7 @@ msgid ""
 msgstr ""
 
 #: admin/partials/manual.php:814 admin/partials/message-send.php:216
-#: admin/partials/poll-invitations.php:262 admin/partials/poll-results.php:486
+#: admin/partials/poll-invitations.php:278 admin/partials/poll-results.php:486
 msgid "E-mail"
 msgstr ""
 
@@ -4142,7 +4143,7 @@ msgstr ""
 msgid "Wszystkie wiadomości zostały wysłane."
 msgstr ""
 
-#: admin/partials/message-send.php:140 admin/partials/poll-invitations.php:175
+#: admin/partials/message-send.php:140 admin/partials/poll-invitations.php:191
 msgid "Status wysyłki"
 msgstr ""
 
@@ -4150,55 +4151,55 @@ msgstr ""
 msgid "Żadne wiadomości nie zostały jeszcze wysłane dla tej wysyłki."
 msgstr ""
 
-#: admin/partials/message-send.php:151 admin/partials/poll-invitations.php:186
+#: admin/partials/message-send.php:151 admin/partials/poll-invitations.php:202
 #: admin/partials/poll-results.php:438
 msgid "Łącznie w kolejce"
 msgstr ""
 
-#: admin/partials/message-send.php:155 admin/partials/poll-invitations.php:190
+#: admin/partials/message-send.php:155 admin/partials/poll-invitations.php:206
 #: admin/partials/poll-results.php:443
 msgid "Wysłanych pomyślnie"
 msgstr ""
 
-#: admin/partials/message-send.php:160 admin/partials/poll-invitations.php:195
+#: admin/partials/message-send.php:160 admin/partials/poll-invitations.php:211
 #, php-format
 msgid "ostatnia: %s"
 msgstr ""
 
-#: admin/partials/message-send.php:166 admin/partials/poll-invitations.php:201
+#: admin/partials/message-send.php:166 admin/partials/poll-invitations.php:217
 msgid "Oczekujących (nie wysłanych)"
 msgstr ""
 
-#: admin/partials/message-send.php:172 admin/partials/poll-invitations.php:218
+#: admin/partials/message-send.php:172 admin/partials/poll-invitations.php:234
 #: admin/partials/poll-results.php:461
 msgid "Błędy wysyłki"
 msgstr ""
 
-#: admin/partials/message-send.php:178 admin/partials/poll-invitations.php:224
-#: admin/partials/poll-invitations.php:290
+#: admin/partials/message-send.php:178 admin/partials/poll-invitations.php:240
+#: admin/partials/poll-invitations.php:306
 msgid "Pokaż szczegóły"
 msgstr ""
 
-#: admin/partials/message-send.php:196 admin/partials/poll-invitations.php:242
+#: admin/partials/message-send.php:196 admin/partials/poll-invitations.php:258
 #, php-format
 msgid "Postęp: %d%% wysłanych (%d z %d)"
 msgstr ""
 
-#: admin/partials/message-send.php:212 admin/partials/poll-invitations.php:258
+#: admin/partials/message-send.php:212 admin/partials/poll-invitations.php:274
 msgid "Lista błędów wysyłki"
 msgstr ""
 
-#: admin/partials/message-send.php:217 admin/partials/poll-invitations.php:263
+#: admin/partials/message-send.php:217 admin/partials/poll-invitations.php:279
 #: admin/partials/poll-results.php:487
 msgid "Imię i nazwisko"
 msgstr ""
 
-#: admin/partials/message-send.php:218 admin/partials/poll-invitations.php:264
+#: admin/partials/message-send.php:218 admin/partials/poll-invitations.php:280
 #: admin/partials/poll-results.php:488
 msgid "Komunikat błędu"
 msgstr ""
 
-#: admin/partials/message-send.php:219 admin/partials/poll-invitations.php:265
+#: admin/partials/message-send.php:219 admin/partials/poll-invitations.php:281
 #: admin/partials/poll-results.php:489
 msgid "Data próby"
 msgstr ""
@@ -4222,11 +4223,11 @@ msgstr ""
 msgid "Błąd."
 msgstr ""
 
-#: admin/partials/message-send.php:358 admin/partials/poll-invitations.php:414
+#: admin/partials/message-send.php:358 admin/partials/poll-invitations.php:430
 msgid "Łączenie…"
 msgstr ""
 
-#: admin/partials/message-send.php:375 admin/partials/poll-invitations.php:442
+#: admin/partials/message-send.php:375 admin/partials/poll-invitations.php:458
 msgid "Nieznany błąd."
 msgstr ""
 
@@ -4405,116 +4406,125 @@ msgstr ""
 msgid "Usuń głosowanie"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:58
+#: admin/partials/poll-invitations.php:62
 #, php-format
 msgid "Zaproszenia: %s"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:61 admin/partials/poll-results.php:23
+#: admin/partials/poll-invitations.php:65 admin/partials/poll-results.php:23
 msgid "Wszystkie głosowania"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:72
+#: admin/partials/poll-invitations.php:76
 #, php-format
 msgid "Status głosowania: %s"
 msgstr ""
 
 #. translators: %s: full URL of the voting page (e.g. https://example.com/glosuj/)
-#: admin/partials/poll-invitations.php:82
+#: admin/partials/poll-invitations.php:86
 #, php-format
 msgid ""
 "Aby zagłosować, należy wejść na stronę %s (zgodnie z ustawieniami w "
 "Konfiguracji)."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:93
+#: admin/partials/poll-invitations.php:97
 msgid ""
 "Głosowanie dobiegło końca (minął termin zakończenia) — wysyłka zaproszeń nie "
 "ma już sensu."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:95
+#: admin/partials/poll-invitations.php:99
 msgid "Wysyłka zaproszeń jest możliwa tylko podczas trwania głosowania."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:104
+#: admin/partials/poll-invitations.php:108
 msgid "Wszyscy powiadomieni"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:106
-#: admin/partials/poll-invitations.php:327
-#: admin/partials/poll-invitations.php:397
+#: admin/partials/poll-invitations.php:110
+#: admin/partials/poll-invitations.php:343
+#: admin/partials/poll-invitations.php:413
 msgid "Wyślij zaproszenia e-mailem"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:110
+#: admin/partials/poll-invitations.php:114
 msgid "Wyślij 1 zaproszenie do głosowania"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:112
+#: admin/partials/poll-invitations.php:116
 #, php-format
 msgid "Wyślij %d zaproszenia do głosowania"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:114
+#: admin/partials/poll-invitations.php:118
 #, php-format
 msgid "Wyślij %d zaproszeń do głosowania"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:130
+#: admin/partials/poll-invitations.php:134
 msgid "Wszystkie zaproszenia zostały wysłane."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:142
+#. translators: 1: number of skipped inactive members, 2: missed polls threshold
+#: admin/partials/poll-invitations.php:143
+#, php-format
+msgid ""
+"Pominięto %1$d nieaktywnych (opuścili co najmniej %2$d głosowań od swojego "
+"ostatniego głosu) — nie dostaną zaproszenia, ale mogą głosować. Po oddaniu "
+"głosu od razu wracają do aktywnych. Zmienisz to w Konfiguracji → Nieaktywni."
+msgstr ""
+
+#: admin/partials/poll-invitations.php:158
 msgid ""
 "Możesz skopiować treść zaproszenia do schowka i wkleić je samodzielnie na "
 "mediach społecznościowych lub w innym kanale (np. komunikator, forum)."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:145
+#: admin/partials/poll-invitations.php:161
 msgid "Skopiuj treść zaproszenia"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:153
+#: admin/partials/poll-invitations.php:169
 msgid "Skopiowano do schowka."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:166
+#: admin/partials/poll-invitations.php:182
 msgid "Skopiuj ręcznie (Ctrl+C)."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:179 admin/partials/poll-results.php:433
+#: admin/partials/poll-invitations.php:195 admin/partials/poll-results.php:433
 msgid "Żadne zaproszenia nie zostały jeszcze wysłane dla tego głosowania."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:208
+#: admin/partials/poll-invitations.php:224
 msgid "— użyj przycisku powyżej, aby wznowić"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:210
+#: admin/partials/poll-invitations.php:226
 msgid "— wysyłka jest już niedostępna (głosowanie nie trwa)"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:289
+#: admin/partials/poll-invitations.php:305
 msgid "Ukryj szczegóły"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:318 admin/partials/poll-results.php:322
+#: admin/partials/poll-invitations.php:334 admin/partials/poll-results.php:322
 msgid "Wznowienie za"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:318 admin/partials/poll-results.php:322
+#: admin/partials/poll-invitations.php:334 admin/partials/poll-results.php:322
 msgid "min"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:321
-#: admin/partials/poll-invitations.php:342
-#: admin/partials/poll-invitations.php:348 admin/partials/poll-results.php:325
+#: admin/partials/poll-invitations.php:337
+#: admin/partials/poll-invitations.php:358
+#: admin/partials/poll-invitations.php:364 admin/partials/poll-results.php:325
 #: admin/partials/poll-results.php:345 admin/partials/poll-results.php:351
 msgid "Zaplanuj automatyczne wznowienie"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:333 admin/partials/poll-results.php:336
+#: admin/partials/poll-invitations.php:349 admin/partials/poll-results.php:336
 #: admin/partials/settings.php:198 admin/partials/settings.php:205
 #: admin/partials/settings.php:259 admin/partials/settings.php:265
 #: admin/partials/settings.php:319 admin/partials/settings.php:325
@@ -4523,54 +4533,54 @@ msgstr ""
 msgid "Zapisywanie…"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:338 admin/partials/poll-results.php:341
+#: admin/partials/poll-invitations.php:354 admin/partials/poll-results.php:341
 msgid ""
 "Zaplanowano. E-maile zostaną automatycznie wznowione o północy (strefa "
 "głosowań)."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:340 admin/partials/poll-results.php:343
+#: admin/partials/poll-invitations.php:356 admin/partials/poll-results.php:343
 msgid "Błąd zapisu."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:346 admin/partials/poll-results.php:349
+#: admin/partials/poll-invitations.php:362 admin/partials/poll-results.php:349
 #: admin/partials/settings.php:1161 admin/partials/settings.php:1577
 msgid "Błąd połączenia."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:360 admin/partials/poll-results.php:363
+#: admin/partials/poll-invitations.php:376 admin/partials/poll-results.php:363
 #: admin/partials/settings.php:1147 includes/openvote-identity-frontend.php:51
 msgid "Wysyłanie…"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:369
+#: admin/partials/poll-invitations.php:385
 msgid "Przetworzono"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:380
+#: admin/partials/poll-invitations.php:396
 msgid ""
 "Zakończono. Możesz skopiować log poniżej. Gdy skończysz, kliknij „Odśwież "
 "stronę”."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:381
+#: admin/partials/poll-invitations.php:397
 msgid "Odśwież stronę"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:394
+#: admin/partials/poll-invitations.php:410
 msgid "Błąd:"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:409
+#: admin/partials/poll-invitations.php:425
 #, php-format
 msgid "Wysłać zaproszenia do %d osób? Tej operacji nie można cofnąć."
 msgstr ""
 
-#: admin/partials/poll-invitations.php:424
+#: admin/partials/poll-invitations.php:440
 msgid "Odpowiedź serwera:"
 msgstr ""
 
-#: admin/partials/poll-invitations.php:457 admin/partials/poll-results.php:393
+#: admin/partials/poll-invitations.php:473 admin/partials/poll-results.php:393
 msgid "Wznawianie przerwanej wysyłki…"
 msgstr ""
 
@@ -5830,15 +5840,17 @@ msgstr ""
 
 #: admin/partials/settings.php:1493
 msgid ""
-"Członek jest uznawany za nieaktywnego, gdy opuści (nie weźmie w ogóle "
-"udziału) co najmniej tyle głosowań, ile ustawiono poniżej."
+"Członek jest uznawany za nieaktywnego, gdy od swojego ostatniego głosu "
+"opuści (nie weźmie udziału) co najmniej tyle głosowań, ile ustawiono "
+"poniżej. Oddanie głosu od razu przywraca status aktywnego."
 msgstr ""
 
 #: admin/partials/settings.php:1496
 msgid ""
-"Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać "
-"wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze "
-"wszyscy uprawnieni."
+"Nieaktywny nie dostaje żadnych powiadomień e-mail: zaproszeń do głosowań ani "
+"wiadomości masowych (newsletter). Nadal może głosować, np. wchodząc na "
+"stronę głosowania. Kody potwierdzające (PIN) i wiadomości dotyczące hasła "
+"dochodzą zawsze."
 msgstr ""
 
 #: admin/partials/settings.php:1501
@@ -5859,8 +5871,8 @@ msgstr ""
 
 #: admin/partials/settings.php:1514
 msgid ""
-"Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — wysyłki "
-"trafiają do wszystkich, więc próg nie ma wpływu."
+"Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — "
+"zaproszenia i wysyłki trafiają do wszystkich, więc próg nie ma wpływu."
 msgstr ""
 
 #: admin/partials/settings.php:1522
@@ -5869,9 +5881,10 @@ msgstr ""
 
 #: admin/partials/settings.php:1524
 msgid ""
-"Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z "
-"grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy "
-"wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań."
+"Gdy włączone: zaproszenia do głosowań i wiadomości masowe trafiają do "
+"wszystkich odbiorców z grup docelowych (także nieaktywnych), a suwak powyżej "
+"jest nieaktywny. Gdy wyłączone: nieaktywni są pomijani zgodnie z progiem "
+"opuszczonych głosowań."
 msgstr ""
 
 #: admin/partials/settings.php:1533
@@ -6248,8 +6261,9 @@ msgstr ""
 #: admin/partials/statistics.php:186
 #, php-format
 msgid ""
-"Członek nieaktywny = opuścił co najmniej %d głosowań. Próg zmienisz w "
-"Konfiguracji → Nieaktywni."
+"Członek nieaktywny = od swojego ostatniego głosu opuścił co najmniej %d "
+"głosowań; nie dostaje powiadomień e-mail. Próg zmienisz w Konfiguracji → "
+"Nieaktywni."
 msgstr ""
 
 #: admin/partials/statistics.php:191
@@ -7118,20 +7132,20 @@ msgid "Miasto %s zakończone."
 msgstr ""
 
 #. translators: %s: error message from email provider
-#: includes/class-openvote-batch-processor.php:1263
-#: includes/class-openvote-batch-processor.php:1285
-#: includes/class-openvote-batch-processor.php:1307
-#: includes/class-openvote-batch-processor.php:1329
+#: includes/class-openvote-batch-processor.php:1269
+#: includes/class-openvote-batch-processor.php:1291
+#: includes/class-openvote-batch-processor.php:1313
+#: includes/class-openvote-batch-processor.php:1335
 #, php-format
 msgid "Błąd dostawcy e-mail: %s"
 msgstr ""
 
-#: includes/class-openvote-batch-processor.php:1349
-#: includes/class-openvote-batch-processor.php:1672
+#: includes/class-openvote-batch-processor.php:1355
+#: includes/class-openvote-batch-processor.php:1674
 msgid "Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację."
 msgstr ""
 
-#: includes/class-openvote-batch-processor.php:1675
+#: includes/class-openvote-batch-processor.php:1677
 msgid "Szczegóły:"
 msgstr ""
 

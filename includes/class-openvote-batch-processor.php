@@ -1074,9 +1074,11 @@ class Openvote_Batch_Processor {
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
         $sent = [];
-        // Zaproszenia do głosowania idą do WSZYSTKICH uprawnionych — status „nieaktywny” nie odbiera prawa głosu,
-        // więc nie może odbierać zaproszenia (filtr nieaktywnych dotyczy tylko wiadomości masowych).
         foreach ( $users as $user ) {
+            // Nieaktywni nie dostają powiadomień (chyba że zaznaczono „Nie pomijaj nieaktywnych”).
+            if ( openvote_skip_inactive_recipient( (int) $user->ID ) ) {
+                continue;
+            }
             if ( is_email( $user->user_email ) && wp_mail( $user->user_email, $subject, $message, $headers ) ) {
                 $sent[] = $user->user_email;
             }
@@ -1144,7 +1146,11 @@ class Openvote_Batch_Processor {
             if ( ! is_email( $u->user_email ) ) {
                 continue;
             }
-            // Bez filtra nieaktywnych: każdy uprawniony do głosowania dostaje zaproszenie.
+            // Nieaktywni nie dostają zaproszeń (chyba że zaznaczono „Nie pomijaj nieaktywnych”) —
+            // mogą nadal głosować; po oddaniu głosu od razu wracają do aktywnych.
+            if ( openvote_skip_inactive_recipient( (int) $u->ID ) ) {
+                continue;
+            }
             $values[] = $job_id;
             $values[] = $poll_id;
             $values[] = (int) $u->ID;
@@ -1457,10 +1463,8 @@ class Openvote_Batch_Processor {
             if ( ! is_email( $u->user_email ) ) {
                 continue;
             }
-            if ( ! function_exists( 'openvote_communication_do_not_skip_inactive' ) || ! openvote_communication_do_not_skip_inactive() ) {
-                if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
-                    continue;
-                }
+            if ( openvote_skip_inactive_recipient( (int) $u->ID ) ) {
+                continue;
             }
             ++$n;
         }
@@ -1519,10 +1523,8 @@ class Openvote_Batch_Processor {
             if ( ! is_email( $u->user_email ) ) {
                 continue;
             }
-            if ( ! function_exists( 'openvote_communication_do_not_skip_inactive' ) || ! openvote_communication_do_not_skip_inactive() ) {
-                if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
-                    continue;
-                }
+            if ( openvote_skip_inactive_recipient( (int) $u->ID ) ) {
+                continue;
             }
             $values[] = $message_id;
             $values[] = (int) $u->ID;

@@ -47,6 +47,10 @@ if ( ! empty( $target_groups ) && is_array( $target_groups ) ) {
     );
 }
 
+// Nieaktywni (próg opuszczonych głosowań) nie dostają zaproszeń, chyba że zaznaczono „Nie pomijaj nieaktywnych”.
+$skipped_inactive = openvote_count_skipped_inactive_recipients( is_array( $target_groups ) ? $target_groups : [] );
+$eligible_count   = max( 0, $eligible_count - $skipped_inactive );
+
 $poll_time_expired = Openvote_Poll::is_time_expired( $poll );
 // Wysyłka zaproszeń ma sens tylko podczas trwania głosowania (nie dla szkicu, zakończonego ani po terminie).
 $can_send_invites  = 'open' === ( $poll->status ?? '' ) && ! $poll_time_expired;
@@ -131,6 +135,18 @@ $invitation_plain = openvote_render_email_template( openvote_get_email_body_plai
         </span>
         <?php endif; ?>
         <span id="openvote-invitations-status" style="margin-left:14px;font-weight:500;font-size:13px;"></span>
+        <?php if ( $skipped_inactive > 0 ) : ?>
+        <p class="description" style="margin-top:8px;max-width:640px;">
+            <?php
+            printf(
+                /* translators: 1: number of skipped inactive members, 2: missed polls threshold */
+                esc_html__( 'Pominięto %1$d nieaktywnych (opuścili co najmniej %2$d głosowań od swojego ostatniego głosu) — nie dostaną zaproszenia, ale mogą głosować. Po oddaniu głosu od razu wracają do aktywnych. Zmienisz to w Konfiguracji → Nieaktywni.', 'openvote' ),
+                (int) $skipped_inactive,
+                (int) openvote_get_stat_missed_votes()
+            );
+            ?>
+        </p>
+        <?php endif; ?>
         <div id="openvote-invitations-progress" style="display:none;max-width:560px;margin:10px 0 0;"></div>
         <div id="openvote-invitations-limit-msg" style="display:none;margin-top:12px;padding:10px 12px;background:#fcf0f1;border-left:4px solid #c00;max-width:560px;"></div>
     </div>
