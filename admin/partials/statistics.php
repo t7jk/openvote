@@ -178,12 +178,13 @@ $chart_has_data = ! empty( $chart_data );
 			</div>
 			<div class="openvote-stat-card" style="grid-column:1/-1;box-shadow:none;border-style:dashed;">
 				<span class="description"><?php
-					printf(
-						/* translators: 1: months, 2: missed polls */
-						esc_html__( 'Członek nieaktywny = nie głosował od co najmniej %1$d mies. lub pominął co najmniej %2$d głosowań. Progi zmienisz w Konfiguracji → Nieaktywni.', 'openvote' ),
-						(int) openvote_get_stat_months_inactive(),
-						(int) openvote_get_stat_missed_votes()
-					);
+					$ov_missed = (int) openvote_get_stat_missed_votes();
+					if ( $ov_missed <= 0 ) {
+						esc_html_e( 'Próg opuszczonych głosowań ustawiono na ∞ — żaden członek nie jest uznawany za nieaktywnego. Próg zmienisz w Konfiguracji → Nieaktywni.', 'openvote' );
+					} else {
+						/* translators: %d: missed polls */
+						printf( esc_html__( 'Członek nieaktywny = opuścił co najmniej %d głosowań. Próg zmienisz w Konfiguracji → Nieaktywni.', 'openvote' ), $ov_missed );
+					}
 				?></span>
 			</div>
 			<div class="openvote-stat-card">

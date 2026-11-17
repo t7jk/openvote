@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
- * Version:           1.0.38
+ * Version:           1.0.39
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.38' );
+define( 'OPENVOTE_VERSION', '1.0.39' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -526,29 +526,37 @@ function openvote_get_emails_sent_history( int $months = 12 ): array {
 
 // ─── Statystyka i nieaktywni użytkownicy ───────────────────────────────────
 
-/** Opcja: próg opuszczonych głosowań (1–24); gdy obie opcje = 24, oznaczanie nieaktywnych wyłączone. */
+/** Opcja: próg opuszczonych głosowań — tylko wartości ze skali OPENVOTE_STAT_MISSED_STEPS; 0 = ∞ (nikt nie jest nieaktywny). */
 const OPENVOTE_STAT_MISSED_DEFAULT = 10;
-/** Opcja: próg miesięcy od ostatniego głosu (1–24). */
-const OPENVOTE_STAT_MONTHS_DEFAULT = 12;
+/** Dozwolone progi opuszczonych głosowań (kolejność suwaka). 0 = nieskończoność — kryterium wyłączone. */
+const OPENVOTE_STAT_MISSED_STEPS = [ 1, 2, 3, 4, 5, 8, 10, 0 ];
 
 /**
- * Zwraca wartość opcji „ilość opuszczonych głosowań” (prog nieaktywności).
+ * Dopasowuje dowolną liczbę do skali progów: wartość ze skali bez zmian, inna → najbliższy wyższy próg,
+ * powyżej 10 lub 0 → 0 (∞). Dopasowanie w górę = łagodniej (nikt nie staje się nieaktywny przez zaokrąglenie).
  *
- * @return int 1–24
+ * @param int $value
+ * @return int Wartość z OPENVOTE_STAT_MISSED_STEPS.
  */
-function openvote_get_stat_missed_votes(): int {
-	$v = (int) get_option( 'openvote_stat_missed_votes', OPENVOTE_STAT_MISSED_DEFAULT );
-	return max( 1, min( 24, $v ) );
+function openvote_snap_stat_missed_votes( int $value ): int {
+	if ( $value <= 0 ) {
+		return 0;
+	}
+	foreach ( OPENVOTE_STAT_MISSED_STEPS as $step ) {
+		if ( $step > 0 && $value <= $step ) {
+			return $step;
+		}
+	}
+	return 0;
 }
 
 /**
- * Zwraca wartość opcji „ilość miesięcy” (prog nieaktywności).
+ * Zwraca próg „ilość opuszczonych głosowań” (jedyne kryterium nieaktywności).
  *
- * @return int 1–24
+ * @return int Wartość ze skali 1,2,3,4,5,8,10 lub 0 = ∞ (nikt nie jest nieaktywny).
  */
-function openvote_get_stat_months_inactive(): int {
-	$v = (int) get_option( 'openvote_stat_months_inactive', OPENVOTE_STAT_MONTHS_DEFAULT );
-	return max( 1, min( 24, $v ) );
+function openvote_get_stat_missed_votes(): int {
+	return openvote_snap_stat_missed_votes( (int) get_option( 'openvote_stat_missed_votes', OPENVOTE_STAT_MISSED_DEFAULT ) );
 }
 
 /**
@@ -590,30 +598,18 @@ function openvote_get_missed_polls_count( int $user_id ): int {
 }
 
 /**
- * Czy użytkownik jest uznawany za nieaktywnego (OR: opuszczone >= próg LUB miesiące od ostatniego głosu >= próg).
- * Gdy obie opcje mają wartość 24, zwraca false (wyłączenie oznaczania).
+ * Czy użytkownik jest uznawany za nieaktywnego: opuścił co najmniej tyle głosowań, ile wynosi próg.
+ * Próg ∞ (0) = nikt nie jest nieaktywny. Czas od ostatniego głosu nie ma znaczenia.
  *
  * @param int $user_id
  * @return bool
  */
 function openvote_is_user_inactive( int $user_id ): bool {
 	$missed_prog = openvote_get_stat_missed_votes();
-	$months_prog = openvote_get_stat_months_inactive();
-	if ( $missed_prog >= 24 && $months_prog >= 24 ) {
+	if ( $missed_prog <= 0 ) {
 		return false;
 	}
-	$missed = openvote_get_missed_polls_count( $user_id );
-	if ( $missed >= $missed_prog ) {
-		return true;
-	}
-	$last = openvote_get_last_voted_at( $user_id );
-	if ( $last === null || $last === '' ) {
-		return $months_prog >= 1;
-	}
-	$last_ts = strtotime( $last );
-	$now_ts  = current_time( 'timestamp' );
-	$months  = (int) floor( ( $now_ts - $last_ts ) / ( 30 * DAY_IN_SECONDS ) );
-	return $months >= $months_prog;
+	return openvote_get_missed_polls_count( $user_id ) >= $missed_prog;
 }
 
 /**

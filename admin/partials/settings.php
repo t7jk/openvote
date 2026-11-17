@@ -1,8 +1,8 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$missed_votes    = openvote_get_stat_missed_votes();
-$months_inactive = openvote_get_stat_months_inactive();
+$missed_votes     = openvote_get_stat_missed_votes();
+$missed_votes_idx = (int) array_search( $missed_votes, OPENVOTE_STAT_MISSED_STEPS, true );
 
 $current_map    = Openvote_Field_Map::get();
 $available_keys = Openvote_Field_Map::available_keys();
@@ -1490,27 +1490,28 @@ function openvote_settings_select( string $logical, string $current, array $core
         <div class="openvote-inactivity-thresholds-block" style="background:#f6f7f7;padding:20px 24px;border-radius:8px;border:1px solid #c3c4c7;margin-bottom:24px;">
         <h2 class="title" style="margin-top:0;"><?php esc_html_e( 'Progi nieaktywności', 'openvote' ); ?></h2>
         <p class="description">
-            <?php esc_html_e( 'Wystarczy aby jeden z wyżej ustawionych warunków został spełniony.', 'openvote' ); ?>
+            <?php esc_html_e( 'Członek jest uznawany za nieaktywnego, gdy opuści (nie weźmie w ogóle udziału) co najmniej tyle głosowań, ile ustawiono poniżej.', 'openvote' ); ?>
         </p>
         <p class="description">
             <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze wszyscy uprawnieni.', 'openvote' ); ?>
         </p>
 
         <table class="form-table" role="presentation">
-            <tr>
-                <th scope="row"><label for="openvote_stat_missed_votes"><?php esc_html_e( 'Ilość opuszczonych głosowań', 'openvote' ); ?></label></th>
+            <tr id="openvote-stat-missed-row">
+                <th scope="row"><label for="openvote_stat_missed_votes_idx"><?php esc_html_e( 'Ilość opuszczonych głosowań', 'openvote' ); ?></label></th>
                 <td>
-                    <input type="range" name="openvote_stat_missed_votes" id="openvote_stat_missed_votes" min="1" max="24" value="<?php echo esc_attr( (string) $missed_votes ); ?>" class="openvote-stat-range">
-                    <span class="openvote-stat-range-value" data-for="openvote_stat_missed_votes"><?php echo esc_html( (string) $missed_votes ); ?></span>
+                    <?php
+                    $ov_step_labels = array_map(
+                        static fn( int $v ): string => $v > 0 ? (string) $v : '∞',
+                        OPENVOTE_STAT_MISSED_STEPS
+                    );
+                    ?>
+                    <input type="range" name="openvote_stat_missed_votes_idx" id="openvote_stat_missed_votes_idx" min="0" max="<?php echo esc_attr( (string) ( count( OPENVOTE_STAT_MISSED_STEPS ) - 1 ) ); ?>" step="1" value="<?php echo esc_attr( (string) $missed_votes_idx ); ?>" data-labels="<?php echo esc_attr( wp_json_encode( $ov_step_labels ) ); ?>" aria-valuetext="<?php echo esc_attr( $ov_step_labels[ $missed_votes_idx ] ); ?>" <?php disabled( $communication_do_not_skip_inactive ); ?>>
+                    <strong class="openvote-stat-range-value" id="openvote_stat_missed_votes_value" style="display:inline-block;min-width:2em;font-size:15px;"><?php echo esc_html( $ov_step_labels[ $missed_votes_idx ] ); ?></strong>
+                    <p class="description" style="margin-top:2px;"><?php echo esc_html( implode( ' · ', $ov_step_labels ) ); ?></p>
+                    <p class="description" id="openvote_stat_missed_votes_inf_note"<?php echo $missed_votes === 0 ? '' : ' style="display:none"'; ?>><strong><?php esc_html_e( '∞ = nieskończoność: członek może opuścić dowolnie wiele głosowań — nikt nie jest uznawany za nieaktywnego.', 'openvote' ); ?></strong></p>
                     <p class="description"><?php esc_html_e( 'To ustawienie określa, ile głosowań musi opuścić (nie brać w ogóle udziału) członek, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row"><label for="openvote_stat_months_inactive"><?php esc_html_e( 'Ilość miesięcy', 'openvote' ); ?></label></th>
-                <td>
-                    <input type="range" name="openvote_stat_months_inactive" id="openvote_stat_months_inactive" min="1" max="24" value="<?php echo esc_attr( (string) $months_inactive ); ?>" class="openvote-stat-range">
-                    <span class="openvote-stat-range-value" data-for="openvote_stat_months_inactive"><?php echo esc_html( (string) $months_inactive ); ?></span>
-                    <p class="description"><?php esc_html_e( 'Ilość miesięcy, ile musi minąć od ostatniego głosowania, aby został uznany za nieaktywnego.', 'openvote' ); ?></p>
+                    <p class="description" id="openvote_stat_missed_votes_off_note"<?php echo $communication_do_not_skip_inactive ? '' : ' style="display:none"'; ?>><em><?php esc_html_e( 'Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — wysyłki trafiają do wszystkich, więc próg nie ma wpływu.', 'openvote' ); ?></em></p>
                 </td>
             </tr>
             <tr>
@@ -1520,7 +1521,7 @@ function openvote_settings_select( string $logical, string $current, array $core
                         <input type="checkbox" name="openvote_communication_do_not_skip_inactive" id="openvote_communication_do_not_skip_inactive" value="1" <?php checked( $communication_do_not_skip_inactive ); ?>>
                         <?php esc_html_e( 'Nie pomijaj nieaktywnych', 'openvote' ); ?>
                     </label>
-                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani zgodnie z regułami powyższych suwaków.', 'openvote' ); ?></p>
+                    <p class="description"><?php esc_html_e( 'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań.', 'openvote' ); ?></p>
                 </td>
             </tr>
         </table>
@@ -1884,12 +1885,33 @@ function openvote_settings_select( string $logical, string $current, array $core
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.openvote-stat-range').forEach(function(el) {
-            var val = document.querySelector('.openvote-stat-range-value[data-for="' + el.id + '"]');
-            if (val) {
-                el.addEventListener('input', function() { val.textContent = this.value; });
-            }
-        });
+        (function() {
+            var range = document.getElementById('openvote_stat_missed_votes_idx');
+            var out   = document.getElementById('openvote_stat_missed_votes_value');
+            var inf   = document.getElementById('openvote_stat_missed_votes_inf_note');
+            var off   = document.getElementById('openvote_stat_missed_votes_off_note');
+            var row   = document.getElementById('openvote-stat-missed-row');
+            var chk   = document.getElementById('openvote_communication_do_not_skip_inactive');
+            if (!range || !out) { return; }
+            var labels = [];
+            try { labels = JSON.parse(range.getAttribute('data-labels') || '[]'); } catch (e) {}
+            var upd = function() {
+                var lbl = labels[parseInt(range.value, 10)] || range.value;
+                out.textContent = lbl;
+                range.setAttribute('aria-valuetext', lbl);
+                if (inf) { inf.style.display = lbl === '∞' ? '' : 'none'; }
+            };
+            var toggle = function() {
+                var disabled = !!(chk && chk.checked);
+                range.disabled = disabled;
+                if (row) { row.style.opacity = disabled ? '0.5' : ''; }
+                if (off) { off.style.display = disabled ? '' : 'none'; }
+            };
+            range.addEventListener('input', upd);
+            if (chk) { chk.addEventListener('change', toggle); }
+            upd();
+            toggle();
+        })();
 
         var clearBtn = document.getElementById('openvote-clear-counters-btn');
         var clearResult = document.getElementById('openvote-clear-counters-result');

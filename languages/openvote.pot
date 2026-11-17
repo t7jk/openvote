@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OpenVote\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 22:57+0100\n"
+"POT-Creation-Date: 2026-11-17 23:24+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,21 +21,21 @@ msgstr ""
 #: admin/class-openvote-admin.php:26 admin/class-openvote-admin.php:27
 #: admin/class-openvote-admin.php:1163 admin/partials/manual.php:64
 #: admin/partials/manual.php:263 admin/partials/manual.php:281
-#: admin/partials/settings.php:561 admin/partials/settings.php:1797
+#: admin/partials/settings.php:561 admin/partials/settings.php:1798
 #: blocks/openvote-voting-tabs/render.php:151
 msgid "Głosowania"
 msgstr ""
 
 #: admin/class-openvote-admin.php:35 admin/class-openvote-admin.php:36
 #: admin/partials/manual.php:284 admin/partials/settings.php:562
-#: admin/partials/settings.php:1801 admin/partials/survey-list.php:9
+#: admin/partials/settings.php:1802 admin/partials/survey-list.php:9
 #: includes/class-openvote-survey-page.php:92
 msgid "Ankiety"
 msgstr ""
 
 #: admin/class-openvote-admin.php:44 admin/class-openvote-admin.php:45
 #: admin/partials/communication-page.php:24 admin/partials/manual.php:283
-#: admin/partials/settings.php:567 admin/partials/settings.php:1517
+#: admin/partials/settings.php:567 admin/partials/settings.php:1518
 msgid "Wysyłka"
 msgstr ""
 
@@ -45,7 +45,7 @@ msgstr ""
 #: admin/partials/groups.php:342 admin/partials/manual.php:66
 #: admin/partials/roles.php:96 admin/partials/roles.php:177
 #: admin/partials/roles.php:216 admin/partials/settings.php:563
-#: admin/partials/settings.php:1799
+#: admin/partials/settings.php:1800
 msgid "Grupy"
 msgstr ""
 
@@ -809,8 +809,8 @@ msgstr ""
 #: admin/class-openvote-messages-list.php:28
 #: admin/class-openvote-polls-list.php:30
 #: admin/class-openvote-surveys-list.php:27 admin/partials/manual.php:516
-#: admin/partials/poll-form.php:160 admin/partials/statistics.php:262
-#: admin/partials/statistics.php:311 admin/partials/survey-form.php:112
+#: admin/partials/poll-form.php:160 admin/partials/statistics.php:263
+#: admin/partials/statistics.php:312 admin/partials/survey-form.php:112
 #: blocks/openvote-survey-responses/render.php:81
 msgid "Tytuł"
 msgstr ""
@@ -992,8 +992,8 @@ msgid "Zakończona"
 msgstr ""
 
 #: admin/class-openvote-surveys-list.php:167
-#: admin/class-openvote-surveys-list.php:187 openvote.php:1400
-#: openvote.php:1418
+#: admin/class-openvote-surveys-list.php:187 openvote.php:1396
+#: openvote.php:1414
 msgid "Zgłoszenia"
 msgstr ""
 
@@ -1463,7 +1463,7 @@ msgid "Odrzucone adresy"
 msgstr ""
 
 #: admin/partials/groups.php:398 admin/partials/manual.php:815
-#: admin/partials/settings.php:1592
+#: admin/partials/settings.php:1593
 msgid "Grupa"
 msgstr ""
 
@@ -4216,9 +4216,9 @@ msgid "Wysłano. Odświeżam stronę…"
 msgstr ""
 
 #: admin/partials/message-send.php:343 admin/partials/poll-results.php:417
-#: admin/partials/settings.php:1745 admin/partials/settings.php:1913
-#: admin/partials/settings.php:1916 admin/partials/settings.php:1950
-#: admin/partials/settings.php:1956
+#: admin/partials/settings.php:1746 admin/partials/settings.php:1935
+#: admin/partials/settings.php:1938 admin/partials/settings.php:1972
+#: admin/partials/settings.php:1978
 msgid "Błąd."
 msgstr ""
 
@@ -4534,7 +4534,7 @@ msgid "Błąd zapisu."
 msgstr ""
 
 #: admin/partials/poll-invitations.php:346 admin/partials/poll-results.php:349
-#: admin/partials/settings.php:1161 admin/partials/settings.php:1576
+#: admin/partials/settings.php:1161 admin/partials/settings.php:1577
 msgid "Błąd połączenia."
 msgstr ""
 
@@ -4605,7 +4605,7 @@ msgid ""
 "To jest szkic — głosowanie jeszcze nie wystartowało, więc nie ma wyników."
 msgstr ""
 
-#: admin/partials/poll-results.php:50 admin/partials/statistics.php:311
+#: admin/partials/poll-results.php:50 admin/partials/statistics.php:312
 #: blocks/openvote-voting-tabs/render.php:47
 #: includes/class-openvote-results-pdf.php:93
 #: includes/class-openvote-vote-page.php:131
@@ -5139,7 +5139,7 @@ msgstr ""
 #: admin/partials/settings.php:375 admin/partials/settings.php:543
 #: admin/partials/settings.php:686 admin/partials/settings.php:1168
 #: admin/partials/settings.php:1322 admin/partials/settings.php:1482
-#: admin/partials/settings.php:1543
+#: admin/partials/settings.php:1544
 msgid "Zapisz konfigurację"
 msgstr ""
 
@@ -5829,7 +5829,9 @@ msgid "Progi nieaktywności"
 msgstr ""
 
 #: admin/partials/settings.php:1493
-msgid "Wystarczy aby jeden z wyżej ustawionych warunków został spełniony."
+msgid ""
+"Członek jest uznawany za nieaktywnego, gdy opuści (nie weźmie w ogóle "
+"udziału) co najmniej tyle głosowań, ile ustawiono poniżej."
 msgstr ""
 
 #: admin/partials/settings.php:1496
@@ -5843,82 +5845,84 @@ msgstr ""
 msgid "Ilość opuszczonych głosowań"
 msgstr ""
 
-#: admin/partials/settings.php:1505
+#: admin/partials/settings.php:1512
+msgid ""
+"∞ = nieskończoność: członek może opuścić dowolnie wiele głosowań — nikt nie "
+"jest uznawany za nieaktywnego."
+msgstr ""
+
+#: admin/partials/settings.php:1513
 msgid ""
 "To ustawienie określa, ile głosowań musi opuścić (nie brać w ogóle udziału) "
 "członek, aby został uznany za nieaktywnego."
 msgstr ""
 
-#: admin/partials/settings.php:1509
-msgid "Ilość miesięcy"
-msgstr ""
-
-#: admin/partials/settings.php:1513
+#: admin/partials/settings.php:1514
 msgid ""
-"Ilość miesięcy, ile musi minąć od ostatniego głosowania, aby został uznany "
-"za nieaktywnego."
+"Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — wysyłki "
+"trafiają do wszystkich, więc próg nie ma wpływu."
 msgstr ""
 
-#: admin/partials/settings.php:1521
+#: admin/partials/settings.php:1522
 msgid "Nie pomijaj nieaktywnych"
 msgstr ""
 
-#: admin/partials/settings.php:1523
+#: admin/partials/settings.php:1524
 msgid ""
 "Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z "
-"grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani "
-"zgodnie z regułami powyższych suwaków."
-msgstr ""
-
-#: admin/partials/settings.php:1532
-msgid "Przelicz statystyki nieaktywnych"
+"grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy "
+"wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań."
 msgstr ""
 
 #: admin/partials/settings.php:1533
+msgid "Przelicz statystyki nieaktywnych"
+msgstr ""
+
+#: admin/partials/settings.php:1534
 msgid "Wyczyść liczniki"
 msgstr ""
 
-#: admin/partials/settings.php:1535
+#: admin/partials/settings.php:1536
 msgid ""
 "Przelicza liczbę opuszczonych głosowań dla wszystkich członków. "
 "Przetwarzanie partiami z paskiem postępu (ograniczenie obciążenia serwera)."
 msgstr ""
 
-#: admin/partials/settings.php:1536
+#: admin/partials/settings.php:1537
 msgid ""
 "Wyczyść liczniki — kasuje dla wszystkich użytkowników liczbę opuszczonych "
 "głosowań i datę ostatniego głosowania."
 msgstr ""
 
-#: admin/partials/settings.php:1575 includes/openvote-identity-frontend.php:52
+#: admin/partials/settings.php:1576 includes/openvote-identity-frontend.php:52
 msgid "Sprawdzanie…"
 msgstr ""
 
-#: admin/partials/settings.php:1577
+#: admin/partials/settings.php:1578
 msgid "Naprawa: Nie używaj miast / grup (ograniczone możliwości)"
 msgstr ""
 
-#: admin/partials/settings.php:1578
+#: admin/partials/settings.php:1579
 msgid "automatycznie dodaj grupę „Wszyscy”"
 msgstr ""
 
-#: admin/partials/settings.php:1579
+#: admin/partials/settings.php:1580
 msgid "automatycznie ustaw Grupę na „Nie używaj miast”"
 msgstr ""
 
-#: admin/partials/settings.php:1580
+#: admin/partials/settings.php:1581
 msgid "wyłącz checkbox „Wymagane” dla Grupy"
 msgstr ""
 
-#: admin/partials/settings.php:1581
+#: admin/partials/settings.php:1582
 msgid "Zastosuj tę naprawę"
 msgstr ""
 
-#: admin/partials/settings.php:1582
+#: admin/partials/settings.php:1583
 msgid "Używaj miast / grup"
 msgstr ""
 
-#: admin/partials/settings.php:1583
+#: admin/partials/settings.php:1584
 msgid ""
 "Należy zainstalować wtyczkę do rozszerzonych pól profilu (np. User "
 "Registration) i dodać pole do rejestracji lub profilu, zapisujące wartość w "
@@ -5927,51 +5931,51 @@ msgid ""
 "ten klucz."
 msgstr ""
 
-#: admin/partials/settings.php:1591
+#: admin/partials/settings.php:1592
 msgid "Pola obowiązkowe (wbudowane): Imię, Nazwisko, E-mail"
 msgstr ""
 
-#: admin/partials/settings.php:1593
+#: admin/partials/settings.php:1594
 msgid "Telefon"
 msgstr ""
 
-#: admin/partials/settings.php:1606
+#: admin/partials/settings.php:1607
 msgid "Sprawdzenie zakończone."
 msgstr ""
 
-#: admin/partials/settings.php:1647
+#: admin/partials/settings.php:1648
 msgid "Jak to działa?"
 msgstr ""
 
-#: admin/partials/settings.php:1649
+#: admin/partials/settings.php:1650
 msgid ""
 "Użytkownik jest uprawniony do głosowania tylko jeśli wszystkie pola "
 "oznaczone jako \"Wymagane\" są wypełnione."
 msgstr ""
 
-#: admin/partials/settings.php:1650
+#: admin/partials/settings.php:1651
 msgid "Pole \"Grupa\" służy do definiowania grup docelowych głosowania."
 msgstr ""
 
-#: admin/partials/settings.php:1651
+#: admin/partials/settings.php:1652
 msgid "Pola wbudowane (np. user_email) są odczytywane z tabeli wp_users."
 msgstr ""
 
-#: admin/partials/settings.php:1652
+#: admin/partials/settings.php:1653
 msgid "Pozostałe pola są odczytywane z tabeli wp_usermeta."
 msgstr ""
 
-#: admin/partials/settings.php:1653
+#: admin/partials/settings.php:1654
 msgid ""
 "Po zmianie konfiguracji wszystkie nowe i istniejące głosowania używają "
 "nowych kluczy."
 msgstr ""
 
-#: admin/partials/settings.php:1677
+#: admin/partials/settings.php:1678
 msgid "Harmonogram (cron)"
 msgstr ""
 
-#: admin/partials/settings.php:1679
+#: admin/partials/settings.php:1680
 msgid ""
 "Aby wtyczka mogła sama wysyłać zaproszenia na rozpoczęte głosowania i "
 "wznawiać wysyłkę wstrzymaną limitami (np. dziennym limitem Brevo) — także "
@@ -5979,81 +5983,81 @@ msgid ""
 "plik PHP wtyczki. Robi się to raz, w panelu hostingu."
 msgstr ""
 
-#: admin/partials/settings.php:1683
+#: admin/partials/settings.php:1684
 msgid "Stan"
 msgstr ""
 
-#: admin/partials/settings.php:1686
+#: admin/partials/settings.php:1687
 msgid "Działa"
 msgstr ""
 
-#: admin/partials/settings.php:1688
+#: admin/partials/settings.php:1689
 msgid "Brak sygnału"
 msgstr ""
 
-#: admin/partials/settings.php:1690
+#: admin/partials/settings.php:1691
 msgid "Ostatnie wywołanie z crona serwera:"
 msgstr ""
 
-#: admin/partials/settings.php:1696
+#: admin/partials/settings.php:1697
 msgid ""
 "Jeszcze nie odebrano żadnego sygnału. Skonfiguruj cron według instrukcji "
 "poniżej."
 msgstr ""
 
-#: admin/partials/settings.php:1698
+#: admin/partials/settings.php:1699
 msgid "Zielony stan oznacza sygnał z crona serwera w ciągu ostatnich 20 minut."
 msgstr ""
 
-#: admin/partials/settings.php:1700
+#: admin/partials/settings.php:1701
 msgid "Uruchom teraz"
 msgstr ""
 
 #. translators: %s: date and time
-#: admin/partials/settings.php:1706
+#: admin/partials/settings.php:1707
 #, php-format
 msgid "Ostatnie ręczne uruchomienie: %s"
 msgstr ""
 
-#: admin/partials/settings.php:1712
+#: admin/partials/settings.php:1713
 msgid "Jak to ustawić (cPanel)"
 msgstr ""
 
-#: admin/partials/settings.php:1714
+#: admin/partials/settings.php:1715
 msgid ""
 "Zaloguj się do panelu hostingu (cPanel) i otwórz „Zadania Cron” (Cron Jobs)."
 msgstr ""
 
-#: admin/partials/settings.php:1715
+#: admin/partials/settings.php:1716
 msgid ""
 "W polu „Ustawienia zwykłe” wybierz „Co 15 minut” (Once Per Fifteen Minutes — "
 "*/15)."
 msgstr ""
 
-#: admin/partials/settings.php:1716
+#: admin/partials/settings.php:1717
 msgid ""
 "W polu „Polecenie” wklej poniższą komendę (przycisk „Kopiuj”) i zapisz "
 "(„Dodaj nowe zadanie cron”)."
 msgstr ""
 
-#: admin/partials/settings.php:1717
+#: admin/partials/settings.php:1718
 msgid ""
 "Po 15 minutach odśwież tę stronę — stan powinien zmienić się na „Działa”."
 msgstr ""
 
-#: admin/partials/settings.php:1719
+#: admin/partials/settings.php:1720
 msgid "Harmonogram: co 15 minut (*/15 * * * *). Polecenie:"
 msgstr ""
 
-#: admin/partials/settings.php:1721
+#: admin/partials/settings.php:1722
 msgid "Polecenie crona (PHP)"
 msgstr ""
 
-#: admin/partials/settings.php:1722
+#: admin/partials/settings.php:1723
 msgid "Kopiuj"
 msgstr ""
 
-#: admin/partials/settings.php:1724
+#: admin/partials/settings.php:1725
 msgid ""
 "Polecenie używa PHP 8.4 (/usr/local/bin/php84). Uwaga: samo /usr/local/bin/"
 "php lub php8 to na wielu serwerach stara wersja (7.4 / 8.0), a wtyczka "
@@ -6063,146 +6067,146 @@ msgid ""
 "nowszych wersji znalezionych na serwerze."
 msgstr ""
 
-#: admin/partials/settings.php:1725
+#: admin/partials/settings.php:1726
 msgid ""
 "Nie są potrzebne ani wget, ani curl, ani żaden klucz. Katalog „cron” jest "
 "zablokowany dla przeglądarek plikiem .htaccess, a skrypt uruchamia się "
 "wyłącznie z wiersza poleceń."
 msgstr ""
 
-#: admin/partials/settings.php:1729
+#: admin/partials/settings.php:1730
 msgid "Co robi cron?"
 msgstr ""
 
-#: admin/partials/settings.php:1731
+#: admin/partials/settings.php:1732
 msgid ""
 "Wysyła zaproszenia na głosowania z zaznaczoną opcją automatycznej wysyłki po "
 "rozpoczęciu (tylko głosowania rozpoczęte po włączeniu tej funkcji i bez "
 "wcześniejszej wysyłki zaproszeń)."
 msgstr ""
 
-#: admin/partials/settings.php:1732
+#: admin/partials/settings.php:1733
 msgid ""
 "Wznawia wysyłkę zaproszeń i wiadomości wstrzymaną przez limity (15 minut / "
 "godzina / doba), gdy limit znów na to pozwala."
 msgstr ""
 
-#: admin/partials/settings.php:1733
+#: admin/partials/settings.php:1734
 msgid ""
 "Wykonuje zaległe zadania harmonogramu wtyczki (np. synchronizację grup)."
 msgstr ""
 
-#: admin/partials/settings.php:1742
+#: admin/partials/settings.php:1743
 msgid "Skopiowano."
 msgstr ""
 
-#: admin/partials/settings.php:1743
+#: admin/partials/settings.php:1744
 msgid "Zaznaczono tekst — skopiuj go (Ctrl+C)."
 msgstr ""
 
-#: admin/partials/settings.php:1744 admin/partials/settings.php:1931
+#: admin/partials/settings.php:1745 admin/partials/settings.php:1953
 msgid "Uruchamianie…"
 msgstr ""
 
-#: admin/partials/settings.php:1787 admin/partials/settings.php:1867
+#: admin/partials/settings.php:1788 admin/partials/settings.php:1868
 msgid "Wyczyść bazę danych wtyczki i przywróć wartości fabryczne"
 msgstr ""
 
-#: admin/partials/settings.php:1798
+#: admin/partials/settings.php:1799
 msgid "Oddane głosy"
 msgstr ""
 
-#: admin/partials/settings.php:1800
+#: admin/partials/settings.php:1801
 msgid "Członkowie grup"
 msgstr ""
 
-#: admin/partials/settings.php:1802
+#: admin/partials/settings.php:1803
 msgid "Odpowiedzi ankiet"
 msgstr ""
 
-#: admin/partials/settings.php:1803
+#: admin/partials/settings.php:1804
 msgid "Kolejka e-mail"
 msgstr ""
 
-#: admin/partials/settings.php:1820 admin/partials/uninstall.php:40
+#: admin/partials/settings.php:1821 admin/partials/uninstall.php:40
 msgid "Strefa zagrożenia — operacja nieodwracalna"
 msgstr ""
 
-#: admin/partials/settings.php:1823
+#: admin/partials/settings.php:1824
 msgid ""
 "Poniższa operacja usuwa wszystkie dane głosowań, ankiet, grup i "
 "koordynatorów oraz przywraca ustawienia konfiguracyjne do wartości "
 "fabrycznych. Struktura tabel zostaje zachowana. Wtyczka pozostaje aktywna."
 msgstr ""
 
-#: admin/partials/settings.php:1825
+#: admin/partials/settings.php:1826
 msgid "Co zostanie wyczyszczone:"
 msgstr ""
 
-#: admin/partials/settings.php:1829
+#: admin/partials/settings.php:1830
 msgid "Dane"
 msgstr ""
 
-#: admin/partials/settings.php:1830 admin/partials/uninstall.php:57
+#: admin/partials/settings.php:1831 admin/partials/uninstall.php:57
 msgid "Zawartość"
 msgstr ""
 
 #. translators: %d: row count
-#: admin/partials/settings.php:1839 admin/partials/uninstall.php:68
+#: admin/partials/settings.php:1840 admin/partials/uninstall.php:68
 #, php-format
 msgid "%d rekord"
 msgid_plural "%d rekordów"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/partials/settings.php:1843
+#: admin/partials/settings.php:1844
 msgid "Koordynatorzy (usermeta)"
 msgstr ""
 
-#: admin/partials/settings.php:1844
+#: admin/partials/settings.php:1845
 #, php-format
 msgid "%d użytkownik"
 msgid_plural "%d użytkowników"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/partials/settings.php:1847
+#: admin/partials/settings.php:1848
 msgid "Opcje konfiguracyjne wtyczki"
 msgstr ""
 
-#: admin/partials/settings.php:1848
+#: admin/partials/settings.php:1849
 msgid "Reset do domyślnych"
 msgstr ""
 
-#: admin/partials/settings.php:1858
+#: admin/partials/settings.php:1859
 msgid ""
 "Rozumiem, że operacja jest nieodwracalna i wszystkie dane oraz ustawienia "
 "wtyczki zostaną trwale usunięte."
 msgstr ""
 
-#: admin/partials/settings.php:1898
+#: admin/partials/settings.php:1920
 msgid ""
 "Czy na pewno chcesz wyczyścić liczniki nieaktywności dla wszystkich "
 "użytkowników? Tej operacji nie można cofnąć."
 msgstr ""
 
-#: admin/partials/settings.php:1905
+#: admin/partials/settings.php:1927
 msgid "Czyszczenie…"
 msgstr ""
 
-#: admin/partials/settings.php:1911
+#: admin/partials/settings.php:1933
 msgid "Liczniki wyczyszczone."
 msgstr ""
 
-#: admin/partials/settings.php:1938
+#: admin/partials/settings.php:1960
 msgid "Błąd uruchamiania."
 msgstr ""
 
-#: admin/partials/settings.php:1946
+#: admin/partials/settings.php:1968
 msgid "Statystyki nieaktywnych przeliczone."
 msgstr ""
 
-#: admin/partials/settings.php:1965
+#: admin/partials/settings.php:1987
 msgid "Odinstaluj wtyczkę"
 msgstr ""
 
@@ -6234,103 +6238,109 @@ msgstr ""
 msgid "Członkowie nieaktywni"
 msgstr ""
 
-#. translators: 1: months, 2: missed polls
 #: admin/partials/statistics.php:183
-#, php-format
 msgid ""
-"Członek nieaktywny = nie głosował od co najmniej %1$d mies. lub pominął co "
-"najmniej %2$d głosowań. Progi zmienisz w Konfiguracji → Nieaktywni."
+"Próg opuszczonych głosowań ustawiono na ∞ — żaden członek nie jest uznawany "
+"za nieaktywnego. Próg zmienisz w Konfiguracji → Nieaktywni."
 msgstr ""
 
-#: admin/partials/statistics.php:190
+#. translators: %d: missed polls
+#: admin/partials/statistics.php:186
+#, php-format
+msgid ""
+"Członek nieaktywny = opuścił co najmniej %d głosowań. Próg zmienisz w "
+"Konfiguracji → Nieaktywni."
+msgstr ""
+
+#: admin/partials/statistics.php:191
 msgid "Głosowania i ankiety"
 msgstr ""
 
-#: admin/partials/statistics.php:192
+#: admin/partials/statistics.php:193
 msgid "Liczba wykonanych głosowań"
 msgstr ""
 
-#: admin/partials/statistics.php:196
+#: admin/partials/statistics.php:197
 msgid "Liczba uruchomionych ankiet"
 msgstr ""
 
-#: admin/partials/statistics.php:200
+#: admin/partials/statistics.php:201
 msgid "Liczba wypełnionych ankiet"
 msgstr ""
 
-#: admin/partials/statistics.php:204
+#: admin/partials/statistics.php:205
 msgid "Liczba wyświetleń wszystkich ankiet"
 msgstr ""
 
-#: admin/partials/statistics.php:223
+#: admin/partials/statistics.php:224
 msgid "Liczba wysłanych e-maili"
 msgstr ""
 
-#: admin/partials/statistics.php:226
+#: admin/partials/statistics.php:227
 msgid "W ciągu ostatnich 15 minut"
 msgstr ""
 
-#: admin/partials/statistics.php:228 admin/partials/statistics.php:235
-#: admin/partials/statistics.php:242 admin/partials/statistics.php:249
+#: admin/partials/statistics.php:229 admin/partials/statistics.php:236
+#: admin/partials/statistics.php:243 admin/partials/statistics.php:250
 msgid "Liczba e-maili"
 msgstr ""
 
-#: admin/partials/statistics.php:233
+#: admin/partials/statistics.php:234
 msgid "W ciągu ostatniej godziny"
 msgstr ""
 
-#: admin/partials/statistics.php:240
+#: admin/partials/statistics.php:241
 msgid "W ciągu doby"
 msgstr ""
 
-#: admin/partials/statistics.php:247
+#: admin/partials/statistics.php:248
 msgid "W ciągu miesiąca"
 msgstr ""
 
-#: admin/partials/statistics.php:254
+#: admin/partials/statistics.php:255
 msgid ""
 "Liczby w formacie „wysłano / limit” — limity zależą od wybranej metody "
 "wysyłki (Konfiguracja → Wysyłka e-mail). Po osiągnięciu limitu wysyłka jest "
 "wstrzymywana i wznawiana automatycznie."
 msgstr ""
 
-#: admin/partials/statistics.php:258
+#: admin/partials/statistics.php:259
 msgid "Ostatnie 10 głosowań (zakończone)"
 msgstr ""
 
-#: admin/partials/statistics.php:263
+#: admin/partials/statistics.php:264
 msgid "Liczba uprawnionych do głosowania"
 msgstr ""
 
-#: admin/partials/statistics.php:264
+#: admin/partials/statistics.php:265
 msgid "Liczba głosujących"
 msgstr ""
 
-#: admin/partials/statistics.php:269
+#: admin/partials/statistics.php:270
 msgid "Brak zakończonych głosowań."
 msgstr ""
 
-#: admin/partials/statistics.php:289
+#: admin/partials/statistics.php:290
 msgid "Frekwencja (ostatnie 10 głosowań)"
 msgstr ""
 
-#: admin/partials/statistics.php:291
+#: admin/partials/statistics.php:292
 msgid "Wykres pojawi się po zakończeniu pierwszego głosowania."
 msgstr ""
 
-#: admin/partials/statistics.php:294
+#: admin/partials/statistics.php:295
 msgid "Wykres frekwencji w ostatnich głosowaniach; wartości w tabeli poniżej."
 msgstr ""
 
-#: admin/partials/statistics.php:296 admin/partials/statistics.php:316
+#: admin/partials/statistics.php:297 admin/partials/statistics.php:317
 msgid "Średnia"
 msgstr ""
 
-#: admin/partials/statistics.php:309
+#: admin/partials/statistics.php:310
 msgid "Pokaż dane w tabeli"
 msgstr ""
 
-#: admin/partials/statistics.php:322
+#: admin/partials/statistics.php:323
 msgid ""
 "Oś X: numer głosowania (1 = ostatnie, 11 = średnia). Oś Y: frekwencja w %."
 msgstr ""

@@ -18,6 +18,12 @@ $pot_path = __DIR__ . '/openvote.pot';
 $po_path  = __DIR__ . '/openvote-en_US.po';
 
 $translations = [
+    'Członek jest uznawany za nieaktywnego, gdy opuści (nie weźmie w ogóle udziału) co najmniej tyle głosowań, ile ustawiono poniżej.' => 'A member is considered inactive after missing (not taking part in at all) at least as many polls as set below.',
+    '∞ = nieskończoność: członek może opuścić dowolnie wiele głosowań — nikt nie jest uznawany za nieaktywnego.' => '∞ = infinity: a member may miss any number of polls — nobody is considered inactive.',
+    'Suwak jest nieaktywny, bo zaznaczono „Nie pomijaj nieaktywnych” — wysyłki trafiają do wszystkich, więc próg nie ma wpływu.' => 'The slider is disabled because “Do not skip inactive” is checked — mailings go to everyone, so the threshold has no effect.',
+    'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych), a suwak powyżej jest nieaktywny. Gdy wyłączone: nieaktywni są pomijani zgodnie z progiem opuszczonych głosowań.' => 'When enabled: mailings in the Mailing module go to all recipients in the target groups (including inactive ones), and the slider above is disabled. When disabled: inactive members are skipped according to the missed-polls threshold.',
+    'Próg opuszczonych głosowań ustawiono na ∞ — żaden członek nie jest uznawany za nieaktywnego. Próg zmienisz w Konfiguracji → Nieaktywni.' => 'The missed-polls threshold is set to ∞ — no member is considered inactive. You can change the threshold in Configuration → Inactive.',
+    'Członek nieaktywny = opuścił co najmniej %d głosowań. Próg zmienisz w Konfiguracji → Nieaktywni.' => 'Inactive member = has missed at least %d polls. You can change the threshold in Configuration → Inactive.',
     // Menu & main
     'Głosowania' => 'Polls',
     'Ankiety' => 'Surveys',
@@ -164,9 +170,7 @@ $translations = [
     'Statystyka' => 'Statistics',
     'Progi nieaktywności' => 'Inactivity thresholds',
     'Ilość opuszczonych głosowań' => 'Number of missed polls',
-    'Ilość miesięcy' => 'Number of months',
     'To ustawienie określa, ile głosowań musi opuścić (nie brać w ogóle udziału) członek, aby został uznany za nieaktywnego.' => 'This setting determines how many polls a member must miss (not take part in at all) to be considered inactive.',
-    'Ilość miesięcy, ile musi minąć od ostatniego głosowania, aby został uznany za nieaktywnego.' => 'The number of months that must pass since the last vote for the member to be considered inactive.',
     'Zapisz' => 'Save',
     'Informacje' => 'Information',
     'Grupy i członkowie' => 'Groups & members',
@@ -1295,10 +1299,8 @@ $translations = [
     'Ostatnia synchronizacja zakończona dnia %s.' => 'Last synchronization finished on %s.',
     'Nie było jeszcze synchronizacji.' => 'No synchronization has run yet.',
     'Synchronizuj od początku wszystkie grupy (Nie zalecane)' => 'Synchronize all groups from the beginning (Not recommended)',
-    'Wystarczy aby jeden z wyżej ustawionych warunków został spełniony.' => 'It is enough for one of the conditions set above to be met.',
     'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze wszyscy uprawnieni.' => 'If a user is considered inactive, they will not receive mass messages (newsletter). Poll invitations are always sent to all eligible voters.',
     'Nie pomijaj nieaktywnych' => 'Do not skip inactive users',
-    'Gdy włączone: wysyłki w module Wysyłka trafiają do wszystkich odbiorców z grup docelowych (także nieaktywnych). Gdy wyłączone: nieaktywni są pomijani zgodnie z regułami powyższych suwaków.' => 'When enabled: Newsletter module mailings go to all recipients in the target groups (including inactive ones). When disabled: inactive users are skipped according to the rules of the sliders above.',
     'Wyczyść liczniki' => 'Clear counters',
     'Wyczyść liczniki — kasuje dla wszystkich użytkowników liczbę opuszczonych głosowań i datę ostatniego głosowania.' => 'Clear counters — deletes for all users the number of missed polls and the date of the last vote.',
     'Sprawdzanie…' => 'Checking…',
@@ -1335,7 +1337,6 @@ $translations = [
     'Czyszczenie…' => 'Clearing…',
     'Liczniki wyczyszczone.' => 'Counters cleared.',
     'Błąd uruchamiania.' => 'Run error.',
-    'Członek nieaktywny = nie głosował od co najmniej %1$d mies. lub pominął co najmniej %2$d głosowań. Progi zmienisz w Konfiguracji → Nieaktywni.' => 'Inactive member = has not voted for at least %1$d months or has missed at least %2$d polls. You can change the thresholds in Configuration → Inactive.',
     'Liczba uruchomionych ankiet' => 'Number of surveys started',
     'Liczba wypełnionych ankiet' => 'Number of surveys completed',
     'Liczba wyświetleń wszystkich ankiet' => 'Number of views of all surveys',

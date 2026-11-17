@@ -307,14 +307,14 @@ class Openvote_Admin_Settings {
         $email_body_plain = wp_strip_all_tags( $email_body_plain );
         update_option( 'openvote_email_body_plain', $email_body_plain, false );
 
-        $missed = isset( $_POST['openvote_stat_missed_votes'] ) ? absint( $_POST['openvote_stat_missed_votes'] ) : 0;
-        if ( $missed >= 1 && $missed <= 24 ) {
-            update_option( 'openvote_stat_missed_votes', $missed, false );
+        // Suwak przesyła indeks skali (0–7). Brak pola (suwak wyłączony przy „Nie pomijaj nieaktywnych”) = bez zmian.
+        if ( isset( $_POST['openvote_stat_missed_votes_idx'] ) ) {
+            $idx = absint( $_POST['openvote_stat_missed_votes_idx'] );
+            if ( isset( OPENVOTE_STAT_MISSED_STEPS[ $idx ] ) ) {
+                update_option( 'openvote_stat_missed_votes', OPENVOTE_STAT_MISSED_STEPS[ $idx ], false );
+            }
         }
-        $months = isset( $_POST['openvote_stat_months_inactive'] ) ? absint( $_POST['openvote_stat_months_inactive'] ) : 0;
-        if ( $months >= 1 && $months <= 24 ) {
-            update_option( 'openvote_stat_months_inactive', $months, false );
-        }
+        delete_option( 'openvote_stat_months_inactive' ); // kryterium miesięcy usunięte z systemu.
         $do_not_skip = isset( $_POST['openvote_communication_do_not_skip_inactive'] ) && $_POST['openvote_communication_do_not_skip_inactive'] === '1' ? 1 : 0;
         update_option( 'openvote_communication_do_not_skip_inactive', $do_not_skip, false );
 
