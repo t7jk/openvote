@@ -652,7 +652,7 @@ class Openvote_Poll {
         if ( empty( $group_ids ) ) {
             return true;
         }
-        // system.Wszyscy — na żywo (pole Grupa, jakakolwiek rola, bez administratorów),
+        // Wszyscy — na żywo (pole Grupa, jakakolwiek rola, bez administratorów),
         // pozostałe wg członkostwa. Przed migracją 4.9.0 — dawne zachowanie grupy „Wszyscy”.
         if ( class_exists( 'Openvote_System_Groups' ) ) {
             return Openvote_System_Groups::user_in_groups( $user_id, $group_ids );

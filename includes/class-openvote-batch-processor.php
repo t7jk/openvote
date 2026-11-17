@@ -810,11 +810,11 @@ class Openvote_Batch_Processor {
 
         $city_value = sanitize_text_field( $cities[0] );
 
-        // Wartość „system.…” jest zarezerwowana dla grup systemowych — miasta o takiej nazwie pomijamy.
+        // Wartości „system.…” i „Wszyscy” są zarezerwowane dla grup systemowych — miasta o takiej nazwie pomijamy.
         if ( class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::is_reserved_name( $city_value ) ) {
             $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
                 /* translators: %s: city name */
-                __( 'Pominięto wartość %s — nazwy „system.…” są zarezerwowane dla grup systemowych.', 'openvote' ),
+                __( 'Pominięto wartość %s — nazwa „Wszyscy” i nazwy „system.…” są zarezerwowane dla grup systemowych.', 'openvote' ),
                 $city_value
             );
             $job['offset']++;
@@ -934,7 +934,7 @@ class Openvote_Batch_Processor {
 
     /**
      * Tryb bez miast: jedna partia SYNC_BATCH_SIZE użytkowników — dopasowanie ich członkostwa w grupach systemowych
-     * (system.Wszyscy = członkowie z rolą, bez administratorów; w tym trybie warunek pola Grupa odpada). Dawną grupę „Wszyscy” zastąpiła system.Wszyscy (4.9.0).
+     * (systemowa Wszyscy = członkowie z rolą, bez administratorów; w tym trybie warunek pola Grupa odpada). Dawną ręczną grupę „Wszyscy” zastąpiła grupa systemowa (4.9.0).
      */
     private static function batch_sync_wszyscy( int $offset ): array {
         global $wpdb;

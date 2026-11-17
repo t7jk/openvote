@@ -5,7 +5,7 @@ namespace Openvote\Tests\Unit;
 use Openvote_System_Groups as SG;
 
 /**
- * Czyste funkcje Openvote_System_Groups (bez bazy i bez WordPressa): system.Wszyscy (kryteria członkostwa,
+ * Czyste funkcje Openvote_System_Groups (bez bazy i bez WordPressa): grupa systemowa Wszyscy (kryteria członkostwa,
  * pole grupujące), nazwy zarezerwowane, konflikty nazw, porcjowanie ID, dopasowanie roli w zserializowanym meta,
  * polityka grup docelowych (przypisana grupa systemowa, puste cele), sprzątanie grup ról, kolejka użytkowników.
  */
@@ -24,7 +24,7 @@ class SystemGroupsTest extends TestCase {
     // ── nazwa i klucze ───────────────────────────────────────────────────────
 
     public function test_all_group_name_and_legacy_role_keys(): void {
-        $this->assertSame( 'system.Wszyscy', SG::all_group_name() );
+        $this->assertSame( 'Wszyscy', SG::all_group_name() );
         $this->assertTrue( SG::is_legacy_role_key( 'role:editor' ) );
         $this->assertFalse( SG::is_legacy_role_key( 'all' ) );
     }
@@ -36,9 +36,18 @@ class SystemGroupsTest extends TestCase {
         $this->assertFalse( SG::is_reserved_name( 'systemx' ) );
         $this->assertFalse( SG::is_reserved_name( 'Mój system.' ) );
         $this->assertFalse( SG::is_reserved_name( 'Administratorzy' ) );
+        // Nazwa grupy systemowej „Wszyscy” — bez względu na wielkość liter i otaczające spacje.
+        $this->assertTrue( SG::is_reserved_name( 'Wszyscy' ) );
+        $this->assertTrue( SG::is_reserved_name( 'wszyscy' ) );
+        $this->assertTrue( SG::is_reserved_name( '  WSZYSCY ' ) );
+        $this->assertFalse( SG::is_reserved_name( 'Wszyscy (ręczna)' ) );
+        $this->assertFalse( SG::is_reserved_name( 'Wszyscy członkowie' ) );
+        $this->assertFalse( SG::is_reserved_name( 'Prawie wszyscy' ) );
     }
 
     public function test_resolve_conflict_name(): void {
+        $this->assertSame( 'Wszyscy (ręczna)', SG::resolve_conflict_name( 'Wszyscy', [ 'Wszyscy' ] ) );
+        $this->assertSame( 'wszyscy (ręczna 2)', SG::resolve_conflict_name( 'wszyscy', [ 'wszyscy', 'Wszyscy (ręczna)' ] ) );
         $this->assertSame( 'system.Edytorzy (ręczna)', SG::resolve_conflict_name( 'system.Edytorzy', [ 'system.Edytorzy' ] ) );
         $this->assertSame(
             'system.Edytorzy (ręczna 3)',
@@ -77,7 +86,7 @@ class SystemGroupsTest extends TestCase {
         $this->assertSame( [], SG::roles_from_caps( null, $existing ) );
     }
 
-    // ── kryteria system.Wszyscy ─────────────────────────────────────────────
+    // ── kryteria grupy Wszyscy ──────────────────────────────────────────────
 
     public function test_member_of_all_requires_role_group_value_and_no_admin(): void {
         $this->assertTrue( SG::is_member_of_all( [ 'subscriber' ], true ) );
@@ -135,7 +144,7 @@ class SystemGroupsTest extends TestCase {
     }
 
     public function test_split_targets_restricted_allows_assigned_system_group(): void {
-        // Koordynator z przypisaną system.Wszyscy (9) może ją wybrać; nieprzypisana systemowa (10) — odmowa.
+        // Koordynator z przypisaną grupą systemową Wszyscy (9) może ją wybrać; nieprzypisana systemowa (10) — odmowa.
         $r = SG::split_targets( [ 5, 9 ], [], [ 9, 10 ], false, [ 5, 9 ] );
         $this->assertSame( [ 5, 9 ], $r['ids'] );
         $this->assertSame( [], $r['denied'] );

@@ -2,10 +2,10 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Grupa systemowa „system.Wszyscy” — tworzona i utrzymywana automatycznie.
+ * Grupa systemowa „Wszyscy” (system_key = 'all'; do 1.0.37 nazwa „system.Wszyscy”) — tworzona i utrzymywana automatycznie.
  *
  * Kolumna system_key w wp_openvote_groups (typ 'system'); jedyna obsługiwana wartość: 'all'.
- * „system.Wszyscy” = członkowie stowarzyszenia:
+ * „Wszyscy” (systemowa) = członkowie stowarzyszenia:
  *   (a) niepuste pole grupujące — pole logiczne 'city' = „Grupa” (miasto, sejmik, dzielnica, partia…; dowolny klucz
  *       wp_users lub usermeta wg Openvote_Field_Map); warunek odpada w trybie „Nie używaj miast” / gdy pole niezmapowane,
  *   (b) brak roli administrator (administratorzy to obsługa strony),
@@ -39,7 +39,7 @@ class Openvote_System_Groups {
 
 	const ALL_NAME = 'Wszyscy';
 
-	/** Rola wykluczona z system.Wszyscy (konta obsługi strony). */
+	/** Rola wykluczona z Wszyscy (konta obsługi strony). */
 	const EXCLUDED_ROLE = 'administrator';
 
 	/** @var array<int,true> Kolejka użytkowników do synchronizacji na 'shutdown'. */
@@ -77,9 +77,9 @@ class Openvote_System_Groups {
 
 	// ─── Czyste funkcje (testowane jednostkowo) ─────────────────────────────
 
-	/** Nazwa grupy system.Wszyscy. */
+	/** Nazwa grupy systemowej „Wszyscy” (system_key 'all'; do 1.0.37: „system.Wszyscy”). Grupę identyfikuje system_key, nie nazwa. */
 	public static function all_group_name(): string {
-		return self::PREFIX . self::ALL_NAME;
+		return self::ALL_NAME;
 	}
 
 	/** Czy klucz należy do wycofanej grupy roli ('role:<slug>'). */
@@ -87,9 +87,18 @@ class Openvote_System_Groups {
 		return str_starts_with( $key, self::LEGACY_ROLE_PREFIX );
 	}
 
-	/** Czy nazwa jest zarezerwowana dla grup systemowych (prefiks „system.”, bez względu na wielkość liter). */
+	/**
+	 * Czy nazwa jest zarezerwowana dla grup systemowych: prefiks „system.” albo nazwa grupy systemowej „Wszyscy”
+	 * (bez względu na wielkość liter i otaczające spacje).
+	 */
 	public static function is_reserved_name( string $name ): bool {
-		return 0 === stripos( ltrim( $name ), self::PREFIX );
+		$name = trim( $name );
+		return 0 === stripos( $name, self::PREFIX ) || 0 === strcasecmp( self::fold( $name ), self::fold( self::ALL_NAME ) );
+	}
+
+	/** Małe litery (UTF-8, gdy dostępne mbstring) — do porównań nazw bez względu na wielkość liter. */
+	private static function fold( string $s ): string {
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( $s, 'UTF-8' ) : strtolower( $s );
 	}
 
 	/**
@@ -154,7 +163,7 @@ class Openvote_System_Groups {
 	}
 
 	/**
-	 * Czy użytkownik należy do system.Wszyscy: ma jakąkolwiek rolę, nie jest administratorem
+	 * Czy użytkownik należy do Wszyscy: ma jakąkolwiek rolę, nie jest administratorem
 	 * i ma niepuste pole grupujące (gdy pole jest wyłączone — przekazujemy $has_group_value = true).
 	 *
 	 * @param string[] $user_roles Role istniejące na stronie.
@@ -384,7 +393,7 @@ class Openvote_System_Groups {
 		return $group_id > 0 && isset( self::get_map()[ $group_id ] );
 	}
 
-	/** ID grupy system.Wszyscy (0 gdy brak). */
+	/** ID grupy Wszyscy (0 gdy brak). */
 	public static function get_all_group_id(): int {
 		$id = array_search( self::KEY_ALL, self::get_map(), true );
 		return false === $id ? 0 : (int) $id;
@@ -499,7 +508,7 @@ class Openvote_System_Groups {
 		return self::roles_from_caps( $caps, array_keys( wp_roles()->get_names() ) );
 	}
 
-	/** Czy użytkownik (wg bieżących ról i pola grupującego) należy do system.Wszyscy. */
+	/** Czy użytkownik (wg bieżących ról i pola grupującego) należy do Wszyscy. */
 	public static function user_is_member_of_all( int $user_id ): bool {
 		if ( $user_id <= 0 ) {
 			return false;
@@ -509,7 +518,7 @@ class Openvote_System_Groups {
 	}
 
 	/**
-	 * Prawo głosu wg grup docelowych (niepusta lista): system.Wszyscy sprawdzana NA ŻYWO (rola, brak administratora,
+	 * Prawo głosu wg grup docelowych (niepusta lista): Wszyscy sprawdzana NA ŻYWO (rola, brak administratora,
 	 * pole grupujące — zapisane członkostwo nie ma znaczenia, prawo głosu nie czeka na uzgodnienie), pozostałe grupy
 	 * (ręczne, miast, niesprzątnięte 'role:*') — wg wp_openvote_group_members. Nieistniejące ID nie dają prawa głosu.
 	 * Przed migracją 4.9.0: zgodność wstecz z dawną grupą „Wszyscy” (tryb bez miast, jedyna grupa docelowa).
@@ -561,7 +570,9 @@ class Openvote_System_Groups {
 	// ─── Tworzenie grupy ────────────────────────────────────────────────────
 
 	/**
-	 * Utwórz system.Wszyscy, jeśli brak (po system_key). Ręczna grupa o kolidującej nazwie dostaje „ (ręczna)”.
+	 * Utwórz grupę systemową „Wszyscy”, jeśli brak (po system_key). Istniejącej grupie o innej nazwie (np. „system.Wszyscy”
+	 * sprzed 1.0.38) idempotentnie ustawia nazwę — jedno UPDATE … WHERE system_key = 'all', tylko gdy nazwa się różni.
+	 * Ręczna grupa (system_key IS NULL) o kolidującej nazwie dostaje „ (ręczna)” — bez usuwania i bez przejmowania członków.
 	 *
 	 * @return int Liczba utworzonych grup (0/1).
 	 */
@@ -575,11 +586,8 @@ class Openvote_System_Groups {
 		$name  = self::all_group_name();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, name FROM {$table} WHERE system_key = %s", self::KEY_ALL ) );
 		if ( $row ) {
-			if ( $row->name !== $name ) {
-				$taken = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE name = %s AND id <> %d", $name, (int) $row->id ) );
-				if ( 0 === $taken ) {
-					$wpdb->update( $table, [ 'name' => $name ], [ 'id' => (int) $row->id ], [ '%s' ], [ '%d' ] );
-				}
+			if ( (string) $row->name !== $name ) {
+				self::rename_all_group( (string) $row->name, $name );
 			}
 			return 0;
 		}
@@ -600,21 +608,44 @@ class Openvote_System_Groups {
 		return 1;
 	}
 
-	/** Zmień nazwę ręcznej grupy (system_key IS NULL), która zajmuje nazwę potrzebną grupie systemowej. */
+	/** Zmiana nazwy grupy systemowej (system_key 'all') na $name — wpis w dzienniku tylko, gdy UPDATE coś zmienił. */
+	private static function rename_all_group( string $old, string $name ): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'openvote_groups';
+		self::free_name_for_system( $name );
+		// BINARY: zmiana także samej wielkości liter; warunek name <> … czyni UPDATE idempotentnym.
+		$changed = $wpdb->query( $wpdb->prepare(
+			"UPDATE {$table} SET name = %s WHERE system_key = %s AND BINARY name <> %s",
+			$name,
+			self::KEY_ALL,
+			$name
+		) );
+		if ( $changed && function_exists( 'openvote_groups_audit_log_append' ) ) {
+			/* translators: 1: old group name, 2: new group name */
+			openvote_groups_audit_log_append( 0, sprintf( __( 'zmieniono nazwę grupy systemowej %1$s na %2$s', 'openvote' ), $old, $name ) );
+		}
+	}
+
+	/**
+	 * Zmień nazwę ręcznych grup (system_key IS NULL), które zajmują nazwę potrzebną grupie systemowej
+	 * (porównanie bez względu na wielkość liter i otaczające spacje). Grupa i jej członkowie zostają.
+	 */
 	private static function free_name_for_system( string $name ): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'openvote_groups';
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, name FROM {$table} WHERE name = %s AND system_key IS NULL LIMIT 1", $name ) );
-		if ( ! $row ) {
-			return;
-		}
-		$like  = $wpdb->esc_like( $name ) . '%';
-		$taken = (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM {$table} WHERE name LIKE %s", $like ) );
-		$new   = self::resolve_conflict_name( (string) $row->name, $taken );
-		$wpdb->update( $table, [ 'name' => $new ], [ 'id' => (int) $row->id ], [ '%s' ], [ '%d' ] );
-		if ( function_exists( 'openvote_groups_audit_log_append' ) ) {
-			/* translators: 1: old group name, 2: new group name */
-			openvote_groups_audit_log_append( 0, sprintf( __( 'zmieniono nazwę ręcznej grupy %1$s na %2$s (nazwa zarezerwowana dla grupy systemowej)', 'openvote' ), $row->name, $new ) );
+		$rows  = (array) $wpdb->get_results( $wpdb->prepare(
+			"SELECT id, name FROM {$table} WHERE LOWER(TRIM(name)) = LOWER(%s) AND system_key IS NULL",
+			trim( $name )
+		) );
+		foreach ( $rows as $row ) {
+			$like  = $wpdb->esc_like( (string) $row->name ) . '%';
+			$taken = (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM {$table} WHERE name LIKE %s", $like ) );
+			$new   = self::resolve_conflict_name( (string) $row->name, $taken );
+			$wpdb->update( $table, [ 'name' => $new ], [ 'id' => (int) $row->id ], [ '%s' ], [ '%d' ] );
+			if ( function_exists( 'openvote_groups_audit_log_append' ) ) {
+				/* translators: 1: old group name, 2: new group name */
+				openvote_groups_audit_log_append( 0, sprintf( __( 'zmieniono nazwę ręcznej grupy %1$s na %2$s (nazwa zarezerwowana dla grupy systemowej)', 'openvote' ), $row->name, $new ) );
+			}
 		}
 	}
 
@@ -691,7 +722,7 @@ class Openvote_System_Groups {
 	// ─── Uzgadnianie pełne ──────────────────────────────────────────────────
 
 	/**
-	 * Warunek SQL członkostwa w system.Wszyscy dla wiersza capabilities ($caps_col) użytkownika $uid_col
+	 * Warunek SQL członkostwa w Wszyscy dla wiersza capabilities ($caps_col) użytkownika $uid_col
 	 * (alias wp_users: $users_alias): jakakolwiek istniejąca rola, bez administratora, niepuste pole grupujące.
 	 * Zwraca [ sql, args ] (placeholdery %s; nazwy kolumn z białej listy).
 	 *
@@ -726,7 +757,7 @@ class Openvote_System_Groups {
 	}
 
 	/**
-	 * Uzgodnij system.Wszyscy w zakresie ID użytkowników. Zwraca [ dodani, usunięci ].
+	 * Uzgodnij Wszyscy w zakresie ID użytkowników. Zwraca [ dodani, usunięci ].
 	 * Parametr $key zachowany dla zgodności wywołań (obsługiwany tylko 'all').
 	 *
 	 * @return array{0:int,1:int}
@@ -774,7 +805,7 @@ class Openvote_System_Groups {
 	}
 
 	/**
-	 * Uzgodnienie system.Wszyscy partiami do $deadline (własny podbudżet BUDGET s).
+	 * Uzgodnienie Wszyscy partiami do $deadline (własny podbudżet BUDGET s).
 	 * Postęp w kursorze — kolejne wywołanie kontynuuje. Jeden wpis w dzienniku na zakończony przebieg, który coś zmienił.
 	 *
 	 * @return string Krótkie podsumowanie (puste, gdy nic do zrobienia).
@@ -833,12 +864,12 @@ class Openvote_System_Groups {
 
 		if ( ! $done ) {
 			/* translators: %d: next user ID to process */
-			return sprintf( __( 'grupy systemowe: uzgadnianie system.Wszyscy do ID %d, ciąg dalszy w kolejnym uruchomieniu', 'openvote' ), $from );
+			return sprintf( __( 'grupy systemowe: uzgadnianie grupy Wszyscy do ID %d, ciąg dalszy w kolejnym uruchomieniu', 'openvote' ), $from );
 		}
 		delete_option( self::OPT_CURSOR );
 		if ( $added > 0 || $removed > 0 ) {
 			/* translators: 1: added memberships, 2: removed memberships */
-			$line = sprintf( __( 'uzgodniono grupę system.Wszyscy: +%1$d / −%2$d', 'openvote' ), $added, $removed );
+			$line = sprintf( __( 'uzgodniono grupę systemową Wszyscy: +%1$d / −%2$d', 'openvote' ), $added, $removed );
 			if ( function_exists( 'openvote_groups_audit_log_append' ) ) {
 				openvote_groups_audit_log_append( 0, $line );
 			}
@@ -903,7 +934,7 @@ class Openvote_System_Groups {
 	}
 
 	/**
-	 * Dopasuj członkostwo jednego użytkownika w system.Wszyscy (bez przeliczania licznika).
+	 * Dopasuj członkostwo jednego użytkownika w Wszyscy (bez przeliczania licznika).
 	 *
 	 * @return int[] ID grup, w których coś się zmieniło.
 	 */
@@ -992,7 +1023,7 @@ class Openvote_System_Groups {
 		delete_option( self::OPT_CURSOR );
 		if ( function_exists( 'openvote_groups_audit_log_append' ) && function_exists( 'get_current_user_id' ) ) {
 			/* translators: 1: old field key, 2: new field key */
-			openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'zmienił pole „Grupa” (%1$s → %2$s) — ponowne uzgodnienie system.Wszyscy', 'openvote' ), $old, $new ) );
+			openvote_groups_audit_log_append( get_current_user_id(), sprintf( __( 'zmienił pole „Grupa” (%1$s → %2$s) — ponowne uzgodnienie grupy Wszyscy', 'openvote' ), $old, $new ) );
 		}
 		if ( ! self::$reconcile_on_shutdown ) {
 			self::$reconcile_on_shutdown = true;

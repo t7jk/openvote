@@ -80,6 +80,9 @@ class Openvote_Activator {
     /** Znacznik jednorazowej zmiany B (4.9.0): pole „Grupa” domyślnie wymagane do głosowania. */
     const OPT_CITY_REQUIRED_DONE = 'openvote_city_required_default_done';
 
+    /** Migracja 4.9.0: ID dawnej ręcznej grupy „Wszyscy” do zastąpienia (opcja istnieje tylko w trakcie zastępowania). */
+    const OPT_LEGACY_WSZYSCY_ID = 'openvote_migr_legacy_wszyscy_id';
+
     /**
      * Jednorazowo (4.9.0): gdy pole „Grupa” jest zmapowane, dodaj 'city' do openvote_required_fields (jeśli brak)
      * z wpisem w dzienniku głosowań. Odróżnia członków od kont technicznych obsługi. Administrator może potem odznaczyć.
@@ -543,7 +546,7 @@ class Openvote_Activator {
             }
         }
 
-        // ── 4.8.0 → 4.9.0 : grupa systemowa system.Wszyscy (type 'system', system_key 'all'), „Wszyscy” → system.Wszyscy ─
+        // ── 4.8.0 → 4.9.0 : grupa systemowa (type 'system', system_key 'all'), dawna ręczna „Wszyscy” → systemowa ─
         if ( version_compare( $installed, '4.9.0', '<' ) ) {
             self::migrate_system_groups();
         }
@@ -551,7 +554,7 @@ class Openvote_Activator {
 
     /**
      * Migracja 4.9.0 (idempotentna): kolumna system_key + UNIQUE, typ 'system', utworzenie grup systemowych,
-     * zastąpienie dawnej grupy „Wszyscy” przez system.Wszyscy (najpierw członkowie i przepięcie odwołań, potem usunięcie).
+     * zastąpienie dawnej ręcznej grupy „Wszyscy” przez grupę systemową (najpierw członkowie i przepięcie odwołań, potem usunięcie).
      */
     private static function migrate_system_groups(): void {
         global $wpdb;
@@ -579,19 +582,35 @@ class Openvote_Activator {
 
         require_once __DIR__ . '/class-openvote-system-groups.php';
         Openvote_System_Groups::mark_schema_ready();
+        // Dawną grupę „Wszyscy” wskazujemy PRZED ensure_groups(): od 1.0.38 grupa systemowa też nazywa się „Wszyscy”,
+        // więc ensure_groups() zmieni nazwę dawnej na „Wszyscy (ręczna)” — zastąpienie idzie po ID, nie po nazwie.
+        // ID trzymamy w opcji do końca zastąpienia, żeby ponowne uruchomienie po przerwaniu znalazło grupę po zmianie nazwy.
+        $legacy_id = (int) get_option( self::OPT_LEGACY_WSZYSCY_ID, 0 );
+        if ( ! $legacy_id ) {
+            $legacy_id = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$groups_table} WHERE name = %s AND system_key IS NULL AND is_test_group = 0 LIMIT 1",
+                Openvote_System_Groups::ALL_NAME
+            ) );
+            if ( $legacy_id ) {
+                update_option( self::OPT_LEGACY_WSZYSCY_ID, $legacy_id, false );
+            }
+        }
         Openvote_System_Groups::ensure_groups( true );
-        self::replace_legacy_wszyscy_group();
+        if ( $legacy_id ) {
+            self::replace_legacy_wszyscy_group( $legacy_id );
+            delete_option( self::OPT_LEGACY_WSZYSCY_ID );
+        }
         // Pierwsze uzgodnienie (podbudżet; resztę dokończy heartbeat / przycisk w panelu).
         Openvote_System_Groups::reconcile( time() + Openvote_System_Groups::BUDGET );
     }
 
     /**
-     * Dawna grupa „Wszyscy” (tryb „Nie używaj miast”) → system.Wszyscy.
-     * Kolejność bezpieczna dla trwających głosowań: (1) pełne wypełnienie system.Wszyscy, (2) przepięcie target_groups
+     * Dawna ręczna grupa „Wszyscy” (tryb „Nie używaj miast”, ID $old_id) → grupa systemowa (system_key 'all').
+     * Kolejność bezpieczna dla trwających głosowań: (1) pełne wypełnienie grupy systemowej, (2) przepięcie target_groups
      * głosowań i wiadomości oraz grup koordynatorów, (3) usunięcie starej grupy BEZ remove_group_from_all_polls()
      * (które zerowałoby target_groups = „głosować mogą wszyscy”). Ponowne uruchomienie po przerwaniu jest bezpieczne.
      */
-    private static function replace_legacy_wszyscy_group(): void {
+    private static function replace_legacy_wszyscy_group( int $old_id ): void {
         global $wpdb;
         $groups_table = $wpdb->prefix . 'openvote_groups';
         $gm_table     = $wpdb->prefix . 'openvote_group_members';
@@ -601,15 +620,14 @@ class Openvote_Activator {
             return;
         }
         $old = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id, name, member_count FROM {$groups_table} WHERE name = %s AND system_key IS NULL AND is_test_group = 0 LIMIT 1",
-            Openvote_System_Groups::ALL_NAME
+            "SELECT id, name, member_count FROM {$groups_table} WHERE id = %d AND system_key IS NULL AND is_test_group = 0",
+            $old_id
         ) );
-        if ( ! $old || (int) $old->id === $new_id ) {
+        if ( ! $old || $old_id === $new_id ) {
             return;
         }
-        $old_id = (int) $old->id;
 
-        // (1) system.Wszyscy kompletna, zanim cokolwiek na nią wskaże.
+        // (1) Grupa systemowa kompletna, zanim cokolwiek na nią wskaże.
         $max_id = (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->users}" );
         foreach ( Openvote_System_Groups::chunk_ranges( max( 1, $max_id ), Openvote_System_Groups::CHUNK ) as $range ) {
             Openvote_System_Groups::reconcile_range( $new_id, Openvote_System_Groups::KEY_ALL, $range[0], $range[1] >= $max_id ? null : $range[1] );
@@ -664,7 +682,7 @@ class Openvote_Activator {
         if ( function_exists( 'openvote_groups_audit_log_append' ) ) {
             openvote_groups_audit_log_append( 0, sprintf(
                 /* translators: 1: old member count, 2: number of polls/messages re-pointed */
-                __( 'migracja 4.9.0: grupę Wszyscy (%1$d członków) zastąpiono grupą system.Wszyscy; przepięto głosowania/wiadomości: %2$d', 'openvote' ),
+                __( 'migracja 4.9.0: dawną grupę Wszyscy (%1$d członków) zastąpiono grupą systemową Wszyscy; przepięto głosowania/wiadomości: %2$d', 'openvote' ),
                 (int) $old->member_count,
                 $polls_moved
             ) );

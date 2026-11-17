@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
  *  (-) migracja schematu DB, jeśli wtyczkę zaktualizowano bez wejścia do panelu (np. przez FTP) — Openvote_Activator::maybe_upgrade(),
  *  (0) domknięcie głosowań i ankiet ze statusem „open”, których termin zakończenia minął (open → closed),
  *      oraz samonaprawa harmonogramu auto-synchronizacji grup (Openvote_Cron_Sync::ensure_scheduled),
- *  (0') grupa systemowa system.Wszyscy: utworzenie, sprzątanie wycofanych grup ról, uzgodnienie członkostwa partiami
+ *  (0') grupa systemowa Wszyscy: utworzenie, sprzątanie wycofanych grup ról, uzgodnienie członkostwa partiami
  *      (Openvote_System_Groups, własny podbudżet ~10 s) — przed zaproszeniami, by trafiały do aktualnych członków,
  *  (a) automatyczne zaproszenia dla trwających głosowań z notify_start=1 (tylko głosowania wystartowane PO zainstalowaniu funkcji
  *      i bez żadnego wpisu w kolejce zaproszeń — patrz OPT_SINCE),
@@ -333,7 +333,7 @@ class Openvote_Heartbeat {
 		return $before !== $after ? sprintf( __( 'migracja bazy %1$s → %2$s', 'openvote' ), $before, $after ) : '';
 	}
 
-	/** Grupa system.Wszyscy: utwórz, jeśli brak; jednorazowo usuń wycofane grupy ról; uzgodnij członkostwo (podbudżet). */
+	/** Grupa Wszyscy: utwórz, jeśli brak; jednorazowo usuń wycofane grupy ról; uzgodnij członkostwo (podbudżet). */
 	private static function task_system_groups( int $deadline ): string {
 		if ( ! class_exists( 'Openvote_System_Groups' ) || ! Openvote_System_Groups::schema_ready() ) {
 			return '';

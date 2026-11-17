@@ -220,7 +220,7 @@ class Openvote_Admin {
         $message = '';
         $error   = '';
 
-        // Grupy systemowe (system.Wszyscy): członkostwo zarządzane automatycznie — bez ręcznych zmian.
+        // Grupy systemowe (Wszyscy): członkostwo zarządzane automatycznie — bez ręcznych zmian.
         $sys_locked_msg = __( 'To grupa systemowa — członkostwo jest zarządzane automatycznie (wypełnione pole Grupa, bez administratorów) i nie można go zmieniać ręcznie.', 'openvote' );
         $post_group_id  = absint( $_POST['group_id'] ?? 0 );
         $is_sys_group   = $post_group_id && openvote_is_system_group( $post_group_id );
@@ -231,7 +231,7 @@ class Openvote_Admin {
             }
             $res     = Openvote_System_Groups::run_manual();
             $message = $res['done']
-                ? __( 'Grupa system.Wszyscy zsynchronizowana z profilami użytkowników.', 'openvote' )
+                ? __( 'Grupa systemowa Wszyscy zsynchronizowana z profilami użytkowników.', 'openvote' )
                 : __( 'Synchronizacja grup systemowych rozpoczęta — pozostała część zostanie dokończona przez cron (heartbeat) lub kolejnym kliknięciem.', 'openvote' );
             if ( '' !== $res['summary'] ) {
                 $message .= ' (' . $res['summary'] . ')';
@@ -241,7 +241,7 @@ class Openvote_Admin {
             if ( '' === $name ) {
                 $error = __( 'Nazwa grupy jest wymagana.', 'openvote' );
             } elseif ( Openvote_System_Groups::is_reserved_name( $name ) ) {
-                $error = __( 'Nazwy zaczynające się od „system.” są zarezerwowane dla grup systemowych.', 'openvote' );
+                $error = __( 'Nazwa „Wszyscy” i nazwy zaczynające się od „system.” są zarezerwowane dla grup systemowych.', 'openvote' );
             } else {
                 $inserted = $wpdb->insert(
                     $groups_table,
@@ -959,7 +959,7 @@ class Openvote_Admin {
             wp_die( esc_html__( 'Brak uprawnień do tej wiadomości.', 'openvote' ), '', [ 'response' => 403 ] );
         }
         // Koordynator ograniczony do własnych grup: odrzucamy cudze grupy (nie tylko w UI). Własne = przypisane
-        // w openvote_groups (także grupa systemowa system.Wszyscy, jeśli przypisana) + grupa Test.
+        // w openvote_groups (także grupa systemowa Wszyscy, jeśli przypisana) + grupa Test.
         if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
             $target_groups = array_values( array_intersect( $target_groups, openvote_coordinator_own_group_ids() ) );
             $save_fallback['target_groups'] = $target_groups;

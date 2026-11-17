@@ -99,7 +99,7 @@ class Openvote_Eligibility {
         $group_ids = Openvote_Poll::get_target_group_ids( $poll );
 
         if ( ! empty( $group_ids ) ) {
-            // system.Wszyscy sprawdzana na żywo — niepuste pole „Grupa”, jakakolwiek rola, brak roli administrator;
+            // Wszyscy sprawdzana na żywo — niepuste pole „Grupa”, jakakolwiek rola, brak roli administrator;
             // prawo głosu nie czeka na uzgodnienie członkostwa. Pozostałe grupy — wg członkostwa. Przed migracją 4.9.0: dawne zachowanie grupy „Wszyscy”.
             if ( class_exists( 'Openvote_System_Groups' ) ) {
                 $is_member = Openvote_System_Groups::user_in_groups( $user_id, array_map( 'intval', $group_ids ) );

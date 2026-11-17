@@ -537,7 +537,7 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
         </div>
         <p class="description" style="max-width:700px;margin-top:8px;">
-            <?php esc_html_e( 'Pole „Grupa” (miasto, sejmik, dzielnica, partia…) jest domyślnie wymagane do głosowania, gdy jest zmapowane: odróżnia członków stowarzyszenia od kont technicznych obsługi strony i decyduje o przynależności do grupy system.Wszyscy. Możesz je odznaczyć.', 'openvote' ); ?>
+            <?php esc_html_e( 'Pole „Grupa” (miasto, sejmik, dzielnica, partia…) jest domyślnie wymagane do głosowania, gdy jest zmapowane: odróżnia członków stowarzyszenia od kont technicznych obsługi strony i decyduje o przynależności do grupy Wszyscy (grupa systemowa). Możesz je odznaczyć.', 'openvote' ); ?>
         </p>
         <p class="openvote-settings-save-wrap">
             <?php submit_button( __( 'Zapisz konfigurację', 'openvote' ), 'primary', 'submit', false ); ?>
@@ -641,7 +641,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             <?php esc_html_e( 'Gdy wybrano „Do tylko własnych grup”, koordynator widzi na liście tylko głosowania i ankiety dotyczące swoich grup oraz na ekranie Grupy tylko swoje grupy. Może organizować głosowania wyłącznie w przypisanych grupach. Domyślnie koordynator ma dostęp do wszystkich grup.', 'openvote' ); ?>
         </p>
         <p class="description" style="max-width:700px;margin:4px 0 8px;">
-            <?php esc_html_e( 'Przy tym ograniczeniu: lista wiadomości (Wysyłka) pokazuje koordynatorowi tylko wiadomości kierowane do jego grup; grupę systemową system.Wszyscy może on wybrać i do niej wysyłać tylko wtedy, gdy jest mu przypisana (Role); głosowanie bez grup docelowych (dostępne dla wszystkich) może zapisać i wysłać do niego zaproszenia tylko administrator WordPress.', 'openvote' ); ?>
+            <?php esc_html_e( 'Przy tym ograniczeniu: lista wiadomości (Wysyłka) pokazuje koordynatorowi tylko wiadomości kierowane do jego grup; grupę systemową Wszyscy może on wybrać i do niej wysyłać tylko wtedy, gdy jest mu przypisana (Role); głosowanie bez grup docelowych (dostępne dla wszystkich) może zapisać i wysłać do niego zaproszenia tylko administrator WordPress.', 'openvote' ); ?>
         </p>
         <?php
         $coordinator_access = get_option( 'openvote_coordinator_poll_access', 'all' );

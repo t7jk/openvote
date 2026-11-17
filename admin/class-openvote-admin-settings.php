@@ -457,7 +457,7 @@ class Openvote_Admin_Settings {
     }
 
     /**
-     * Tryb „Nie używaj miast”: członkowie (z rolą, bez administratorów) to grupa system.Wszyscy (grupa systemowa).
+     * Tryb „Nie używaj miast”: członkowie (z rolą, bez administratorów) to grupa Wszyscy (grupa systemowa).
      * Dawna grupa „Wszyscy” została zastąpiona w migracji 4.9.0 — tu tylko upewniamy się, że grupy systemowe istnieją.
      */
     public static function ensure_wszyscy_group_exists(): void {
@@ -602,7 +602,7 @@ class Openvote_Admin_Settings {
         }
         Openvote_Admin_Uninstall::purge_prefixed_options_and_transients( [ 'openvote_version', 'openvote_db_version' ] );
 
-        // 4. Grupa systemowa system.Wszyscy — odtworzona od razu; członkostwo uzgadniane w podbudżecie, resztę dokończy heartbeat.
+        // 4. Grupa systemowa Wszyscy — odtworzona od razu; członkostwo uzgadniane w podbudżecie, resztę dokończy heartbeat.
         if ( class_exists( 'Openvote_System_Groups' ) ) {
             Openvote_System_Groups::flush_cache();
             Openvote_System_Groups::ensure_groups( true );

@@ -286,7 +286,7 @@ class Openvote_Rest_Controller {
 
         $poll_tg = Openvote_Poll::get_target_group_ids( $poll );
         if ( ! empty( Openvote_System_Groups::denied_system_targets( $poll_tg ) ) ) {
-            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (system.…) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
+            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (np. Wszyscy) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
         }
         // Głosowanie bez grup = zaproszenia do wszystkich użytkowników — przy ograniczeniu koordynatorów tylko manage_options.
         if ( empty( $poll_tg ) && ! openvote_current_user_can_target_everyone() ) {
@@ -365,7 +365,7 @@ class Openvote_Rest_Controller {
         }
         $msg_tg = Openvote_Message::get_target_group_ids( $message );
         if ( ! empty( Openvote_System_Groups::denied_system_targets( $msg_tg ) ) ) {
-            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (system.…) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
+            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (np. Wszyscy) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
         }
         // Wiadomość bez grup nie ma odbiorców; przy ograniczeniu koordynatorów odrzucamy jawnie (spójnie z głosowaniami).
         if ( empty( $msg_tg ) && ! openvote_current_user_can_target_everyone() ) {
@@ -490,7 +490,7 @@ class Openvote_Rest_Controller {
 
         return new WP_REST_Response( [
             'success' => true,
-            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast” (wszyscy użytkownicy z rolą, poza administratorami, są w grupie systemowej system.Wszyscy), wyłączono wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
+            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast” (wszyscy użytkownicy z rolą, poza administratorami, są w grupie systemowej Wszyscy), wyłączono wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
         ], 200 );
     }
 

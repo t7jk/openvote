@@ -61,7 +61,7 @@ $all_groups = Openvote_System_Groups::filter_selectable_rows( (array) $all_group
             if ( '2' === (string) $_GET['save_error'] ) {
                 esc_html_e( 'Wybierz co najmniej jedną grupę docelową.', 'openvote' );
             } elseif ( '3' === (string) $_GET['save_error'] ) {
-                esc_html_e( 'Grupę systemową (system.…) może wskazać jako odbiorców tylko administrator WordPress lub koordynator, któremu jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' );
+                esc_html_e( 'Grupę systemową Wszyscy może wskazać jako odbiorców tylko administrator WordPress lub koordynator, któremu jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' );
             } else {
                 esc_html_e( 'Zapis nie powiódł się. Sprawdź tytuł i czy wiadomość nie została już wysłana.', 'openvote' );
             }

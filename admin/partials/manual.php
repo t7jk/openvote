@@ -127,12 +127,12 @@ $brand = openvote_get_brand_short_name();
     <li><?php esc_html_e( 'W kolumnach „Wymagane do głosowania” i „Wymagane do ankiety” zaznacz, które pola uczestnik musi mieć wypełnione. Imię, Nazwisko, Nickname i E-mail są wymagane zawsze. Pole „Grupa” jest domyślnie wymagane do głosowania, gdy jest zmapowane — możesz je odznaczyć.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Zapisz, a potem kliknij u góry ekranu Konfiguracji „Sprawdź konfigurację”. Jeśli pole Grupa jest źle ustawione, zobaczysz propozycję naprawy.', 'openvote' ); ?></li>
 </ol>
-<p><strong><?php esc_html_e( 'Dlaczego najpierw:', 'openvote' ); ?></strong> <?php esc_html_e( 'Od mapowania zależy, kto w ogóle może głosować. Uczestnik, któremu brakuje wymaganego pola, zobaczy komunikat „Twój profil jest niekompletny” i nie odda głosu. Pole Grupa decyduje o grupach-miastach (krok 10) i o grupie system.Wszyscy.', 'openvote' ); ?></p>
-<p><strong><?php esc_html_e( 'Dlaczego pole Grupa jest domyślnie wymagane:', 'openvote' ); ?></strong> <?php esc_html_e( 'Wypełnione pole Grupa (miasto, sejmik, dzielnica, partia…) odróżnia członków stowarzyszenia od kont technicznych obsługi strony (administratorzy, konta serwisowe, testowe). Konta bez Grupy nie głosują i nie należą do system.Wszyscy.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego najpierw:', 'openvote' ); ?></strong> <?php esc_html_e( 'Od mapowania zależy, kto w ogóle może głosować. Uczestnik, któremu brakuje wymaganego pola, zobaczy komunikat „Twój profil jest niekompletny” i nie odda głosu. Pole Grupa decyduje o grupach-miastach (krok 10) i o grupie Wszyscy (grupa systemowa).', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego pole Grupa jest domyślnie wymagane:', 'openvote' ); ?></strong> <?php esc_html_e( 'Wypełnione pole Grupa (miasto, sejmik, dzielnica, partia…) odróżnia członków stowarzyszenia od kont technicznych obsługi strony (administratorzy, konta serwisowe, testowe). Konta bez Grupy nie głosują i nie należą do grupy Wszyscy (grupa systemowa).', 'openvote' ); ?></p>
 <p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong></p>
 <ul>
     <li><?php esc_html_e( 'Organizacja z oddziałami i formularz rejestracji pyta o miasto → zmapuj pole Grupa na ten klucz.', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'Jedna wspólna grupa, bez podziału na miasta → „Nie używaj miast” (wszyscy z rolą, poza administratorami, trafiają do grupy system.Wszyscy).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Jedna wspólna grupa, bez podziału na miasta → „Nie używaj miast” (wszyscy z rolą, poza administratorami, trafiają do grupy systemowej Wszyscy).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Telefon i Dane własne → zostaw „nie określone”, chyba że naprawdę ich potrzebujesz. Nigdy nie zaznaczaj jako wymaganego pola z kluczem „nie określone” — nikt nie będzie mógł głosować.', 'openvote' ); ?></li>
 </ul>
 <p><?php esc_html_e( 'Szczegóły: rozdział „Mapowanie pól użytkownika”.', 'openvote' ); ?> <a href="#manual-fieldmap"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></p>
@@ -143,7 +143,7 @@ $brand = openvote_get_brand_short_name();
 <p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong></p>
 <ul>
     <li><?php esc_html_e( 'Mapowanie roli — zostaw domyślne, jeśli nie masz szczególnych potrzeb.', 'openvote' ); ?></li>
-    <li><?php esc_html_e( 'Zakres dostępu koordynatora — domyślnie „Do wszystkich grup (Miast)”. Wybierz „Do tylko własnych grup (Miast)”, gdy masz wielu koordynatorów lokalnych, którzy mają widzieć tylko swoje oddziały. Wtedy grupę system.Wszyscy może wybrać Administrator albo koordynator, któremu ją przypiszesz (ekran Role), a głosowanie bez grup docelowych może zapisać tylko Administrator.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zakres dostępu koordynatora — domyślnie „Do wszystkich grup (Miast)”. Wybierz „Do tylko własnych grup (Miast)”, gdy masz wielu koordynatorów lokalnych, którzy mają widzieć tylko swoje oddziały. Wtedy grupę systemową Wszyscy może wybrać Administrator albo koordynator, któremu ją przypiszesz (ekran Role), a głosowanie bez grup docelowych może zapisać tylko Administrator.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Głosowanie bez logowania — włącz, jeśli wielu uczestników nie pamięta haseł. Uczestnik nadal musi mieć konto: podaje jego adres e-mail i wpisuje 4-cyfrowy kod wysłany na ten adres. Opis: rozdział „Jak odbywa się głosowanie”.', 'openvote' ); ?> <a href="#manual-vote"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></li>
 </ul>
 
@@ -225,10 +225,10 @@ $brand = openvote_get_brand_short_name();
     <li><strong><?php esc_html_e( 'Grupy-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'jeśli w kroku 4 zmapowano pole Grupa: uruchom synchronizację grup-miast (zakładka „Synchronizacja”), a w Konfiguracji → „Auto-synchronizacja” wybierz harmonogram.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Grupy ręczne', 'openvote' ); ?></strong> — <?php esc_html_e( 'np. zarząd lub komisja: zakładka „Dodaj grupę”, potem „Dodaj do grup” (wyszukiwanie po e-mailu).', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Import CSV', 'openvote' ); ?></strong> — <?php esc_html_e( 'lista adresów e-mail przypisywana do wybranej grupy. Nie tworzy kont; adresy bez konta trafią do listy odrzuconych.', 'openvote' ); ?></li>
-    <li><strong><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></strong> — <?php esc_html_e( 'tworzona i utrzymywana automatycznie: członkowie z wypełnionym polem Grupa, bez administratorów. Nic nie trzeba robić.', 'openvote' ); ?> <a href="#manual-system-groups"><?php esc_html_e( 'Zobacz: Grupa systemowa system.Wszyscy', 'openvote' ); ?></a></li>
+    <li><strong><?php esc_html_e( 'Grupa systemowa Wszyscy', 'openvote' ); ?></strong> — <?php esc_html_e( 'tworzona i utrzymywana automatycznie: członkowie z wypełnionym polem Grupa, bez administratorów. Nic nie trzeba robić.', 'openvote' ); ?> <a href="#manual-system-groups"><?php esc_html_e( 'Zobacz: Grupa systemowa Wszyscy', 'openvote' ); ?></a></li>
 </ul>
 <p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Głosować może tylko członek grupy docelowej głosowania. Bez grup nie da się wystartować głosowania.', 'openvote' ); ?></p>
-<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Głosowanie całej organizacji → system.Wszyscy. Głosowanie oddziałów → grupy-miasta. Wąskie gremium → grupa ręczna lub import CSV. Nie zostawiaj pustych grup docelowych: głosowanie bez grup jest dostępne dla każdego konta (także kont technicznych) i przy ograniczeniu koordynatorów może je zapisać tylko Administrator. Harmonogram auto-synchronizacji: raz w tygodniu lub raz w miesiącu; „codziennie” nie jest zalecane przy dużej liczbie użytkowników.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Głosowanie całej organizacji → Wszyscy (grupa systemowa). Głosowanie oddziałów → grupy-miasta. Wąskie gremium → grupa ręczna lub import CSV. Nie zostawiaj pustych grup docelowych: głosowanie bez grup jest dostępne dla każdego konta (także kont technicznych) i przy ograniczeniu koordynatorów może je zapisać tylko Administrator. Harmonogram auto-synchronizacji: raz w tygodniu lub raz w miesiącu; „codziennie” nie jest zalecane przy dużej liczbie użytkowników.', 'openvote' ); ?></p>
 <p><?php esc_html_e( 'Szczegóły: rozdział „Grupy użytkowników”.', 'openvote' ); ?> <a href="#manual-groups"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></p>
 
 <h4><?php esc_html_e( 'Krok 11. Koordynatorzy (opcjonalnie)', 'openvote' ); ?></h4>
@@ -437,9 +437,9 @@ $brand = openvote_get_brand_short_name();
     <li><?php esc_html_e( 'Gdy się zarejestrują, zaimportuj ten sam plik ponownie. Osoby już przypisane zostaną pominięte (raport pokaże je jako „już w grupie”), a nowe konta zostaną dodane do grupy.', 'openvote' ); ?></li>
 </ol>
 
-<h3 id="manual-system-groups"><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Oprócz grup tworzonych ręcznie i grup-miast system sam tworzy i utrzymuje jedną grupę systemową: system.Wszyscy. Na liście grup ma etykietę „Systemowa”. To grupa wszystkich członków stowarzyszenia — wygodny cel głosowań i wiadomości do całej organizacji.', 'openvote' ); ?></p>
-<p><strong><?php esc_html_e( 'Kto należy do system.Wszyscy?', 'openvote' ); ?></strong></p>
+<h3 id="manual-system-groups"><?php esc_html_e( 'Grupa systemowa Wszyscy', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Oprócz grup tworzonych ręcznie i grup-miast system sam tworzy i utrzymuje jedną grupę systemową: Wszyscy. Na liście grup ma etykietę „Systemowa”. To grupa wszystkich członków stowarzyszenia — wygodny cel głosowań i wiadomości do całej organizacji.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Kto należy do grupy Wszyscy?', 'openvote' ); ?></strong></p>
 <ul>
     <li><?php esc_html_e( 'Osoba z wypełnionym polem „Grupa” (miasto, sejmik, dzielnica, partia — pole wybrane w Konfiguracji → Pola użytkownika).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Która nie jest administratorem WordPress — administratorzy to obsługa strony, nie członkowie.', 'openvote' ); ?></li>
@@ -454,13 +454,13 @@ $brand = openvote_get_brand_short_name();
     <li><?php esc_html_e( 'Ręcznie — na ekranie Grupy administrator może uruchomić synchronizację przyciskiem „Synchronizuj teraz”.', 'openvote' ); ?></li>
 </ul>
 <p><strong><?php esc_html_e( 'Czego nie można zrobić z grupą systemową?', 'openvote' ); ?></strong></p>
-<p><?php esc_html_e( 'Członkostwo jest automatyczne, dlatego grupy system.Wszyscy nie można usunąć, nie można do niej ręcznie dodawać ani z niej usuwać osób, nie można też importować do niej pliku CSV. Aby ktoś znalazł się w grupie, uzupełnij mu pole Grupa w profilu. Nie można też utworzyć własnej grupy o nazwie zaczynającej się od „system.”.', 'openvote' ); ?></p>
-<p><strong><?php esc_html_e( 'Kto może kierować głosowania i wiadomości do system.Wszyscy?', 'openvote' ); ?></strong></p>
+<p><?php esc_html_e( 'Członkostwo jest automatyczne, dlatego grupy systemowej Wszyscy nie można usunąć, nie można do niej ręcznie dodawać ani z niej usuwać osób, nie można też importować do niej pliku CSV. Aby ktoś znalazł się w grupie, uzupełnij mu pole Grupa w profilu. Nie można też utworzyć własnej grupy o nazwie „Wszyscy” ani o nazwie zaczynającej się od „system.”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Kto może kierować głosowania i wiadomości do grupy Wszyscy?', 'openvote' ); ?></strong></p>
 <ul>
-    <li><?php esc_html_e( 'Gdy w Konfiguracji włączone jest ograniczenie „Do tylko własnych grup” — administrator WordPress oraz koordynator, któremu system.Wszyscy przypisano na ekranie Role (wtedy jest to „jego” grupa: widzi ją, wybiera i może do niej wysyłać zaproszenia i wiadomości). Pozostali koordynatorzy jej nie widzą.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Gdy w Konfiguracji włączone jest ograniczenie „Do tylko własnych grup” — administrator WordPress oraz koordynator, któremu grupę Wszyscy przypisano na ekranie Role (wtedy jest to „jego” grupa: widzi ją, wybiera i może do niej wysyłać zaproszenia i wiadomości). Pozostali koordynatorzy jej nie widzą.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Gdy to ograniczenie jest wyłączone — każdy koordynator może wybrać każdą grupę, także systemową.', 'openvote' ); ?></li>
 </ul>
-<p class="description"><?php esc_html_e( 'Uwaga: prawo głosu w system.Wszyscy jest sprawdzane na bieżąco, także w trakcie trwającego głosowania — osoba, która uzupełni pole Grupa, zyskuje prawo głosu; osoba, której je wyczyszczono lub nadano rolę administratora, je traci (już oddane głosy pozostają). Grupa systemowa nie jest wliczana do statystyk członków i nieaktywnych.', 'openvote' ); ?></p>
+<p class="description"><?php esc_html_e( 'Uwaga: prawo głosu w grupie Wszyscy jest sprawdzane na bieżąco, także w trakcie trwającego głosowania — osoba, która uzupełni pole Grupa, zyskuje prawo głosu; osoba, której je wyczyszczono lub nadano rolę administratora, je traci (już oddane głosy pozostają). Grupa systemowa nie jest wliczana do statystyk członków i nieaktywnych.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Synchronizacja wszystkich grup-miast', 'openvote' ); ?></h3>
 <p><?php esc_html_e( 'Na ekranie Grupy w zakładce „Synchronizacja” dostępne są dwa przyciski:', 'openvote' ); ?></p>
@@ -812,7 +812,7 @@ $brand = openvote_get_brand_short_name();
     <tr><td><?php esc_html_e( 'Nazwisko', 'openvote' ); ?></td><td><code>last_name</code></td><td><?php esc_html_e( 'Nazwisko użytkownika (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Nickname', 'openvote' ); ?></td><td><code>user_nicename</code></td><td><?php esc_html_e( 'Domyślnie: wbudowane pole „Przyjazna dla URL wersja nazwy” (user_nicename) z wp_users. Pseudonim w anonimowych wynikach. Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'E-mail', 'openvote' ); ?></td><td><code>user_email</code></td><td><?php esc_html_e( 'Adres e-mail (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Grupa', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup i do grupy system.Wszyscy (członkowie = wypełnione pole). Zmień na klucz używany przez Twoją wtyczkę rejestracji. Domyślnie wymagane do głosowania. Można wyłączyć (wszyscy z rolą, poza administratorami, w grupie system.Wszyscy).', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Grupa', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup i do grupy systemowej Wszyscy (członkowie = wypełnione pole). Zmień na klucz używany przez Twoją wtyczkę rejestracji. Domyślnie wymagane do głosowania. Można wyłączyć (wszyscy z rolą, poza administratorami, w grupie Wszyscy).', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Numer telefonu', 'openvote' ); ?></td><td><code>user_gsm</code></td><td><?php esc_html_e( 'Opcjonalne. Ustaw na klucz z Twojej wtyczki lub zostaw "nie określone".', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Dane własne', 'openvote' ); ?></td><td><code>user_id</code></td><td><?php esc_html_e( 'Opcjonalne. Dowolne pole z profilu (np. numer dowodu). Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
     </tbody>
@@ -889,7 +889,7 @@ $brand = openvote_get_brand_short_name();
 <p><?php esc_html_e( 'Wtyczka używa ikony witryny WordPress (Wygląd → Dostosuj → Tożsamość witryny → Ikona witryny). Ustaw ikonę tam.', 'openvote' ); ?></p>
 
 <h4><?php esc_html_e( 'Co to jest tryb "Nie używaj miast"?', 'openvote' ); ?></h4>
-<p><?php esc_html_e( 'Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników z rolą (poza administratorami) traktuje jako należących do jednej grupy systemowej „system.Wszyscy” (zob. rozdział 4, „Grupa systemowa system.Wszyscy”). Przydatne gdy nie chcesz grupować uczestników według lokalizacji.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników z rolą (poza administratorami) traktuje jako należących do jednej grupy systemowej „Wszyscy” (zob. rozdział 4, „Grupa systemowa Wszyscy”). Przydatne gdy nie chcesz grupować uczestników według lokalizacji.', 'openvote' ); ?></p>
 </div>
 
 <p style="margin-top:3em;color:#999;font-size:12px;">

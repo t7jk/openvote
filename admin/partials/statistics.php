@@ -13,7 +13,7 @@ $responses_table = $wpdb->prefix . 'openvote_survey_responses';
 $now            = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
 
 $groups_count   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$groups_table}" );
-// Członkowie/nieaktywni: bez grup systemowych (system.Wszyscy obejmuje każdego z rolą — zawyżałaby liczniki).
+// Członkowie/nieaktywni: bez grup systemowych (Wszyscy obejmuje każdego z rolą — zawyżałaby liczniki).
 $sys_ids        = class_exists( 'Openvote_System_Groups' ) ? array_map( 'intval', Openvote_System_Groups::get_system_group_ids() ) : [];
 $gm_non_system  = $sys_ids ? ' WHERE group_id NOT IN (' . implode( ',', $sys_ids ) . ')' : '';
 $members_count  = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$gm_table}{$gm_non_system}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tylko liczby całkowite

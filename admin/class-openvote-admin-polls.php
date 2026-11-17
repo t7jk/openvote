@@ -255,7 +255,7 @@ class Openvote_Admin_Polls {
 
         // target_groups: multi-select of group IDs → store as JSON.
         $raw_groups    = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
-        // Grupy systemowe (system.Wszyscy): przy włączonym ograniczeniu koordynatorów wskazuje je administrator WP (manage_options)
+        // Grupy systemowe (Wszyscy): przy włączonym ograniczeniu koordynatorów wskazuje je administrator WP (manage_options)
         // albo koordynator, któremu grupa systemowa jest przypisana (openvote_groups). Nowe nieprzypisane odrzucamy;
         // zapisane wcześniej w edytowanym głosowaniu (przez administratora) zachowujemy.
         $edit_poll_id  = absint( $_POST['poll_id'] ?? 0 );
@@ -263,7 +263,7 @@ class Openvote_Admin_Polls {
         $existing_tg   = $edit_poll ? Openvote_Poll::get_target_group_ids( $edit_poll ) : [];
         $policy        = Openvote_System_Groups::apply_target_policy( $raw_groups, $existing_tg );
         if ( ! empty( $policy['denied'] ) ) {
-            return new \WP_Error( 'system_group_denied', __( 'Grupy systemowe (system.…) może wskazać jako docelowe tylko administrator WordPress lub koordynator, któremu dana grupa systemowa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ) );
+            return new \WP_Error( 'system_group_denied', __( 'Grupy systemowe (np. Wszyscy) może wskazać jako docelowe tylko administrator WordPress lub koordynator, któremu dana grupa systemowa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ) );
         }
         $sys_existing  = array_values( array_intersect( $existing_tg, Openvote_System_Groups::get_system_group_ids() ) );
         $raw_groups    = $policy['ids'];

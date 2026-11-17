@@ -57,7 +57,7 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
-// Kolejność: grupa Test, grupy systemowe (system.Wszyscy pierwsza), pozostałe — alfabetycznie.
+// Kolejność: grupa Test, grupy systemowe (Wszyscy pierwsza), pozostałe — alfabetycznie.
 // Test identyfikowana po is_test_group lub po nazwie "Test"; systemowe po system_key.
 $test_group_name = defined( 'OPENVOTE_PLUGIN_DIR' ) && class_exists( 'Openvote_Activator' ) ? Openvote_Activator::TEST_GROUP_NAME : 'Test';
 $openvote_group_rank = static function ( $g ) use ( $test_group_name ): int {
@@ -452,14 +452,14 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
 
     <?php if ( current_user_can( 'manage_options' ) ) : ?>
     <div style="margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
-        <strong><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></strong>
+        <strong><?php esc_html_e( 'Grupa systemowa Wszyscy', 'openvote' ); ?></strong>
         <p class="description" style="margin:4px 0 8px;">
-            <?php esc_html_e( 'Grupa system.Wszyscy jest tworzona automatycznie: członkowie z wypełnionym polem Grupa i jakąkolwiek rolą, bez administratorów. Członkostwo aktualizuje się samo przy zmianie pola Grupa lub roli i co kwadrans przez cron (heartbeat). Przycisk wymusza natychmiastowe uzgodnienie.', 'openvote' ); ?>
+            <?php esc_html_e( 'Grupa systemowa Wszyscy jest tworzona automatycznie: członkowie z wypełnionym polem Grupa i jakąkolwiek rolą, bez administratorów. Członkostwo aktualizuje się samo przy zmianie pola Grupa lub roli i co kwadrans przez cron (heartbeat). Przycisk wymusza natychmiastowe uzgodnienie.', 'openvote' ); ?>
         </p>
         <form method="post" action="">
             <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
             <input type="hidden" name="openvote_groups_action" value="system_sync">
-            <button type="submit" class="button"><?php esc_html_e( 'Synchronizuj system.Wszyscy teraz', 'openvote' ); ?></button>
+            <button type="submit" class="button"><?php esc_html_e( 'Synchronizuj grupę Wszyscy teraz', 'openvote' ); ?></button>
         </form>
     </div>
     <?php endif; ?>

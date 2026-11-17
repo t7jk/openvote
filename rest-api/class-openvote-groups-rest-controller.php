@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET  /groups/{id}/members         — członkowie grupy (paginacja, offset)
  *   POST /groups/{id}/sync            — start synchronizacji → zwraca job_id
  *   POST /groups/sync-all             — sync wszystkich grup-miast → zwraca job_id
- *   POST /groups/system-sync          — grupa system.Wszyscy: utwórz, jeśli brak, i uzgodnij członkostwo
+ *   POST /groups/system-sync          — grupa Wszyscy: utwórz, jeśli brak, i uzgodnij członkostwo
  *   GET  /jobs/{job_id}/progress      — status zadania masowego
  *   POST /jobs/{job_id}/next          — przetwórz następną partię
  */
@@ -66,7 +66,7 @@ class Openvote_Groups_Rest_Controller {
             'permission_callback' => fn() => current_user_can( 'manage_options' ),
         ] );
 
-        // POST /groups/system-sync — utwórz system.Wszyscy, jeśli brak, i uzgodnij członkostwo (podbudżet)
+        // POST /groups/system-sync — utwórz Wszyscy, jeśli brak, i uzgodnij członkostwo (podbudżet)
         register_rest_route( self::NAMESPACE, '/groups/system-sync', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'system_sync' ],

@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OpenVote\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 14:14+0100\n"
-"PO-Revision-Date: 2026-11-17 13:15+0000\n"
+"POT-Creation-Date: 2026-11-17 14:53+0100\n"
+"PO-Revision-Date: 2026-11-17 13:53+0000\n"
 "Last-Translator: OpenVote\n"
 "Language-Team: English\n"
 "Language: en_US\n"
@@ -98,8 +98,8 @@ msgid ""
 msgstr "This is a system group — membership is managed automatically (filled-in Group field, no administrators) and cannot be changed manually."
 
 #: admin/class-openvote-admin.php:234
-msgid "Grupa system.Wszyscy zsynchronizowana z profilami użytkowników."
-msgstr "The system.Wszyscy group has been synchronized with user profiles."
+msgid "Grupa systemowa Wszyscy zsynchronizowana z profilami użytkowników."
+msgstr "The Wszyscy (Everyone) system group has been synchronized with user profiles."
 
 #: admin/class-openvote-admin.php:235
 msgid ""
@@ -113,8 +113,9 @@ msgstr "Group name is required."
 
 #: admin/class-openvote-admin.php:244
 msgid ""
-"Nazwy zaczynające się od „system.” są zarezerwowane dla grup systemowych."
-msgstr "Names starting with “system.” are reserved for system groups."
+"Nazwa „Wszyscy” i nazwy zaczynające się od „system.” są zarezerwowane dla "
+"grup systemowych."
+msgstr "The name “Wszyscy” and names starting with “system.” are reserved for system groups."
 
 #: admin/class-openvote-admin.php:252
 msgid "Grupa została dodana."
@@ -656,10 +657,10 @@ msgstr "Maximum 24 questions."
 
 #: admin/class-openvote-admin-polls.php:266
 msgid ""
-"Grupy systemowe (system.…) może wskazać jako docelowe tylko administrator "
+"Grupy systemowe (np. Wszyscy) może wskazać jako docelowe tylko administrator "
 "WordPress lub koordynator, któremu dana grupa systemowa jest przypisana, gdy "
 "koordynatorzy są ograniczeni do własnych grup."
-msgstr "System groups (system.…) can be selected as targets only by a WordPress administrator or by a coordinator to whom that system group is assigned, when coordinators are restricted to their own groups."
+msgstr "System groups such as Wszyscy (Everyone) can be selected as targets only by a WordPress administrator or by a coordinator to whom that system group is assigned, when coordinators are restricted to their own groups."
 
 #: admin/class-openvote-admin-polls.php:279
 msgid "Wybierz co najmniej jedną ze swoich grup docelowych."
@@ -1175,10 +1176,10 @@ msgstr "Select at least one target group."
 
 #: admin/partials/communication-page.php:64
 msgid ""
-"Grupę systemową (system.…) może wskazać jako odbiorców tylko administrator "
+"Grupę systemową Wszyscy może wskazać jako odbiorców tylko administrator "
 "WordPress lub koordynator, któremu jest przypisana, gdy koordynatorzy są "
 "ograniczeni do własnych grup."
-msgstr "A system group (system.…) can be selected as recipients only by a WordPress administrator or by a coordinator to whom it is assigned, when coordinators are restricted to their own groups."
+msgstr "The Wszyscy (Everyone) system group can be selected as recipients only by a WordPress administrator or by a coordinator to whom it is assigned, when coordinators are restricted to their own groups."
 
 #: admin/partials/communication-page.php:66
 msgid ""
@@ -1513,20 +1514,20 @@ msgstr "Stop group sync"
 
 #: admin/partials/groups.php:455 admin/partials/manual.php:228
 #: admin/partials/manual.php:440
-msgid "Grupa systemowa system.Wszyscy"
-msgstr "System group system.Wszyscy"
+msgid "Grupa systemowa Wszyscy"
+msgstr "System group Wszyscy (Everyone)"
 
 #: admin/partials/groups.php:457
 msgid ""
-"Grupa system.Wszyscy jest tworzona automatycznie: członkowie z wypełnionym "
-"polem Grupa i jakąkolwiek rolą, bez administratorów. Członkostwo aktualizuje "
-"się samo przy zmianie pola Grupa lub roli i co kwadrans przez cron "
-"(heartbeat). Przycisk wymusza natychmiastowe uzgodnienie."
-msgstr "The system.Wszyscy group is created automatically: members with a filled-in Group field and any role, no administrators. Membership updates itself when the Group field or a role changes and every quarter of an hour via cron (heartbeat). The button forces an immediate reconciliation."
+"Grupa systemowa Wszyscy jest tworzona automatycznie: członkowie z "
+"wypełnionym polem Grupa i jakąkolwiek rolą, bez administratorów. Członkostwo "
+"aktualizuje się samo przy zmianie pola Grupa lub roli i co kwadrans przez "
+"cron (heartbeat). Przycisk wymusza natychmiastowe uzgodnienie."
+msgstr "The Wszyscy (Everyone) system group is created automatically: members with a filled-in Group field and any role, no administrators. Membership updates itself when the Group field or a role changes and every quarter of an hour via cron (heartbeat). The button forces an immediate reconciliation."
 
 #: admin/partials/groups.php:462
-msgid "Synchronizuj system.Wszyscy teraz"
-msgstr "Sync system.Wszyscy now"
+msgid "Synchronizuj grupę Wszyscy teraz"
+msgstr "Sync the Wszyscy (Everyone) group now"
 
 #: admin/partials/groups.php:482
 msgid "Log zmian grup i członków"
@@ -1907,8 +1908,8 @@ msgid ""
 "Od mapowania zależy, kto w ogóle może głosować. Uczestnik, któremu brakuje "
 "wymaganego pola, zobaczy komunikat „Twój profil jest niekompletny” i nie "
 "odda głosu. Pole Grupa decyduje o grupach-miastach (krok 10) i o grupie "
-"system.Wszyscy."
-msgstr "The mapping determines who can vote at all. A participant missing a required field will see “Your profile is incomplete” and will not be able to vote. The Group field determines city groups (step 10) and the system.Wszyscy group."
+"Wszyscy (grupa systemowa)."
+msgstr "The mapping determines who can vote at all. A participant missing a required field will see “Your profile is incomplete” and will not be able to vote. The Group field determines city groups (step 10) and the Wszyscy (Everyone) system group."
 
 #: admin/partials/manual.php:131
 msgid "Dlaczego pole Grupa jest domyślnie wymagane:"
@@ -1918,9 +1919,9 @@ msgstr "Why the Group field is required by default:"
 msgid ""
 "Wypełnione pole Grupa (miasto, sejmik, dzielnica, partia…) odróżnia członków "
 "stowarzyszenia od kont technicznych obsługi strony (administratorzy, konta "
-"serwisowe, testowe). Konta bez Grupy nie głosują i nie należą do "
-"system.Wszyscy."
-msgstr "A filled-in Group field (city, regional assembly, district, party…) distinguishes association members from technical site-maintenance accounts (administrators, service and test accounts). Accounts without a Group do not vote and do not belong to system.Wszyscy."
+"serwisowe, testowe). Konta bez Grupy nie głosują i nie należą do grupy "
+"Wszyscy (grupa systemowa)."
+msgstr "A filled-in Group field (city, regional assembly, district, party…) distinguishes association members from technical site-maintenance accounts (administrators, service and test accounts). Accounts without a Group do not vote and do not belong to the Wszyscy (Everyone) system group."
 
 #: admin/partials/manual.php:134
 msgid ""
@@ -1931,8 +1932,8 @@ msgstr "An organization with branches whose registration form asks for the city 
 #: admin/partials/manual.php:135
 msgid ""
 "Jedna wspólna grupa, bez podziału na miasta → „Nie używaj miast” (wszyscy z "
-"rolą, poza administratorami, trafiają do grupy system.Wszyscy)."
-msgstr "One common group, no division into cities → “Do not use cities” (everyone with a role, except administrators, goes to the system.Wszyscy group)."
+"rolą, poza administratorami, trafiają do grupy systemowej Wszyscy)."
+msgstr "One common group, no division into cities → “Do not use cities” (everyone with a role, except administrators, goes to the Wszyscy (Everyone) system group)."
 
 #: admin/partials/manual.php:136
 msgid ""
@@ -1976,11 +1977,11 @@ msgstr "Role mapping — leave the default unless you have special needs."
 msgid ""
 "Zakres dostępu koordynatora — domyślnie „Do wszystkich grup (Miast)”. "
 "Wybierz „Do tylko własnych grup (Miast)”, gdy masz wielu koordynatorów "
-"lokalnych, którzy mają widzieć tylko swoje oddziały. Wtedy grupę "
-"system.Wszyscy może wybrać Administrator albo koordynator, któremu ją "
-"przypiszesz (ekran Role), a głosowanie bez grup docelowych może zapisać "
-"tylko Administrator."
-msgstr "Coordinator access scope — by default “All groups (Cities)”. Choose “Only own groups (Cities)” when you have many local coordinators who should see only their own branches. Then the system.Wszyscy group can be selected by the Administrator or by a coordinator to whom you assign it (Roles screen), and a poll without target groups can be saved only by the Administrator."
+"lokalnych, którzy mają widzieć tylko swoje oddziały. Wtedy grupę systemową "
+"Wszyscy może wybrać Administrator albo koordynator, któremu ją przypiszesz "
+"(ekran Role), a głosowanie bez grup docelowych może zapisać tylko "
+"Administrator."
+msgstr "Coordinator access scope — by default “All groups (Cities)”. Choose “Only own groups (Cities)” when you have many local coordinators who should see only their own branches. Then the Wszyscy (Everyone) system group can be selected by the Administrator or by a coordinator to whom you assign it (Roles screen), and a poll without target groups can be saved only by the Administrator."
 
 #: admin/partials/manual.php:147
 msgid ""
@@ -2287,8 +2288,8 @@ msgid ""
 msgstr "created and maintained automatically: members with a filled-in Group field, no administrators. Nothing needs to be done."
 
 #: admin/partials/manual.php:228
-msgid "Zobacz: Grupa systemowa system.Wszyscy"
-msgstr "See: System group system.Wszyscy"
+msgid "Zobacz: Grupa systemowa Wszyscy"
+msgstr "See: System group Wszyscy (Everyone)"
 
 #: admin/partials/manual.php:230
 msgid ""
@@ -2298,13 +2299,14 @@ msgstr "Only a member of the poll’s target group can vote. Without groups you 
 
 #: admin/partials/manual.php:231
 msgid ""
-"Głosowanie całej organizacji → system.Wszyscy. Głosowanie oddziałów → grupy-"
-"miasta. Wąskie gremium → grupa ręczna lub import CSV. Nie zostawiaj pustych "
-"grup docelowych: głosowanie bez grup jest dostępne dla każdego konta (także "
-"kont technicznych) i przy ograniczeniu koordynatorów może je zapisać tylko "
-"Administrator. Harmonogram auto-synchronizacji: raz w tygodniu lub raz w "
-"miesiącu; „codziennie” nie jest zalecane przy dużej liczbie użytkowników."
-msgstr "A poll for the whole organization → system.Wszyscy. A poll for branches → city groups. A small body → a manual group or CSV import. Do not leave target groups empty: a poll without groups is open to every account (including technical accounts) and, when coordinators are restricted, only the Administrator can save it. Auto-synchronization schedule: once a week or once a month; “daily” is not recommended with a large number of users."
+"Głosowanie całej organizacji → Wszyscy (grupa systemowa). Głosowanie "
+"oddziałów → grupy-miasta. Wąskie gremium → grupa ręczna lub import CSV. Nie "
+"zostawiaj pustych grup docelowych: głosowanie bez grup jest dostępne dla "
+"każdego konta (także kont technicznych) i przy ograniczeniu koordynatorów "
+"może je zapisać tylko Administrator. Harmonogram auto-synchronizacji: raz w "
+"tygodniu lub raz w miesiącu; „codziennie” nie jest zalecane przy dużej "
+"liczbie użytkowników."
+msgstr "A poll for the whole organization → Wszyscy (Everyone, system group). A poll for branches → city groups. A small body → a manual group or CSV import. Do not leave target groups empty: a poll without groups is open to every account (including technical accounts) and, when coordinators are restricted, only the Administrator can save it. Auto-synchronization schedule: once a week or once a month; “daily” is not recommended with a large number of users."
 
 #: admin/partials/manual.php:232
 msgid "Szczegóły: rozdział „Grupy użytkowników”."
@@ -2843,14 +2845,14 @@ msgstr "Once they have registered, import the same file again. People already as
 #: admin/partials/manual.php:441
 msgid ""
 "Oprócz grup tworzonych ręcznie i grup-miast system sam tworzy i utrzymuje "
-"jedną grupę systemową: system.Wszyscy. Na liście grup ma etykietę "
-"„Systemowa”. To grupa wszystkich członków stowarzyszenia — wygodny cel "
-"głosowań i wiadomości do całej organizacji."
-msgstr "In addition to manually created groups and city groups, the system itself creates and maintains one system group: system.Wszyscy. In the group list it has the “System” label. It is the group of all association members — a convenient target for polls and messages to the whole organization."
+"jedną grupę systemową: Wszyscy. Na liście grup ma etykietę „Systemowa”. To "
+"grupa wszystkich członków stowarzyszenia — wygodny cel głosowań i wiadomości "
+"do całej organizacji."
+msgstr "In addition to manually created groups and city groups, the system itself creates and maintains one system group: Wszyscy (Everyone). In the group list it has the “System” label. It is the group of all association members — a convenient target for polls and messages to the whole organization."
 
 #: admin/partials/manual.php:442
-msgid "Kto należy do system.Wszyscy?"
-msgstr "Who belongs to system.Wszyscy?"
+msgid "Kto należy do grupy Wszyscy?"
+msgstr "Who belongs to the Wszyscy (Everyone) group?"
 
 #: admin/partials/manual.php:444
 msgid ""
@@ -2920,25 +2922,25 @@ msgstr "What cannot be done with a system group?"
 
 #: admin/partials/manual.php:457
 msgid ""
-"Członkostwo jest automatyczne, dlatego grupy system.Wszyscy nie można "
+"Członkostwo jest automatyczne, dlatego grupy systemowej Wszyscy nie można "
 "usunąć, nie można do niej ręcznie dodawać ani z niej usuwać osób, nie można "
 "też importować do niej pliku CSV. Aby ktoś znalazł się w grupie, uzupełnij "
 "mu pole Grupa w profilu. Nie można też utworzyć własnej grupy o nazwie "
-"zaczynającej się od „system.”."
-msgstr "Membership is automatic, so the system.Wszyscy group cannot be deleted, people cannot be manually added to or removed from it, and CSV files cannot be imported into it. To put someone in the group, fill in the Group field in their profile. You also cannot create your own group with a name starting with “system.”."
+"„Wszyscy” ani o nazwie zaczynającej się od „system.”."
+msgstr "Membership is automatic, so the Wszyscy (Everyone) system group cannot be deleted, people cannot be manually added to or removed from it, and CSV files cannot be imported into it. To put someone in the group, fill in the Group field in their profile. You also cannot create your own group named “Wszyscy” or with a name starting with “system.”."
 
 #: admin/partials/manual.php:458
-msgid "Kto może kierować głosowania i wiadomości do system.Wszyscy?"
-msgstr "Who can address polls and messages to system.Wszyscy?"
+msgid "Kto może kierować głosowania i wiadomości do grupy Wszyscy?"
+msgstr "Who can address polls and messages to the Wszyscy (Everyone) group?"
 
 #: admin/partials/manual.php:460
 msgid ""
 "Gdy w Konfiguracji włączone jest ograniczenie „Do tylko własnych grup” — "
-"administrator WordPress oraz koordynator, któremu system.Wszyscy przypisano "
+"administrator WordPress oraz koordynator, któremu grupę Wszyscy przypisano "
 "na ekranie Role (wtedy jest to „jego” grupa: widzi ją, wybiera i może do "
 "niej wysyłać zaproszenia i wiadomości). Pozostali koordynatorzy jej nie "
 "widzą."
-msgstr "When the “Only own groups” restriction is enabled in Configuration — a WordPress administrator and a coordinator to whom system.Wszyscy was assigned on the Roles screen (it is then “their” group: they see it, select it and can send invitations and messages to it). Other coordinators do not see it."
+msgstr "When the “Only own groups” restriction is enabled in Configuration — a WordPress administrator and a coordinator to whom the Wszyscy (Everyone) group was assigned on the Roles screen (it is then “their” group: they see it, select it and can send invitations and messages to it). Other coordinators do not see it."
 
 #: admin/partials/manual.php:461
 msgid ""
@@ -2948,12 +2950,12 @@ msgstr "When this restriction is disabled, every coordinator can select any grou
 
 #: admin/partials/manual.php:463
 msgid ""
-"Uwaga: prawo głosu w system.Wszyscy jest sprawdzane na bieżąco, także w "
+"Uwaga: prawo głosu w grupie Wszyscy jest sprawdzane na bieżąco, także w "
 "trakcie trwającego głosowania — osoba, która uzupełni pole Grupa, zyskuje "
 "prawo głosu; osoba, której je wyczyszczono lub nadano rolę administratora, "
 "je traci (już oddane głosy pozostają). Grupa systemowa nie jest wliczana do "
 "statystyk członków i nieaktywnych."
-msgstr "Note: the right to vote in system.Wszyscy is checked live, also during an ongoing poll — a person who fills in the Group field gains the right to vote; a person whose field was cleared or who was given the administrator role loses it (votes already cast remain). The system group is not counted in member and inactive statistics."
+msgstr "Note: the right to vote in the Wszyscy (Everyone) group is checked live, also during an ongoing poll — a person who fills in the Group field gains the right to vote; a person whose field was cleared or who was given the administrator role loses it (votes already cast remain). The system group is not counted in member and inactive statistics."
 
 #: admin/partials/manual.php:465
 msgid "Synchronizacja wszystkich grup-miast"
@@ -3827,11 +3829,11 @@ msgstr "Email address (WP built-in). Always required."
 
 #: admin/partials/manual.php:815
 msgid ""
-"Pole używane do przypisywania do grup i do grupy system.Wszyscy (członkowie "
-"= wypełnione pole). Zmień na klucz używany przez Twoją wtyczkę rejestracji. "
-"Domyślnie wymagane do głosowania. Można wyłączyć (wszyscy z rolą, poza "
-"administratorami, w grupie system.Wszyscy)."
-msgstr "Field used for assigning to groups and to the system.Wszyscy group (members = field filled in). Change it to the key used by your registration plugin. Required for voting by default. Can be disabled (everyone with a role, except administrators, in the system.Wszyscy group)."
+"Pole używane do przypisywania do grup i do grupy systemowej Wszyscy "
+"(członkowie = wypełnione pole). Zmień na klucz używany przez Twoją wtyczkę "
+"rejestracji. Domyślnie wymagane do głosowania. Można wyłączyć (wszyscy z "
+"rolą, poza administratorami, w grupie Wszyscy)."
+msgstr "Field used for assigning to groups and to the Wszyscy (Everyone) system group (members = field filled in). Change it to the key used by your registration plugin. Required for voting by default. Can be disabled (everyone with a role, except administrators, in the Wszyscy (Everyone) group)."
 
 #: admin/partials/manual.php:816
 msgid "Numer telefonu"
@@ -4076,10 +4078,9 @@ msgstr "What is the \"Do not use cities\" mode?"
 msgid ""
 "Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników z "
 "rolą (poza administratorami) traktuje jako należących do jednej grupy "
-"systemowej „system.Wszyscy” (zob. rozdział 4, „Grupa systemowa "
-"system.Wszyscy”). Przydatne gdy nie chcesz grupować uczestników według "
-"lokalizacji."
-msgstr "When you select this option in the City field mapping, all users with a role (except administrators) are treated as belonging to one system group “system.Wszyscy” (see chapter 4, “System group system.Wszyscy”). Useful when you do not want to group participants by location."
+"systemowej „Wszyscy” (zob. rozdział 4, „Grupa systemowa Wszyscy”). Przydatne "
+"gdy nie chcesz grupować uczestników według lokalizacji."
+msgstr "When you select this option in the City field mapping, all users with a role (except administrators) are treated as belonging to one system group “Wszyscy” (Everyone) (see chapter 4, “System group Wszyscy (Everyone)”). Useful when you do not want to group participants by location."
 
 #: admin/partials/manual.php:897
 #, php-format
@@ -5279,9 +5280,9 @@ msgstr "This field is always required for surveys"
 msgid ""
 "Pole „Grupa” (miasto, sejmik, dzielnica, partia…) jest domyślnie wymagane do "
 "głosowania, gdy jest zmapowane: odróżnia członków stowarzyszenia od kont "
-"technicznych obsługi strony i decyduje o przynależności do grupy "
-"system.Wszyscy. Możesz je odznaczyć."
-msgstr "The “Group” field (city, regional assembly, district, party…) is required for voting by default when it is mapped: it distinguishes association members from technical site-maintenance accounts and determines membership in the system.Wszyscy group. You can uncheck it."
+"technicznych obsługi strony i decyduje o przynależności do grupy Wszyscy "
+"(grupa systemowa). Możesz je odznaczyć."
+msgstr "The “Group” field (city, regional assembly, district, party…) is required for voting by default when it is mapped: it distinguishes association members from technical site-maintenance accounts and determines membership in the Wszyscy (Everyone) system group. You can uncheck it."
 
 #: admin/partials/settings.php:583
 msgid "Mapowanie roli"
@@ -5309,11 +5310,11 @@ msgstr "When “Only own groups” is selected, the coordinator sees in the list
 #: admin/partials/settings.php:644
 msgid ""
 "Przy tym ograniczeniu: lista wiadomości (Wysyłka) pokazuje koordynatorowi "
-"tylko wiadomości kierowane do jego grup; grupę systemową system.Wszyscy może "
-"on wybrać i do niej wysyłać tylko wtedy, gdy jest mu przypisana (Role); "
+"tylko wiadomości kierowane do jego grup; grupę systemową Wszyscy może on "
+"wybrać i do niej wysyłać tylko wtedy, gdy jest mu przypisana (Role); "
 "głosowanie bez grup docelowych (dostępne dla wszystkich) może zapisać i "
 "wysłać do niego zaproszenia tylko administrator WordPress."
-msgstr "With this restriction: the message list (Sending) shows a coordinator only messages addressed to their groups; they can select and send to the system group system.Wszyscy only when it is assigned to them (Roles); a poll without target groups (open to everyone) can be saved, and its invitations sent, only by a WordPress administrator."
+msgstr "With this restriction: the message list (Sending) shows a coordinator only messages addressed to their groups; they can select and send to the system group Wszyscy (Everyone) only when it is assigned to them (Roles); a poll without target groups (open to everyone) can be saved, and its invitations sent, only by a WordPress administrator."
 
 #: admin/partials/settings.php:651
 msgid "Zakres dostępu koordynatora:"
@@ -6967,19 +6968,19 @@ msgstr "Turnout: %1$d%% · %2$d of %3$d eligible voted"
 msgid "Pytanie %d:"
 msgstr "Question %d:"
 
-#: includes/class-openvote-activator.php:103
+#: includes/class-openvote-activator.php:106
 msgid ""
 "aktualizacja 4.9.0: pole „Grupa” ustawiono jako wymagane do głosowania "
 "(można odznaczyć w Konfiguracji)"
 msgstr "update 4.9.0: the “Group” field was set as required for voting (can be unchecked in Configuration)"
 
 #. translators: 1: old member count, 2: number of polls/messages re-pointed
-#: includes/class-openvote-activator.php:667
+#: includes/class-openvote-activator.php:685
 #, php-format
 msgid ""
-"migracja 4.9.0: grupę Wszyscy (%1$d członków) zastąpiono grupą "
-"system.Wszyscy; przepięto głosowania/wiadomości: %2$d"
-msgstr "migration 4.9.0: the Wszyscy group (%1$d members) was replaced by the system.Wszyscy group; polls/messages switched: %2$d"
+"migracja 4.9.0: dawną grupę Wszyscy (%1$d członków) zastąpiono grupą "
+"systemową Wszyscy; przepięto głosowania/wiadomości: %2$d"
+msgstr "migration 4.9.0: the former Wszyscy group (%1$d members) was replaced by the Wszyscy (Everyone) system group; polls/messages switched: %2$d"
 
 #. translators: %d: number of cities or users
 #: includes/class-openvote-batch-processor.php:101
@@ -7062,9 +7063,9 @@ msgstr "Fetching city (position %d)..."
 #: includes/class-openvote-batch-processor.php:817
 #, php-format
 msgid ""
-"Pominięto wartość %s — nazwy „system.…” są zarezerwowane dla grup "
-"systemowych."
-msgstr "Skipped value %s — “system.…” names are reserved for system groups."
+"Pominięto wartość %s — nazwa „Wszyscy” i nazwy „system.…” są zarezerwowane "
+"dla grup systemowych."
+msgstr "Skipped value %s — the name “Wszyscy” and “system.…” names are reserved for system groups."
 
 #. translators: %s: city name
 #: includes/class-openvote-batch-processor.php:846
@@ -7565,13 +7566,19 @@ msgid "Odpowiedź gotowa! Dziękujemy."
 msgstr "Response ready! Thank you."
 
 #. translators: %s: group name
-#: includes/class-openvote-system-groups.php:598
+#: includes/class-openvote-system-groups.php:606
 #, php-format
 msgid "utworzono grupę systemową %s"
 msgstr "created system group %s"
 
 #. translators: 1: old group name, 2: new group name
-#: includes/class-openvote-system-groups.php:617
+#: includes/class-openvote-system-groups.php:625
+#, php-format
+msgid "zmieniono nazwę grupy systemowej %1$s na %2$s"
+msgstr "renamed system group %1$s to %2$s"
+
+#. translators: 1: old group name, 2: new group name
+#: includes/class-openvote-system-groups.php:647
 #, php-format
 msgid ""
 "zmieniono nazwę ręcznej grupy %1$s na %2$s (nazwa zarezerwowana dla grupy "
@@ -7579,40 +7586,40 @@ msgid ""
 msgstr "renamed manual group %1$s to %2$s (name reserved for a system group)"
 
 #. translators: %s: comma-separated group names
-#: includes/class-openvote-system-groups.php:678
+#: includes/class-openvote-system-groups.php:709
 #, php-format
 msgid "usunięto wycofane grupy ról: %s"
 msgstr "deleted withdrawn role groups: %s"
 
 #. translators: 1: group name, 2: list of references
-#: includes/class-openvote-system-groups.php:682
+#: includes/class-openvote-system-groups.php:713
 #, php-format
 msgid "nie usunięto wycofanej grupy %1$s — jest jedyną grupą w: %2$s"
 msgstr "withdrawn group %1$s was not deleted — it is the only group in: %2$s"
 
-#: includes/class-openvote-system-groups.php:788
+#: includes/class-openvote-system-groups.php:819
 msgid "grupy systemowe: uzgadnianie trwa w innym procesie"
 msgstr "system groups: reconciliation is running in another process"
 
 #. translators: %d: next user ID to process
-#: includes/class-openvote-system-groups.php:836
+#: includes/class-openvote-system-groups.php:867
 #, php-format
 msgid ""
-"grupy systemowe: uzgadnianie system.Wszyscy do ID %d, ciąg dalszy w kolejnym "
+"grupy systemowe: uzgadnianie grupy Wszyscy do ID %d, ciąg dalszy w kolejnym "
 "uruchomieniu"
-msgstr "system groups: system.Wszyscy reconciled up to ID %d, continuing in the next run"
+msgstr "system groups: Wszyscy (Everyone) reconciled up to ID %d, continuing in the next run"
 
 #. translators: 1: added memberships, 2: removed memberships
-#: includes/class-openvote-system-groups.php:841
+#: includes/class-openvote-system-groups.php:872
 #, php-format
-msgid "uzgodniono grupę system.Wszyscy: +%1$d / −%2$d"
-msgstr "reconciled the system.Wszyscy group: +%1$d / −%2$d"
+msgid "uzgodniono grupę systemową Wszyscy: +%1$d / −%2$d"
+msgstr "reconciled the Wszyscy (Everyone) system group: +%1$d / −%2$d"
 
 #. translators: 1: old field key, 2: new field key
-#: includes/class-openvote-system-groups.php:995
+#: includes/class-openvote-system-groups.php:1026
 #, php-format
-msgid "zmienił pole „Grupa” (%1$s → %2$s) — ponowne uzgodnienie system.Wszyscy"
-msgstr "changed the “Group” field (%1$s → %2$s) — reconciling system.Wszyscy again"
+msgid "zmienił pole „Grupa” (%1$s → %2$s) — ponowne uzgodnienie grupy Wszyscy"
+msgstr "changed the “Group” field (%1$s → %2$s) — reconciling the Wszyscy (Everyone) group again"
 
 #: includes/openvote-identity-frontend.php:42
 msgid "Jak chcesz oddać głos?"
@@ -8042,10 +8049,10 @@ msgstr "Results available after the poll has ended."
 #: rest-api/class-openvote-rest-controller.php:289
 #: rest-api/class-openvote-rest-controller.php:368
 msgid ""
-"Wysyłkę do grupy systemowej (system.…) może uruchomić tylko administrator "
+"Wysyłkę do grupy systemowej (np. Wszyscy) może uruchomić tylko administrator "
 "WordPress lub koordynator, któremu ta grupa jest przypisana, gdy "
 "koordynatorzy są ograniczeni do własnych grup."
-msgstr "Sending to a system group (system.…) can be started only by a WordPress administrator or by a coordinator to whom that group is assigned, when coordinators are restricted to their own groups."
+msgstr "Sending to a system group such as Wszyscy (Everyone) can be started only by a WordPress administrator or by a coordinator to whom that group is assigned, when coordinators are restricted to their own groups."
 
 #: rest-api/class-openvote-rest-controller.php:293
 msgid ""
@@ -8095,9 +8102,9 @@ msgstr "The resume function is unavailable."
 #: rest-api/class-openvote-rest-controller.php:493
 msgid ""
 "Naprawiono: włączono tryb „Nie używaj miast” (wszyscy użytkownicy z rolą, "
-"poza administratorami, są w grupie systemowej system.Wszyscy), wyłączono "
-"wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji."
-msgstr "Fixed: “Do not use cities” mode enabled (all users with a role, except administrators, are in the system group system.Wszyscy), Group field requirement disabled. Refresh the configuration check."
+"poza administratorami, są w grupie systemowej Wszyscy), wyłączono wymaganie "
+"pola Grupa. Odśwież sprawdzenie konfiguracji."
+msgstr "Fixed: “Do not use cities” mode enabled (all users with a role, except administrators, are in the Wszyscy (Everyone) system group), Group field requirement disabled. Refresh the configuration check."
 
 #: rest-api/class-openvote-rest-controller.php:517
 msgid "Pola obowiązkowe do głosowania i ankiet nie są zmapowane:"
