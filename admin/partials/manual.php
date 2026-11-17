@@ -34,6 +34,7 @@ $brand = openvote_get_brand_short_name();
     <strong><?php esc_html_e( 'Spis treści', 'openvote' ); ?></strong>
     <ol>
         <li><a href="#manual-intro"><?php esc_html_e( 'Czym jest wtyczka i jak działa', 'openvote' ); ?></a></li>
+        <li><a href="#manual-getting-started"><?php esc_html_e( 'Jak zacząć pracę z wtyczką', 'openvote' ); ?></a></li>
         <li><a href="#manual-roles"><?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></a> — <a href="#manual-roles-legend"><?php esc_html_e( 'Legenda i tabela uprawnień', 'openvote' ); ?></a></li>
         <li><a href="#manual-groups"><?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></a></li>
         <li><a href="#manual-coordinators"><?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></a></li>
@@ -77,10 +78,218 @@ $brand = openvote_get_brand_short_name();
 </ol>
 </div>
 
+<!-- 2. Jak zacząć -->
+<div class="openvote-manual__section" id="manual-getting-started">
+<h2>2. <?php esc_html_e( 'Jak zacząć pracę z wtyczką', 'openvote' ); ?></h2>
+<p><?php esc_html_e( 'Ten rozdział prowadzi Administratora WordPress od instalacji do stanu „system gotowy dla uczestników”. Wykonuj kroki po kolei: instalacja → konfiguracja wstępna → przygotowanie tego, co zobaczą uczestnicy → próba generalna → start. Przy każdym kroku znajdziesz: co zrobić (gdzie kliknąć), dlaczego to ważne (co się stanie, jeśli to pominiesz) i co wybrać.', 'openvote' ); ?></p>
+<div class="openvote-manual__note">
+    <?php esc_html_e( 'Większość ustawień znajduje się w menu OpenVote → Konfiguracja (w menu panelu widnieje skrót nazwy systemu, domyślnie „OpenVote”). Ekran Konfiguracji ma zakładki: Ogólne, Pola użytkownika, Role i dostęp, Wysyłka e-mail, Szablon zaproszenia, Auto-synchronizacja, Nieaktywni, Cron, Narzędzia. Po zmianach w zakładce kliknij „Zapisz konfigurację”.', 'openvote' ); ?>
+</div>
 
-<!-- 2. Role -->
+<h3><?php esc_html_e( 'Etap A — instalacja', 'openvote' ); ?></h3>
+
+<h4><?php esc_html_e( 'Krok 1. Sprawdź wymagania serwera', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'W panelu hostingu sprawdź (i w razie potrzeby zmień) wersję PHP dla domeny. Wymagane: PHP 8.1 lub nowszy, WordPress 6.4 lub nowszy, rozszerzenia PHP json, mbstring oraz mysqli lub pdo_mysql.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Na starszym PHP wtyczka się nie uruchomi. Wersja PHP ma też znaczenie dla crona serwera (krok 8) — tam trzeba wskazać PHP 8.1 lub nowsze.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Najnowszą wersję PHP oferowaną przez hosting (np. 8.4), o ile inne wtyczki na stronie z nią działają.', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Krok 2. Zainstaluj i włącz wtyczkę (oraz jak ją aktualizować)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'W panelu WordPress przejdź do Wtyczki → Dodaj nową → Wyślij wtyczkę na serwer.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wskaż plik openvote-install.zip i kliknij „Zainstaluj”, a potem „Włącz wtyczkę”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Jeśli pojawią się setki ostrzeżeń „chmod(): Operation not permitted” — to ograniczenie hostingu. Wtedy rozpakuj plik zip przez FTP do katalogu wp-content/plugins/ (powstanie katalog openvote) i włącz wtyczkę w menu Wtyczki.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Przy włączeniu wtyczka tworzy swoje tabele w bazie danych i grupę „Test” do próbnych głosowań. Bez włączenia menu wtyczki się nie pojawi.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Aktualizacja:', 'openvote' ); ?></strong> <?php esc_html_e( 'Wgraj nowszy plik zip tą samą drogą (Wtyczki → Dodaj nową → Wyślij wtyczkę na serwer) i potwierdź zastąpienie bieżącej wersji wgraną. Baza danych zostanie zaktualizowana automatycznie przy pierwszym wejściu do panelu. Ustawienia, głosowania i grupy pozostają.', 'openvote' ); ?></p>
+<div class="openvote-manual__warn">
+    <?php esc_html_e( 'Nie usuwaj wtyczki przed aktualizacją. Usunięcie wtyczki w menu Wtyczki kasuje wszystkie jej tabele i ustawienia (głosowania, wyniki, grupy, ankiety) — tego nie da się cofnąć. Przy aktualizacji przez FTP po prostu nadpisz pliki w katalogu wtyczki.', 'openvote' ); ?>
+</div>
+
+<h3><?php esc_html_e( 'Etap B — konfiguracja wstępna', 'openvote' ); ?></h3>
+
+<h4><?php esc_html_e( 'Krok 3. Nazwa, logo i czas (zakładka Ogólne)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Konfiguracja → zakładka „Ogólne” → pole „Skrót nazwy”: wpisz krótką nazwę organizacji (do 12 znaków). Pojawi się w menu panelu; w e-mailach możesz ją wstawić polem {brand_short}.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Pełna nazwa i logo pochodzą z WordPress: Ustawienia → Ogólne → „Tytuł witryny” oraz Wygląd → Dostosuj → Tożsamość witryny → „Ikona witryny”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Sprawdź strefę czasową w Ustawienia → Ogólne. Następnie w Konfiguracji → „Ogólne” → „Ustawienie czasu (strefa głosowań)” porównaj „Czas dla głosowań” z zegarkiem. Jeśli się różni, ustaw „Przesunięcie czasu”.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Uczestnicy rozpoznają nadawcę po nazwie. Zły czas oznacza, że głosowania kończą się o innej godzinie niż podano w zaproszeniu.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Przesunięcie 0, jeśli „Czas dla głosowań” zgadza się z czasem lokalnym. Zmieniaj je tylko wtedy, gdy serwer pokazuje inną godzinę.', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Krok 4. Mapowanie pól użytkownika (zakładka Pola użytkownika)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Konfiguracja → zakładka „Pola użytkownika”. Dla każdego pola logicznego (Imię, Nazwisko, Nickname, E-mail, Grupa, Numer telefonu, Dane własne) wybierz klucz w kolumnie „Klucz w bazie danych WordPress”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Imię, Nazwisko, Nickname i E-mail zostaw na domyślnych polach wbudowanych WordPress, chyba że Twoja wtyczka rejestracji zapisuje je inaczej.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Pole „Grupa” (miasto/oddział): wskaż klucz, pod którym Twój formularz rejestracji zapisuje miasto — albo wybierz „Nie używaj miast”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W kolumnach „Wymagane do głosowania” i „Wymagane do ankiety” zaznacz, które pola uczestnik musi mieć wypełnione. Imię, Nazwisko, Nickname i E-mail są wymagane zawsze. Pole „Grupa” jest domyślnie wymagane do głosowania, gdy jest zmapowane — możesz je odznaczyć.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zapisz, a potem kliknij u góry ekranu Konfiguracji „Sprawdź konfigurację”. Jeśli pole Grupa jest źle ustawione, zobaczysz propozycję naprawy.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego najpierw:', 'openvote' ); ?></strong> <?php esc_html_e( 'Od mapowania zależy, kto w ogóle może głosować. Uczestnik, któremu brakuje wymaganego pola, zobaczy komunikat „Twój profil jest niekompletny” i nie odda głosu. Pole Grupa decyduje o grupach-miastach (krok 10) i o grupie system.Wszyscy.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego pole Grupa jest domyślnie wymagane:', 'openvote' ); ?></strong> <?php esc_html_e( 'Wypełnione pole Grupa (miasto, sejmik, dzielnica, partia…) odróżnia członków stowarzyszenia od kont technicznych obsługi strony (administratorzy, konta serwisowe, testowe). Konta bez Grupy nie głosują i nie należą do system.Wszyscy.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Organizacja z oddziałami i formularz rejestracji pyta o miasto → zmapuj pole Grupa na ten klucz.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Jedna wspólna grupa, bez podziału na miasta → „Nie używaj miast” (wszyscy z rolą, poza administratorami, trafiają do grupy system.Wszyscy).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Telefon i Dane własne → zostaw „nie określone”, chyba że naprawdę ich potrzebujesz. Nigdy nie zaznaczaj jako wymaganego pola z kluczem „nie określone” — nikt nie będzie mógł głosować.', 'openvote' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'Szczegóły: rozdział „Mapowanie pól użytkownika”.', 'openvote' ); ?> <a href="#manual-fieldmap"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></p>
+
+<h4><?php esc_html_e( 'Krok 5. Role i dostęp', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'Konfiguracja → zakładka „Role i dostęp”. Przejrzyj tabelę „Mapowanie roli” (które role widzą które ekrany), ustaw „Zakres dostępu koordynatora”, zdecyduj o opcji „Pozwól głosować bez logowania” i zostaw zaznaczone „Utwórz grupę do testowania : Test”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Te ustawienia decydują, co widzą koordynatorzy i czy uczestnik musi znać hasło do konta. Grupa Test jest potrzebna do próby generalnej (krok 13).', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Mapowanie roli — zostaw domyślne, jeśli nie masz szczególnych potrzeb.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zakres dostępu koordynatora — domyślnie „Do wszystkich grup (Miast)”. Wybierz „Do tylko własnych grup (Miast)”, gdy masz wielu koordynatorów lokalnych, którzy mają widzieć tylko swoje oddziały. Wtedy grupę system.Wszyscy może wybrać Administrator albo koordynator, któremu ją przypiszesz (ekran Role), a głosowanie bez grup docelowych może zapisać tylko Administrator.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Głosowanie bez logowania — włącz, jeśli wielu uczestników nie pamięta haseł. Uczestnik nadal musi mieć konto: podaje jego adres e-mail i wpisuje 4-cyfrowy kod wysłany na ten adres. Opis: rozdział „Jak odbywa się głosowanie”.', 'openvote' ); ?> <a href="#manual-vote"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></li>
+</ul>
+
+<h4><?php esc_html_e( 'Krok 6. Wysyłka e-mail i e-mail testowy (zakładka Wysyłka e-mail)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Konfiguracja → zakładka „Wysyłka e-mail” → pole „E-mail nadawcy”: wpisz adres w domenie Twojej strony (np. noreply@twojadomena.pl).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W polu „Metoda wysyłki” wybierz sposób wysyłki i uzupełnij jego dane (host i hasło SMTP albo klucz API dostawcy).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W tabeli „Warunki wysyłki e-maili” ustaw limity zgodne z planem u dostawcy (na 15 minut, na godzinę, na dobę; 0 = brak limitu).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Kliknij „Zapisz konfigurację”, następnie w polu „Wyślij test e-mail” wpisz swój adres i wyślij wiadomość testową. Sprawdź skrzynkę odbiorczą i folder SPAM.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Zaproszenia do głosowań, kody logowania bez hasła i masowe wiadomości idą tą drogą. Bez działającej wysyłki uczestnicy nie dowiedzą się o głosowaniu, a przekroczenie limitu dostawcy może zablokować konto pocztowe.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong></p>
+<table class="openvote-manual__table">
+    <thead><tr>
+        <th><?php esc_html_e( 'Metoda', 'openvote' ); ?></th>
+        <th><?php esc_html_e( 'Kiedy wybrać', 'openvote' ); ?></th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td><strong><?php esc_html_e( 'WordPress (PHP-mail)', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Tylko na start i dla małych list — metoda jest niedostępna, gdy w systemie jest ponad 250 adresów e-mail. Wiadomości częściej trafiają do SPAM.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'SMTP zewnętrzny', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Gdy masz skrzynkę pocztową u hostingu lub w firmie. Zalecane szyfrowanie TLS / STARTTLS na porcie 587. Ustaw limity zgodne z limitami tej skrzynki.', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'BREVO (free)', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Darmowa usługa do 300 e-maili na dobę. Przy większej liście wysyłka rozłoży się na kolejne dni (wznowienie wymaga crona — krok 8).', 'openvote' ); ?></td>
+    </tr>
+    <tr>
+        <td><strong><?php esc_html_e( 'BREVO (płatne), SendGrid API, Freshmail API, GetResponse API', 'openvote' ); ?></strong></td>
+        <td><?php esc_html_e( 'Dla dużych list i najlepszej dostarczalności. Limity czasowe wtyczki nie są dla nich egzekwowane — obowiązują limity Twojego planu. GetResponse wymaga dodatku do e-maili transakcyjnych i pola „From Field ID”.', 'openvote' ); ?></td>
+    </tr>
+    </tbody>
+</table>
+<p><?php esc_html_e( 'Zajrzyj też do zakładki „Nieaktywni”: osoby uznane tam za nieaktywne nie dostają powiadomień o nowych głosowaniach ani wiadomości masowych. Ustaw progi świadomie, aby nikt nie został pominięty przez przypadek.', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Krok 7. Treść zaproszenia (zakładka Szablon zaproszenia)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'Konfiguracja → zakładka „Szablon zaproszenia”. Ustaw „Temat”, „Od (nazwa nadawcy)” oraz „Treść e-maila (czysty tekst)”. Możesz używać pól wbudowanych z tabeli nad formularzem, np. {poll_title}, {vote_url}, {date_end}, {questions}, {brand_short}. Kliknij „Zobacz podgląd”, a na koniec „Zapisz konfigurację”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'To pierwsza wiadomość, którą zobaczy uczestnik. Nazwa nadawcy i jasna treść zmniejszają ryzyko, że zaproszenie zostanie zignorowane lub uznane za SPAM.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Zacznij od treści domyślnej i zmień tylko ton oraz podpis. Zawsze zostaw w treści {vote_url} (link do strony głosowania) i {date_end} (termin). Jeśli treść się zepsuje, użyj przycisku „Przywróć domyślną”.', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Krok 8. Cron serwera — konieczny', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Konfiguracja → zakładka „Cron” → skopiuj gotowe polecenie przyciskiem „Kopiuj”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W panelu hostingu (cPanel) otwórz „Zadania Cron” (Cron Jobs), w „Ustawieniach zwykłych” wybierz „Co 15 minut”, wklej polecenie w pole „Polecenie” i zapisz zadanie.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Polecenie zaczyna się od /usr/local/bin/php84. Nie zamieniaj go na samo „php” ani „php8” — na wielu serwerach to stare PHP 7.4 lub 8.0, na którym wtyczka nie działa. Jeśli hosting nie ma php84, wskaż inną binarkę PHP 8.1 lub nowszą (ścieżki podpowie plik cron/cron-log.php w katalogu wtyczki, dostępny przez FTP).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Po około 15 minutach odśwież zakładkę „Cron”: stan powinien zmienić się na zielony „Działa”. Przycisk „Uruchom teraz” pozwala sprawdzić działanie od ręki.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego (co robi cron):', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Automatycznie wysyła zaproszenia po starcie głosowania (najpóźniej do 15 minut).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Wznawia wysyłki wstrzymane przez limity oraz dokańcza wysyłki porzucone po zamknięciu karty przeglądarki.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zamyka głosowania i ankiety po terminie oraz nalicza opuszczone głosowania osobom, które nie zagłosowały (to podstawa statusu „nieaktywny”).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Synchronizuje grupy systemowe i wykonuje zaległe zadania harmonogramu (np. synchronizację grup-miast).', 'openvote' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'Bez crona trzeba ręcznie wysyłać zaproszenia z ekranu Zaproszenia i pilnować kart przeglądarki do końca wysyłki, a głosowania nie zmienią same statusu na „Zakończone”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Jak sprawdzać, że działa:', 'openvote' ); ?></strong> <?php esc_html_e( 'zielony znacznik „Działa” w zakładce Cron oznacza sygnał w ciągu ostatnich 20 minut. Jeśli cron milczy dłużej niż 20 minut, Administrator zobaczy w panelu ostrzeżenie z linkiem do Konfiguracji → Cron.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Więcej: podrozdział „Automatyczne zaproszenia i cron serwera”.', 'openvote' ); ?> <a href="#manual-cron"><?php esc_html_e( 'Przejdź do podrozdziału', 'openvote' ); ?></a></p>
+
+<h3><?php esc_html_e( 'Etap C — przygotowanie tego, co zobaczą uczestnicy', 'openvote' ); ?></h3>
+
+<h4><?php esc_html_e( 'Krok 9. Konta, rejestracja i logowanie uczestników', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Zdecyduj, jak uczestnicy założą konta: samodzielnie (w WordPress: Ustawienia → Ogólne → Członkostwo „Każdy może się zarejestrować”, domyślna rola „Subskrybent”) albo przez wtyczkę rejestracji z własnymi polami (np. User Registration & Membership), jeśli potrzebujesz pola miasto lub telefon.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Upewnij się, że formularz rejestracji lub profilu zbiera wszystkie pola oznaczone w kroku 4 jako „Wymagane do głosowania” i zapisuje je pod tymi samymi kluczami.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przekaż uczestnikom, że muszą założyć konto tym adresem e-mail, na który mają dostawać zaproszenia.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Każdy głos jest przypisany do konta — tak wtyczka sprawdza uprawnienia i blokuje podwójne głosowanie. Wtyczka nie tworzy kont: import CSV tylko przypisuje do grup osoby, które już mają konto. Kto nie ma konta lub ma niekompletny profil, nie zagłosuje.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Jeśli wystarczą imię, nazwisko i e-mail — wbudowana rejestracja WordPress. Jeśli dzielisz uczestników na miasta — wtyczka rejestracji z polem miasta. Dla osób, które nie pamiętają haseł — dodatkowo głosowanie bez logowania (krok 5).', 'openvote' ); ?></p>
+
+<h4><?php esc_html_e( 'Krok 10. Grupy uczestników', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'Przejdź do OpenVote → Grupy. Ekran ma zakładki: Lista grup, Dodaj do grup, Import CSV, Dodaj grupę, Synchronizacja, Dziennik zmian. Przygotuj grupy, do których będziesz kierować głosowania:', 'openvote' ); ?></p>
+<ul>
+    <li><strong><?php esc_html_e( 'Grupy-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'jeśli w kroku 4 zmapowano pole Grupa: uruchom synchronizację grup-miast (zakładka „Synchronizacja”), a w Konfiguracji → „Auto-synchronizacja” wybierz harmonogram.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Grupy ręczne', 'openvote' ); ?></strong> — <?php esc_html_e( 'np. zarząd lub komisja: zakładka „Dodaj grupę”, potem „Dodaj do grup” (wyszukiwanie po e-mailu).', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Import CSV', 'openvote' ); ?></strong> — <?php esc_html_e( 'lista adresów e-mail przypisywana do wybranej grupy. Nie tworzy kont; adresy bez konta trafią do listy odrzuconych.', 'openvote' ); ?></li>
+    <li><strong><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></strong> — <?php esc_html_e( 'tworzona i utrzymywana automatycznie: członkowie z wypełnionym polem Grupa, bez administratorów. Nic nie trzeba robić.', 'openvote' ); ?> <a href="#manual-system-groups"><?php esc_html_e( 'Zobacz: Grupa systemowa system.Wszyscy', 'openvote' ); ?></a></li>
+</ul>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Głosować może tylko członek grupy docelowej głosowania. Bez grup nie da się wystartować głosowania.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Głosowanie całej organizacji → system.Wszyscy. Głosowanie oddziałów → grupy-miasta. Wąskie gremium → grupa ręczna lub import CSV. Nie zostawiaj pustych grup docelowych: głosowanie bez grup jest dostępne dla każdego konta (także kont technicznych) i przy ograniczeniu koordynatorów może je zapisać tylko Administrator. Harmonogram auto-synchronizacji: raz w tygodniu lub raz w miesiącu; „codziennie” nie jest zalecane przy dużej liczbie użytkowników.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Szczegóły: rozdział „Grupy użytkowników”.', 'openvote' ); ?> <a href="#manual-groups"><?php esc_html_e( 'Przejdź do rozdziału', 'openvote' ); ?></a></p>
+
+<h4><?php esc_html_e( 'Krok 11. Koordynatorzy (opcjonalnie)', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'OpenVote → Koordynatorzy: w lewej kolumnie wybierz użytkownika, w prawej grupę (lub kilka) i kliknij „Dodaj”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Koordynator może tworzyć i prowadzić głosowania oraz ankiety bez dostępu do Konfiguracji. Jeśli wszystko prowadzisz sam, ten krok możesz pominąć.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Przypisuj koordynatorów do grup, za które odpowiadają. Czy mają widzieć tylko swoje grupy — decyduje ustawienie z kroku 5.', 'openvote' ); ?> <a href="#manual-roles-legend"><?php esc_html_e( 'Zobacz: tabela uprawnień', 'openvote' ); ?></a></p>
+
+<h4><?php esc_html_e( 'Krok 12. Strony dla uczestników: głosowania, ankiety, zgłoszenia', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'Konfiguracja → zakładka „Ogólne” → sekcja „URL strony głosowania”: ustaw „Slug strony” (domyślnie „glosuj”) i kliknij „Utwórz stronę głosowania”. Powstanie strona z blokiem zakładek Trwające / Zakończone głosowania.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Jeśli korzystasz z ankiet: sekcja „URL strony ankiet” → „Utwórz stronę ankiet” (strona z blokiem „Ankiety (Open Vote)”).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Jeśli chcesz publicznie pokazywać zatwierdzone zgłoszenia z ankiet: sekcja „URL strony zgłoszeń” → „Utwórz stronę zgłoszeń”. W przeciwnym razie pomiń.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Otwórz adres strony głosowania. Jeśli widzisz „Not Found”, wejdź w Ustawienia → Bezpośrednie odnośniki, wybierz strukturę inną niż „Zwykły” i kliknij „Zapisz zmiany”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Dodaj link do strony głosowania w menu witryny (Wygląd → Menu lub edytor witryny), aby uczestnicy łatwo ją znaleźli.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Uczestnicy głosują i wypełniają ankiety na tych stronach, a link {vote_url} w zaproszeniu prowadzi właśnie na stronę głosowania. Bez niej zaproszenie prowadzi donikąd.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Co wybrać:', 'openvote' ); ?></strong> <?php esc_html_e( 'Krótkie slugi bez polskich znaków (np. „glosuj”, „ankieta”). Strona zgłoszeń jest dostępna dla każdego, kto ją otworzy — jeśli zgłoszenia nie są przeznaczone dla wszystkich, ustaw stronę jako prywatną lub chronioną hasłem.', 'openvote' ); ?></p>
+
+<h3><?php esc_html_e( 'Etap D — próba generalna i start', 'openvote' ); ?></h3>
+
+<h4><?php esc_html_e( 'Krok 13. Głosowanie testowe w grupie Test', 'openvote' ); ?></h4>
+<p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong></p>
+<ol>
+    <li><?php esc_html_e( 'OpenVote → Grupy → zakładka „Dodaj do grup”: dodaj do grupy „Test” siebie i jedną–dwie zaufane osoby (najlepiej ze zwykłym kontem Subskrybenta).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'OpenVote → Głosowania → „Dodaj nowe”: wpisz tytuł, opis i jedno pytanie, jako grupę docelową wybierz „Test”, czas trwania 1h, zostaw zaznaczone automatyczne wysłanie zaproszeń i kliknij „Wystartuj głosowanie”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'W ciągu 15 minut zaproszenie powinno przyjść (cron). Sprawdź temat, nadawcę, treść i czy link otwiera stronę głosowania. Postęp zobaczysz na ekranie Zaproszenia (link przy głosowaniu na liście).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zagłosuj z konta testowego. Jeśli włączono głosowanie bez logowania — sprawdź też logowanie kodem z e-maila w oknie prywatnym przeglądarki.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Po godzinie sprawdź, czy głosowanie samo zmieniło status na „Zakończone” (to potwierdza działanie crona), a następnie obejrzyj wyniki i pobierz raport PDF.', 'openvote' ); ?></li>
+</ol>
+<p><strong><?php esc_html_e( 'Dlaczego:', 'openvote' ); ?></strong> <?php esc_html_e( 'Próba generalna w małej grupie wyłapuje błędy wysyłki, mapowania pól, strony i crona, zanim zobaczą je wszyscy uczestnicy. Błędu w prawdziwym głosowaniu nie da się już cofnąć (np. trybu jawne/anonimowe nie zmienisz po starcie).', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Opis formularza głosowania i wyników: rozdziały „Głosowania — tworzenie i zarządzanie” oraz „Wyniki głosowania”.', 'openvote' ); ?> <a href="#manual-polls"><?php esc_html_e( 'Głosowania', 'openvote' ); ?></a> · <a href="#manual-results"><?php esc_html_e( 'Wyniki', 'openvote' ); ?></a></p>
+
+<h4><?php esc_html_e( 'Krok 14. Lista kontrolna „System gotowy dla klientów”', 'openvote' ); ?></h4>
+<p><?php esc_html_e( 'Zanim uruchomisz pierwsze prawdziwe głosowanie lub ankietę, upewnij się, że:', 'openvote' ); ?></p>
+<ul>
+    <li><?php esc_html_e( 'Serwer ma PHP 8.1 lub nowsze, wtyczka jest włączona w najnowszej wersji.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Skrót nazwy, tytuł witryny i ikona witryny są ustawione; „Czas dla głosowań” zgadza się z czasem lokalnym.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Mapowanie pól jest zapisane, „Sprawdź konfigurację” nie pokazuje błędów, a żadne wymagane pole nie ma klucza „nie określone”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Uczestnicy mają konta (lub wiedzą, jak je założyć) i uzupełnione wymagane pola profilu.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Grupy docelowe istnieją i mają właściwych członków; koordynatorzy są przypisani do swoich grup.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'E-mail testowy dotarł do skrzynki odbiorczej (nie do SPAM), limity wysyłki odpowiadają planowi dostawcy, progi w zakładce „Nieaktywni” są świadomie ustawione.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Szablon zaproszenia ma właściwy temat, nazwę nadawcy i link {vote_url}.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Zakładka Cron pokazuje zielone „Działa”.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Strona głosowania (i w razie potrzeby strona ankiet) otwiera się bez błędu i jest podlinkowana w menu witryny.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Głosowanie testowe w grupie Test przeszło całą drogę: zaproszenie, głos, automatyczne zakończenie, wyniki i PDF.', 'openvote' ); ?></li>
+</ul>
+<div class="openvote-manual__tip">
+    <?php esc_html_e( 'Dalsza codzienna praca — tworzenie głosowań, zaproszenia, masowa wysyłka, wyniki i ankiety — jest opisana w kolejnych rozdziałach tego podręcznika.', 'openvote' ); ?>
+    <a href="#manual-polls"><?php esc_html_e( 'Głosowania', 'openvote' ); ?></a> ·
+    <a href="#manual-invitations"><?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></a> ·
+    <a href="#manual-communication"><?php esc_html_e( 'Wysyłka', 'openvote' ); ?></a> ·
+    <a href="#manual-surveys"><?php esc_html_e( 'Ankiety', 'openvote' ); ?></a>
+</div>
+</div>
+
+
+
+<!-- 3. Role -->
 <div class="openvote-manual__section" id="manual-roles">
-<h2>2. <?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></h2>
+<h2>3. <?php esc_html_e( 'Role użytkowników i uprawnienia', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Wtyczka rozróżnia role WordPress i własne role wtyczki.', 'openvote' ); ?></p>
 
 <h3 id="manual-roles-legend"><?php esc_html_e( 'Legenda: nazewnictwo i uprawnienia', 'openvote' ); ?></h3>
@@ -194,14 +403,14 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 3. Grupy -->
+<!-- 4. Grupy -->
 <div class="openvote-manual__section" id="manual-groups">
-<h2>3. <?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></h2>
+<h2>4. <?php esc_html_e( 'Grupy użytkowników', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Grupy służą do definiowania kto ma prawo głosować w danym głosowaniu. Użytkownik musi należeć do co najmniej jednej grupy docelowej głosowania, aby móc oddać głos.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Tworzenie grupy', 'openvote' ); ?></h3>
 <ol>
-    <li><?php esc_html_e( 'Przejdź do menu OpenVote → Członkowie i grupy.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Przejdź do menu OpenVote → Grupy.', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Kliknij "Dodaj grupę", wpisz nazwę (np. nazwę miasta lub oddziału).', 'openvote' ); ?></li>
     <li><?php esc_html_e( 'Zapisz. Grupa pojawi się na liście.', 'openvote' ); ?></li>
 </ol>
@@ -216,10 +425,45 @@ $brand = openvote_get_brand_short_name();
 </ul>
 
 <h3><?php esc_html_e( 'Import z pliku CSV', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Grupy → zakładka „Import CSV”: wybierz grupę, wskaż plik .csv lub .txt (maks. 2 MB) z adresami e-mail w kolumnie „email” (albo same adresy, jeden w wierszu; separator: przecinek, średnik lub tabulator; kodowanie Windows-1250 jest obsługiwane). Do grupy trafią tylko osoby, które już mają konto — konta nie są tworzone. Po imporcie zobaczysz raport: ile adresów dodano, ile już było w grupie, ile nie ma konta i ile jest niepoprawnych (z listą odrzuconych adresów).', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Grupy → zakładka „Import CSV”: wybierz grupę, wskaż plik .csv lub .txt (maks. 2 MB) z adresami e-mail w kolumnie „email” (albo same adresy, jeden w wierszu; separator: przecinek, średnik lub tabulator; kodowanie Windows-1250 jest obsługiwane). Pozostałe kolumny pliku są ignorowane.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Import nie tworzy nowych kont — tylko przypisuje do grupy osoby, które już mają konto.', 'openvote' ); ?></strong></p>
+<p><?php esc_html_e( 'Dlaczego? Głosowania odbywają się na rzeczywistych kontach użytkowników tej strony: każdy głos jest powiązany z kontem, co pozwala sprawdzić uprawnienia i zapobiec podwójnemu głosowaniu. Plik CSV służy więc wyłącznie do przypisania istniejących kont do wybranej grupy — konto jest rozpoznawane po adresie e-mail.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Po imporcie zobaczysz raport: ile adresów dodano, ile już było w grupie, ile nie ma konta i ile jest niepoprawnych (z listą odrzuconych adresów).', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Skąd biorą się odrzucenia?', 'openvote' ); ?></strong> <?php esc_html_e( 'Adres z pliku, dla którego nie istnieje jeszcze konto, zostaje odrzucony. To nie jest błąd pliku ani systemu — ta osoba musi najpierw sama założyć konto (zarejestrować się na stronie) dokładnie tym samym adresem e-mail, który jest w pliku. Na liście odrzuconych może się też znaleźć adres z literówką — wtedy konto zwykle istnieje, ale pod innym adresem. Adresy w ogóle niepoprawne (np. bez „@”) są liczone osobno jako „niepoprawne”.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Co zrobić z odrzuconymi adresami:', 'openvote' ); ?></p>
+<ol>
+    <li><?php esc_html_e( 'Rozwiń listę „Odrzucone adresy” w raporcie i skopiuj ją.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Poproś te osoby o założenie konta na stronie tym samym adresem e-mail.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Gdy się zarejestrują, zaimportuj ten sam plik ponownie. Osoby już przypisane zostaną pominięte (raport pokaże je jako „już w grupie”), a nowe konta zostaną dodane do grupy.', 'openvote' ); ?></li>
+</ol>
+
+<h3 id="manual-system-groups"><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></h3>
+<p><?php esc_html_e( 'Oprócz grup tworzonych ręcznie i grup-miast system sam tworzy i utrzymuje jedną grupę systemową: system.Wszyscy. Na liście grup ma etykietę „Systemowa”. To grupa wszystkich członków stowarzyszenia — wygodny cel głosowań i wiadomości do całej organizacji.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Kto należy do system.Wszyscy?', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Osoba z wypełnionym polem „Grupa” (miasto, sejmik, dzielnica, partia — pole wybrane w Konfiguracji → Pola użytkownika).', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Która nie jest administratorem WordPress — administratorzy to obsługa strony, nie członkowie.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'I ma jakąkolwiek rolę na tej stronie (konto zablokowane przez odebranie roli wypada z grupy).', 'openvote' ); ?></li>
+</ul>
+<p><?php esc_html_e( 'Konta techniczne bez miasta i administratorzy są więc wyłączeni. W trybie „Nie używaj miast” warunek pola Grupa odpada — do grupy należą wszyscy z rolą poza administratorami.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Dlaczego pole grupujące, a nie rola?', 'openvote' ); ?></strong> <?php esc_html_e( 'Członek stowarzyszenia może mieć w WordPress dowolną rolę — subskrybent, autor, edytor. Rola mówi, co ktoś może robić na stronie, a nie czy jest członkiem. O członkostwie świadczy wypełnione pole Grupa, dlatego to ono jest kryterium.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Jak grupa jest aktualizowana?', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Na bieżąco — gdy ktoś się zarejestruje, uzupełni lub wyczyści pole Grupa, zmieni mu się rola (np. nadanie lub odebranie administratora) albo konto zostanie usunięte, członkostwo zmienia się od razu.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Okresowo — przy każdym uruchomieniu crona serwera (co ok. 15 minut) system porównuje grupę z profilami i poprawia ewentualne różnice (np. gdy inna wtyczka zmieniła dane bezpośrednio w bazie). Po zmianie mapowania pola Grupa w Konfiguracji grupa jest uzgadniana od nowa.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Ręcznie — na ekranie Grupy administrator może uruchomić synchronizację przyciskiem „Synchronizuj teraz”.', 'openvote' ); ?></li>
+</ul>
+<p><strong><?php esc_html_e( 'Czego nie można zrobić z grupą systemową?', 'openvote' ); ?></strong></p>
+<p><?php esc_html_e( 'Członkostwo jest automatyczne, dlatego grupy system.Wszyscy nie można usunąć, nie można do niej ręcznie dodawać ani z niej usuwać osób, nie można też importować do niej pliku CSV. Aby ktoś znalazł się w grupie, uzupełnij mu pole Grupa w profilu. Nie można też utworzyć własnej grupy o nazwie zaczynającej się od „system.”.', 'openvote' ); ?></p>
+<p><strong><?php esc_html_e( 'Kto może kierować głosowania i wiadomości do system.Wszyscy?', 'openvote' ); ?></strong></p>
+<ul>
+    <li><?php esc_html_e( 'Gdy w Konfiguracji włączone jest ograniczenie „Do tylko własnych grup” — administrator WordPress oraz koordynator, któremu system.Wszyscy przypisano na ekranie Role (wtedy jest to „jego” grupa: widzi ją, wybiera i może do niej wysyłać zaproszenia i wiadomości). Pozostali koordynatorzy jej nie widzą.', 'openvote' ); ?></li>
+    <li><?php esc_html_e( 'Gdy to ograniczenie jest wyłączone — każdy koordynator może wybrać każdą grupę, także systemową.', 'openvote' ); ?></li>
+</ul>
+<p class="description"><?php esc_html_e( 'Uwaga: prawo głosu w system.Wszyscy jest sprawdzane na bieżąco, także w trakcie trwającego głosowania — osoba, która uzupełni pole Grupa, zyskuje prawo głosu; osoba, której je wyczyszczono lub nadano rolę administratora, je traci (już oddane głosy pozostają). Grupa systemowa nie jest wliczana do statystyk członków i nieaktywnych.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Synchronizacja wszystkich grup-miast', 'openvote' ); ?></h3>
-<p><?php esc_html_e( 'Na stronie Członkowie i grupy w sekcji „Synchronizacja grup-miast” dostępne są dwa przyciski:', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Na ekranie Grupy w zakładce „Synchronizacja” dostępne są dwa przyciski:', 'openvote' ); ?></p>
 <ul>
     <li><strong><?php esc_html_e( 'Synchronizuj wszystkie grupy-miasta', 'openvote' ); ?></strong> — <?php esc_html_e( 'odkrywa unikalne wartości pola „miasto” w bazie użytkowników, tworzy brakujące grupy i przypisuje do nich użytkowników. Można wznawiać od ostatniego stanu (checkpoint) — przydatne przy bardzo dużej liczbie użytkowników.', 'openvote' ); ?></li>
     <li><strong><?php esc_html_e( 'Synchronizuj od początku wszystkie grupy-miasta (Nie zalecane)', 'openvote' ); ?></strong> — <?php esc_html_e( 'robi to samo, ale resetuje zapisany stan i zaczyna synchronizację od zera. Użyj tylko wtedy, gdy np. zmieniła się struktura bazy użytkowników, lista miast lub chcesz wymusić pełne przeliczenie. Na co dzień korzystaj z pierwszego przycisku.', 'openvote' ); ?></li>
@@ -232,9 +476,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 4. Koordynatorzy -->
+<!-- 5. Koordynatorzy -->
 <div class="openvote-manual__section" id="manual-coordinators">
-<h2>4. <?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></h2>
+<h2>5. <?php esc_html_e( 'Koordynatorzy', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Koordynator to użytkownik przypisany do jednej lub więcej grup. Ma dostęp do panelu admina i może zarządzać głosowaniami dla swoich grup.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Zarządzanie koordynatorami', 'openvote' ); ?></h3>
@@ -250,9 +494,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 5. Głosowania -->
+<!-- 6. Głosowania -->
 <div class="openvote-manual__section" id="manual-polls">
-<h2>5. <?php esc_html_e( 'Głosowania — tworzenie i zarządzanie', 'openvote' ); ?></h2>
+<h2>6. <?php esc_html_e( 'Głosowania — tworzenie i zarządzanie', 'openvote' ); ?></h2>
 
 <h3><?php esc_html_e( 'Tworzenie nowego głosowania', 'openvote' ); ?></h3>
 <ol>
@@ -336,9 +580,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 6. Widok uczestnika -->
+<!-- 7. Widok uczestnika -->
 <div class="openvote-manual__section" id="manual-vote">
-<h2>6. <?php esc_html_e( 'Jak odbywa się głosowanie (widok uczestnika)', 'openvote' ); ?></h2>
+<h2>7. <?php esc_html_e( 'Jak odbywa się głosowanie (widok uczestnika)', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Uczestnik wchodzi na stronę głosowania (domyślnie /glosowanie lub skonfigurowany adres). Strona ma dwie zakładki:', 'openvote' ); ?></p>
 <ul>
     <li><strong><?php esc_html_e( 'Trwające głosowania', 'openvote' ); ?></strong> — <?php esc_html_e( 'aktywne głosowania, w których użytkownik może wziąć udział.', 'openvote' ); ?></li>
@@ -378,9 +622,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 7. Wyniki -->
+<!-- 8. Wyniki -->
 <div class="openvote-manual__section" id="manual-results">
-<h2>7. <?php esc_html_e( 'Wyniki głosowania', 'openvote' ); ?></h2>
+<h2>8. <?php esc_html_e( 'Wyniki głosowania', 'openvote' ); ?></h2>
 
 <h3><?php esc_html_e( 'Widok uczestnika (zakładka Zakończone)', 'openvote' ); ?></h3>
 <p><?php esc_html_e( 'Każde zakończone głosowanie wyświetla:', 'openvote' ); ?></p>
@@ -410,9 +654,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 8. Zaproszenia -->
+<!-- 9. Zaproszenia -->
 <div class="openvote-manual__section" id="manual-invitations">
-<h2>8. <?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></h2>
+<h2>9. <?php esc_html_e( 'Zaproszenia e-mail', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Po uruchomieniu głosowania system automatycznie tworzy kolejkę wiadomości e-mail dla wszystkich uprawnionych uczestników.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Ekran Zaproszenia', 'openvote' ); ?></h3>
@@ -465,9 +709,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 9. Komunikacja -->
+<!-- 10. Komunikacja -->
 <div class="openvote-manual__section" id="manual-communication">
-<h2>9. <?php esc_html_e( 'Wysyłka — masowa wysyłka wiadomości', 'openvote' ); ?></h2>
+<h2>10. <?php esc_html_e( 'Wysyłka — masowa wysyłka wiadomości', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Moduł Wysyłka (menu OpenVote → Wysyłka) umożliwia tworzenie i wysyłkę masowych wiadomości e-mail do wybranych grup użytkowników — niezależnie od głosowań. Przydatne do ogłoszeń, powiadomień lub newslettera.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Tworzenie i wysyłka', 'openvote' ); ?></h3>
@@ -499,10 +743,10 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 10. Konfiguracja -->
+<!-- 11. Konfiguracja -->
 <div class="openvote-manual__section" id="manual-config">
-<h2>10. <?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></h2>
-<p><?php esc_html_e( 'Dostępna w menu OpenVote → Konfiguracja (tylko Administrator WordPress). Ekran ma zakładki: Ogólne, Pola użytkownika, Role i dostęp, Wysyłka e-mail, Szablon zaproszenia, Auto-synchronizacja, Nieaktywni, Narzędzia.', 'openvote' ); ?></p>
+<h2>11. <?php esc_html_e( 'Konfiguracja wtyczki', 'openvote' ); ?></h2>
+<p><?php esc_html_e( 'Dostępna w menu OpenVote → Konfiguracja (tylko Administrator WordPress). Ekran ma zakładki: Ogólne, Pola użytkownika, Role i dostęp, Wysyłka e-mail, Szablon zaproszenia, Auto-synchronizacja, Nieaktywni, Cron, Narzędzia.', 'openvote' ); ?></p>
 
 <table class="openvote-manual__table">
     <thead><tr>
@@ -551,9 +795,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 11. Mapowanie pól -->
+<!-- 12. Mapowanie pól -->
 <div class="openvote-manual__section" id="manual-fieldmap">
-<h2>11. <?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
+<h2>12. <?php esc_html_e( 'Mapowanie pól użytkownika', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Sekcja w Konfiguracji służy do powiązania logicznych nazw pól wtyczki z kluczami meta, pod jakimi Twoja wtyczka rejestracji zapisuje dane użytkownika.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Pola logiczne', 'openvote' ); ?></h3>
@@ -568,7 +812,7 @@ $brand = openvote_get_brand_short_name();
     <tr><td><?php esc_html_e( 'Nazwisko', 'openvote' ); ?></td><td><code>last_name</code></td><td><?php esc_html_e( 'Nazwisko użytkownika (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Nickname', 'openvote' ); ?></td><td><code>user_nicename</code></td><td><?php esc_html_e( 'Domyślnie: wbudowane pole „Przyjazna dla URL wersja nazwy” (user_nicename) z wp_users. Pseudonim w anonimowych wynikach. Zawsze wymagane.', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'E-mail', 'openvote' ); ?></td><td><code>user_email</code></td><td><?php esc_html_e( 'Adres e-mail (wbudowane WP). Zawsze wymagane.', 'openvote' ); ?></td></tr>
-    <tr><td><?php esc_html_e( 'Grupa', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup. Zmień na klucz używany przez Twoją wtyczkę rejestracji. Można wyłączyć (wszyscy w grupie Wszyscy).', 'openvote' ); ?></td></tr>
+    <tr><td><?php esc_html_e( 'Grupa', 'openvote' ); ?></td><td><code>user_registration_miejsce_spotkania</code></td><td><?php esc_html_e( 'Pole używane do przypisywania do grup i do grupy system.Wszyscy (członkowie = wypełnione pole). Zmień na klucz używany przez Twoją wtyczkę rejestracji. Domyślnie wymagane do głosowania. Można wyłączyć (wszyscy z rolą, poza administratorami, w grupie system.Wszyscy).', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Numer telefonu', 'openvote' ); ?></td><td><code>user_gsm</code></td><td><?php esc_html_e( 'Opcjonalne. Ustaw na klucz z Twojej wtyczki lub zostaw "nie określone".', 'openvote' ); ?></td></tr>
     <tr><td><?php esc_html_e( 'Dane własne', 'openvote' ); ?></td><td><code>user_id</code></td><td><?php esc_html_e( 'Opcjonalne. Dowolne pole z profilu (np. numer dowodu). Można zaznaczyć jako wymagane do głosowania.', 'openvote' ); ?></td></tr>
     </tbody>
@@ -586,9 +830,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 12. Ankiety i strona zgłoszeń -->
+<!-- 13. Ankiety i strona zgłoszeń -->
 <div class="openvote-manual__section" id="manual-surveys">
-<h2>12. <?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></h2>
+<h2>13. <?php esc_html_e( 'Ankiety i strona zgłoszeń', 'openvote' ); ?></h2>
 <p><?php esc_html_e( 'Wtyczka umożliwia tworzenie ankiet (formularzy z pytaniami), zbieranie odpowiedzi użytkowników oraz publiczne wyświetlanie zatwierdzonych zgłoszeń na dedykowanej stronie.', 'openvote' ); ?></p>
 
 <h3><?php esc_html_e( 'Gdzie znajdziesz ankiety', 'openvote' ); ?></h3>
@@ -619,9 +863,9 @@ $brand = openvote_get_brand_short_name();
 </div>
 
 
-<!-- 13. FAQ -->
+<!-- 14. FAQ -->
 <div class="openvote-manual__section" id="manual-faq">
-<h2>13. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'openvote' ); ?></h2>
+<h2>14. <?php esc_html_e( 'Najczęstsze pytania (FAQ)', 'openvote' ); ?></h2>
 
 <h4><?php esc_html_e( 'Użytkownik widzi "Twój profil jest niekompletny" — co robić?', 'openvote' ); ?></h4>
 <p><?php esc_html_e( 'Sprawdź, które pole jest brakujące (komunikat podaje nazwę pola). Poproś użytkownika o uzupełnienie profilu lub sprawdź w Konfiguracji → Mapowanie pól, czy klucz jest poprawny.', 'openvote' ); ?></p>
@@ -645,7 +889,7 @@ $brand = openvote_get_brand_short_name();
 <p><?php esc_html_e( 'Wtyczka używa ikony witryny WordPress (Wygląd → Dostosuj → Tożsamość witryny → Ikona witryny). Ustaw ikonę tam.', 'openvote' ); ?></p>
 
 <h4><?php esc_html_e( 'Co to jest tryb "Nie używaj miast"?', 'openvote' ); ?></h4>
-<p><?php esc_html_e( 'Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników traktuje jako należących do jednej grupy "Wszyscy". Przydatne gdy nie chcesz grupować uczestników według lokalizacji.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Gdy wybierzesz tę opcję w mapowaniu pola Miasto, wszystkich użytkowników z rolą (poza administratorami) traktuje jako należących do jednej grupy systemowej „system.Wszyscy” (zob. rozdział 4, „Grupa systemowa system.Wszyscy”). Przydatne gdy nie chcesz grupować uczestników według lokalizacji.', 'openvote' ); ?></p>
 </div>
 
 <p style="margin-top:3em;color:#999;font-size:12px;">

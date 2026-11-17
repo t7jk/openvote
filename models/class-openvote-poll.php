@@ -315,6 +315,61 @@ class Openvote_Poll {
     }
 
     /**
+     * Warunek SQL dla „efektywnego” statusu głosowania (z uwzględnieniem wygaśnięcia czasu):
+     * 'open' = trwa (termin nie minął), 'closed' = zamknięte lub wygasłe, inne = dokładnie ten status.
+     * Kolumna date_end jest typu DATETIME, więc „date_end < now” odpowiada is_time_expired() (now > date_end).
+     *
+     * @param string $status 'draft' | 'open' | 'closed'.
+     * @param string $alias  Opcjonalny alias tabeli (np. 'p').
+     * @return array{0: string, 1: array<int, string>} Fragment WHERE (z placeholderami) i parametry.
+     */
+    public static function effective_status_where( string $status, string $alias = '' ): array {
+        $c   = $alias !== '' ? preg_replace( '/[^a-z0-9_]/i', '', $alias ) . '.' : '';
+        $now = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
+        return match ( $status ) {
+            'open'   => [ "({$c}status = 'open' AND {$c}date_end >= %s)", [ $now ] ],
+            'closed' => [ "({$c}status = 'closed' OR ({$c}status = 'open' AND {$c}date_end < %s))", [ $now ] ],
+            default  => [ "{$c}status = %s", [ $status ] ],
+        };
+    }
+
+    /**
+     * Atomowo zamyka głosowanie, o ile nadal ma status 'open' (bezpieczne względem równoległego
+     * auto-zamknięcia w heartbeacie). Zwraca true tylko gdy to wywołanie faktycznie je zamknęło
+     * (affected rows = 1) — wtedy i tylko wtedy wywołujący może naliczać skutki (np. opuszczone głosowania).
+     *
+     * @param int         $poll_id
+     * @param string|null $new_date_end Nowa data zakończenia albo null = pozostaw date_end bez zmian.
+     */
+    public static function close_if_open( int $poll_id, ?string $new_date_end = null ): bool {
+        global $wpdb;
+
+        $table = self::polls_table();
+        $now   = current_time( 'mysql' );
+        $uid   = get_current_user_id();
+
+        if ( null !== $new_date_end ) {
+            $sql = $wpdb->prepare(
+                "UPDATE {$table} SET status = 'closed', date_end = %s, modified_by = %d, modified_at = %s WHERE id = %d AND status = 'open'",
+                $new_date_end,
+                $uid,
+                $now,
+                $poll_id
+            );
+        } else {
+            $sql = $wpdb->prepare(
+                "UPDATE {$table} SET status = 'closed', modified_by = %d, modified_at = %s WHERE id = %d AND status = 'open'",
+                $uid,
+                $now,
+                $poll_id
+            );
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        return 1 === (int) $wpdb->query( $sql );
+    }
+
+    /**
      * Count polls, optionally filtered by status.
      */
     public static function count( ?string $status = null ): int {
@@ -559,6 +614,9 @@ class Openvote_Poll {
 
     /**
      * Remove a group ID from target_groups in all polls (e.g. after group is deleted).
+     *
+     * UWAGA: puste target_groups = „głosować mogą wszyscy”. Nigdy nie wołać dla grup systemowych
+     * ani przy zastępowaniu grupy inną — wtedy najpierw przepiąć target_groups (patrz migracja 4.9.0).
      */
     public static function remove_group_from_all_polls( int $group_id ): void {
         global $wpdb;
@@ -594,17 +652,10 @@ class Openvote_Poll {
         if ( empty( $group_ids ) ) {
             return true;
         }
-        if ( Openvote_Field_Map::is_city_disabled() ) {
-            global $wpdb;
-            $wszyscy_id = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT id FROM {$wpdb->prefix}openvote_groups WHERE name = %s",
-                    Openvote_Field_Map::WSZYSCY_NAME
-                )
-            );
-            if ( $wszyscy_id && [ (int) $wszyscy_id ] === array_map( 'intval', $group_ids ) ) {
-                return true;
-            }
+        // system.Wszyscy — na żywo (pole Grupa, jakakolwiek rola, bez administratorów),
+        // pozostałe wg członkostwa. Przed migracją 4.9.0 — dawne zachowanie grupy „Wszyscy”.
+        if ( class_exists( 'Openvote_System_Groups' ) ) {
+            return Openvote_System_Groups::user_in_groups( $user_id, $group_ids );
         }
         global $wpdb;
         $gm_table     = $wpdb->prefix . 'openvote_group_members';

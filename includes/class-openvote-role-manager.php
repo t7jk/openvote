@@ -60,11 +60,13 @@ class Openvote_Role_Manager {
         global $wpdb;
         $table = $wpdb->prefix . 'openvote_groups';
         $name  = self::WP_ADMIN_GROUP_NAME;
-        $id    = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table} WHERE name = %s LIMIT 1",
+        // Tylko ręczna grupa o dokładnie tej nazwie — nigdy grupa systemowa (np. system.Administratorzy).
+        $non_system = ( class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::schema_ready() ) ? ' AND system_key IS NULL' : '';
+        $row        = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id, name FROM {$table} WHERE name = %s{$non_system} LIMIT 1",
             $name
         ) );
-        return $id ? (int) $id : null;
+        return $row ? (int) $row->id : null;
     }
 
     /**

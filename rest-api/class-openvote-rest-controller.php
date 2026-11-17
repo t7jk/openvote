@@ -284,6 +284,15 @@ class Openvote_Rest_Controller {
             return new WP_Error( 'forbidden', __( 'Brak uprawnień do tego głosowania.', 'openvote' ), [ 'status' => 403 ] );
         }
 
+        $poll_tg = Openvote_Poll::get_target_group_ids( $poll );
+        if ( ! empty( Openvote_System_Groups::denied_system_targets( $poll_tg ) ) ) {
+            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (system.…) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
+        }
+        // Głosowanie bez grup = zaproszenia do wszystkich użytkowników — przy ograniczeniu koordynatorów tylko manage_options.
+        if ( empty( $poll_tg ) && ! openvote_current_user_can_target_everyone() ) {
+            return new WP_Error( 'missing_group', __( 'Wysyłkę zaproszeń do wszystkich (głosowanie bez grup docelowych) może uruchomić tylko administrator WordPress, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
+        }
+
         if ( 'open' !== $poll->status || Openvote_Poll::is_time_expired( $poll ) ) {
             return new WP_Error(
                 'poll_not_active',
@@ -348,6 +357,19 @@ class Openvote_Rest_Controller {
 
         if ( ! $message ) {
             return new WP_Error( 'not_found', __( 'Wiadomość nie została znaleziona.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
+        // F: koordynator ograniczony do własnych grup nie wysyła cudzych wiadomości.
+        if ( ! Openvote_Message::current_user_can_access( $message ) ) {
+            return new WP_Error( 'forbidden', __( 'Brak uprawnień do tej wiadomości.', 'openvote' ), [ 'status' => 403 ] );
+        }
+        $msg_tg = Openvote_Message::get_target_group_ids( $message );
+        if ( ! empty( Openvote_System_Groups::denied_system_targets( $msg_tg ) ) ) {
+            return new WP_Error( 'system_group_denied', __( 'Wysyłkę do grupy systemowej (system.…) może uruchomić tylko administrator WordPress lub koordynator, któremu ta grupa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ), [ 'status' => 403 ] );
+        }
+        // Wiadomość bez grup nie ma odbiorców; przy ograniczeniu koordynatorów odrzucamy jawnie (spójnie z głosowaniami).
+        if ( empty( $msg_tg ) && ! openvote_current_user_can_target_everyone() ) {
+            return new WP_Error( 'missing_group', __( 'Wiadomość nie ma grup docelowych. Wybierz co najmniej jedną grupę.', 'openvote' ), [ 'status' => 400 ] );
         }
 
         $batch_size = function_exists( 'openvote_get_email_batch_size' ) ? openvote_get_email_batch_size() : 100;
@@ -468,7 +490,7 @@ class Openvote_Rest_Controller {
 
         return new WP_REST_Response( [
             'success' => true,
-            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast”, utworzono grupę „Wszyscy”, wyłączono wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
+            'message' => __( 'Naprawiono: włączono tryb „Nie używaj miast” (wszyscy użytkownicy z rolą, poza administratorami, są w grupie systemowej system.Wszyscy), wyłączono wymaganie pola Grupa. Odśwież sprawdzenie konfiguracji.', 'openvote' ),
         ], 200 );
     }
 

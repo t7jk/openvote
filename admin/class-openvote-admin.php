@@ -220,10 +220,28 @@ class Openvote_Admin {
         $message = '';
         $error   = '';
 
-        if ( 'add' === $action ) {
+        // Grupy systemowe (system.Wszyscy): członkostwo zarządzane automatycznie — bez ręcznych zmian.
+        $sys_locked_msg = __( 'To grupa systemowa — członkostwo jest zarządzane automatycznie (wypełnione pole Grupa, bez administratorów) i nie można go zmieniać ręcznie.', 'openvote' );
+        $post_group_id  = absint( $_POST['group_id'] ?? 0 );
+        $is_sys_group   = $post_group_id && openvote_is_system_group( $post_group_id );
+
+        if ( 'system_sync' === $action ) {
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_die( esc_html__( 'Brak uprawnień.', 'openvote' ), 403 );
+            }
+            $res     = Openvote_System_Groups::run_manual();
+            $message = $res['done']
+                ? __( 'Grupa system.Wszyscy zsynchronizowana z profilami użytkowników.', 'openvote' )
+                : __( 'Synchronizacja grup systemowych rozpoczęta — pozostała część zostanie dokończona przez cron (heartbeat) lub kolejnym kliknięciem.', 'openvote' );
+            if ( '' !== $res['summary'] ) {
+                $message .= ' (' . $res['summary'] . ')';
+            }
+        } elseif ( 'add' === $action ) {
             $name = sanitize_text_field( $_POST['group_name'] ?? '' );
             if ( '' === $name ) {
                 $error = __( 'Nazwa grupy jest wymagana.', 'openvote' );
+            } elseif ( Openvote_System_Groups::is_reserved_name( $name ) ) {
+                $error = __( 'Nazwy zaczynające się od „system.” są zarezerwowane dla grup systemowych.', 'openvote' );
             } else {
                 $inserted = $wpdb->insert(
                     $groups_table,
@@ -243,6 +261,8 @@ class Openvote_Admin {
                 $error = __( 'Nie wybrano grupy do usunięcia.', 'openvote' );
             } elseif ( openvote_is_test_group( $group_id ) ) {
                 $error = __( 'Grupy Test nie można usunąć. Wyłącz ją w Konfiguracja → Utwórz grupę do testowania.', 'openvote' );
+            } elseif ( $is_sys_group ) {
+                $error = __( 'Grupy systemowej nie można usunąć.', 'openvote' );
             } else {
                 $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT id, name FROM {$groups_table} WHERE id = %d", $group_id ) );
                 if ( ! $group_row ) {
@@ -261,6 +281,8 @@ class Openvote_Admin {
             $user_id  = absint( $_POST['member_user_id'] ?? 0 );
             if ( ! $group_id || ! $user_id ) {
                 $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
+            } elseif ( $is_sys_group ) {
+                $error = $sys_locked_msg;
             } else {
                 $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_id ) );
                 if ( ! $group_row ) {
@@ -291,6 +313,8 @@ class Openvote_Admin {
             $user_id  = absint( $_POST['member_user_id'] ?? 0 );
             if ( ! $group_id || ! $user_id ) {
                 $error = __( 'Wybierz grupę i użytkownika.', 'openvote' );
+            } elseif ( $is_sys_group ) {
+                $error = $sys_locked_msg;
             } else {
                 $group_row = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$groups_table} WHERE id = %d", $group_id ) );
                 $member_nick = openvote_get_user_nickname( $user_id );
@@ -304,10 +328,13 @@ class Openvote_Admin {
             $user_id   = absint( $_POST['openvote_add_user_id'] ?? 0 );
             $group_ids = array_map( 'absint', (array) ( $_POST['openvote_user_groups'] ?? [] ) );
             $group_ids = array_filter( $group_ids );
+            // Grupy systemowe odfiltrowane (członkostwo automatyczne; nazwa „system.X” nie może trafić do pola miasta w profilu).
+            $had_groups = ! empty( $group_ids );
+            $group_ids  = array_values( array_filter( $group_ids, static fn( $gid ) => ! openvote_is_system_group( (int) $gid ) ) );
             if ( ! $user_id ) {
                 $error = __( 'Wybierz użytkownika z listy.', 'openvote' );
             } elseif ( empty( $group_ids ) ) {
-                $error = __( 'Wybierz co najmniej jedną grupę.', 'openvote' );
+                $error = $had_groups ? $sys_locked_msg : __( 'Wybierz co najmniej jedną grupę.', 'openvote' );
             }
             if ( $user_id && ! empty( $group_ids ) ) {
                 $added = 0;
@@ -366,6 +393,8 @@ class Openvote_Admin {
             $file      = $_FILES['openvote_csv_file'] ?? null;
             if ( ! $group_row ) {
                 $error = __( 'Wybierz grupę.', 'openvote' );
+            } elseif ( $is_sys_group ) {
+                $error = $sys_locked_msg;
             } elseif ( ! is_array( $file ) || ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) !== UPLOAD_ERR_OK || ! is_uploaded_file( $file['tmp_name'] ) ) {
                 $error = __( 'Nie udało się wgrać pliku.', 'openvote' );
             } elseif ( (int) $file['size'] > 2 * MB_IN_BYTES ) {
@@ -390,6 +419,7 @@ class Openvote_Admin {
             }
             // Zakładka docelowa po akcji (fragment #tab-… obsługuje openvote-settings-tabs.js).
             $groups_tab_map = [
+                'system_sync'        => 'sync',
                 'add'                => 'add-group',
                 'delete'             => 'list',
                 'add_member'         => 'list',
@@ -672,16 +702,18 @@ class Openvote_Admin {
             check_admin_referer( 'openvote_end_poll_' . $poll_id );
             $poll = Openvote_Poll::get( $poll_id );
             if ( $poll && 'open' === $poll->status ) {
-                $date_end_was_past = isset( $poll->date_end ) && $poll->date_end <= current_time( 'mysql' );
-                Openvote_Poll::update( $poll_id, [
-                    'status'   => 'closed',
-                    'date_end' => current_time( 'Y-m-d H:i:s' ),
-                ] );
-                if ( $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
+                // Termin minął (zegar głosowań z przesunięciem) → zachowaj date_end; inaczej ustaw na „teraz”.
+                $date_end_was_past = Openvote_Poll::is_time_expired( $poll );
+                // Atomowo (WHERE status='open'): przy wyścigu z auto-zamknięciem w heartbeacie naliczy tylko jeden z nich.
+                $closed_now = Openvote_Poll::close_if_open(
+                    $poll_id,
+                    $date_end_was_past ? null : openvote_current_time_for_voting( 'Y-m-d H:i:s' )
+                );
+                if ( $closed_now && $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
                     openvote_increment_missed_for_poll_non_voters( $poll_id );
                 }
                 $title = isset( $poll->title ) ? $poll->title : '';
-                if ( $title !== '' ) {
+                if ( $closed_now && $title !== '' ) {
                     openvote_polls_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył głosowanie %s', 'openvote' ), $title ) );
                 }
                 wp_safe_redirect( admin_url( 'admin.php?page=openvote&poll_ended=1' ) );
@@ -692,6 +724,12 @@ class Openvote_Admin {
         if ( 'duplicate' === $action && ( current_user_can( self::CAP ) || self::user_can_access_coordinators() ) ) {
             check_admin_referer( 'openvote_duplicate_poll_' . $poll_id );
             $poll = Openvote_Poll::get( $poll_id );
+            // E: kopia głosowania bez grup (= dla wszystkich) przy ograniczeniu koordynatorów — tylko manage_options.
+            if ( $poll && empty( Openvote_Poll::get_target_group_ids( $poll ) ) && ! openvote_current_user_can_target_everyone() ) {
+                set_transient( 'openvote_admin_error', __( 'Głosowanie bez grup docelowych (dostępne dla wszystkich) może zapisać tylko administrator WordPress, gdy koordynatorzy są ograniczeni do własnych grup. Wybierz co najmniej jedną grupę docelową.', 'openvote' ), 30 );
+                wp_safe_redirect( admin_url( 'admin.php?page=openvote' ) );
+                exit;
+            }
             $title = $poll && isset( $poll->title ) ? $poll->title : '';
             $new_id = Openvote_Poll::duplicate( $poll_id );
             if ( false !== $new_id ) {
@@ -725,9 +763,13 @@ class Openvote_Admin {
             check_admin_referer( 'openvote_close_survey_' . $survey_id );
             $s = Openvote_Survey::get( $survey_id );
             if ( $s && 'open' === $s->status ) {
-                Openvote_Survey::update( $survey_id, [ 'status' => 'closed', 'date_end' => current_time( 'Y-m-d H:i:s' ) ] );
+                // Ankieta wygasła czasowo: zachowaj jej rzeczywistą date_end (jak heartbeat). Zamknięcie atomowe.
+                $closed_now = Openvote_Survey::close_if_open(
+                    $survey_id,
+                    Openvote_Survey::is_time_expired( $s ) ? null : openvote_current_time_for_voting( 'Y-m-d H:i:s' )
+                );
                 $title = isset( $s->title ) ? $s->title : '';
-                if ( $title !== '' ) {
+                if ( $closed_now && $title !== '' ) {
                     openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył ankietę %s', 'openvote' ), $title ) );
                 }
             }
@@ -829,6 +871,12 @@ class Openvote_Admin {
             return;
         }
 
+        // F: koordynator ograniczony do własnych grup nie usuwa / nie duplikuje cudzych wiadomości.
+        $guard_msg = Openvote_Message::get( $message_id );
+        if ( $guard_msg && ! Openvote_Message::current_user_can_access( $guard_msg ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tej wiadomości.', 'openvote' ), '', [ 'response' => 403 ] );
+        }
+
         if ( 'delete' === $action ) {
             check_admin_referer( 'openvote_delete_message_' . $message_id );
             $message = Openvote_Message::get( $message_id );
@@ -905,18 +953,27 @@ class Openvote_Admin {
             exit;
         }
 
-        // Koordynator ograniczony do własnych grup: odrzucamy cudze grupy (nie tylko w UI).
+        // F: edycja istniejącej wiadomości — koordynator ograniczony do własnych grup tylko swoje.
+        $existing_msg   = $message_id ? Openvote_Message::get( $message_id ) : null;
+        if ( $existing_msg && ! Openvote_Message::current_user_can_access( $existing_msg ) ) {
+            wp_die( esc_html__( 'Brak uprawnień do tej wiadomości.', 'openvote' ), '', [ 'response' => 403 ] );
+        }
+        // Koordynator ograniczony do własnych grup: odrzucamy cudze grupy (nie tylko w UI). Własne = przypisane
+        // w openvote_groups (także grupa systemowa system.Wszyscy, jeśli przypisana) + grupa Test.
         if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
-            $allowed_ids = array_map( 'intval', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
-            if ( function_exists( 'openvote_create_test_group_enabled' ) && openvote_create_test_group_enabled() ) {
-                $tg = openvote_get_test_group_id();
-                if ( $tg ) {
-                    $allowed_ids[] = (int) $tg;
-                }
-            }
-            $target_groups = array_values( array_intersect( $target_groups, $allowed_ids ) );
+            $target_groups = array_values( array_intersect( $target_groups, openvote_coordinator_own_group_ids() ) );
             $save_fallback['target_groups'] = $target_groups;
         }
+        // Grupy systemowe: przy włączonym ograniczeniu koordynatorów wskazuje je administrator WP (manage_options) albo
+        // koordynator, któremu są przypisane; zapisane już wcześniej w wiadomości (przez administratora) są zachowywane.
+        $existing_tg    = $existing_msg ? Openvote_Message::get_target_group_ids( $existing_msg ) : [];
+        if ( ! empty( Openvote_System_Groups::apply_target_policy( $raw_groups, $existing_tg )['denied'] ) ) {
+            set_transient( $transient_key, $save_fallback, 120 );
+            wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=3' ) . '#tab-form' );
+            exit;
+        }
+        $target_groups = Openvote_System_Groups::apply_target_policy( $target_groups, $existing_tg )['ids'];
+        $save_fallback['target_groups'] = $target_groups;
         if ( empty( $target_groups ) ) {
             set_transient( $transient_key, $save_fallback, 120 );
             wp_safe_redirect( admin_url( 'admin.php?page=openvote-communication&save_error=2' ) . '#tab-form' );
@@ -1285,6 +1342,14 @@ class Openvote_Admin {
 
         $action     = sanitize_text_field( $_GET['action'] ?? '' );
         $message_id = isset( $_GET['message_id'] ) ? absint( $_GET['message_id'] ) : 0;
+
+        // F: podgląd / edycja / wysyłka cudzej wiadomości — odmowa dla koordynatora ograniczonego do własnych grup.
+        if ( $message_id && in_array( $action, [ 'send', 'preview', 'edit' ], true ) ) {
+            $guard_msg = Openvote_Message::get( $message_id );
+            if ( $guard_msg && ! Openvote_Message::current_user_can_access( $guard_msg ) ) {
+                wp_die( esc_html__( 'Brak uprawnień do tej wiadomości.', 'openvote' ), '', [ 'response' => 403 ] );
+            }
+        }
 
         if ( 'send' === $action && $message_id ) {
             $message = Openvote_Message::get( $message_id );

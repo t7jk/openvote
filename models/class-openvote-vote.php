@@ -99,7 +99,8 @@ class Openvote_Vote {
         $map    = Openvote_Field_Map::get();
         $joins  = '';
         $where  = [ '1=1', 'u.ID = %d' ];
-        $params = [ $user_id ];
+        // Parametry w kolejności placeholderów w SQL: najpierw JOIN-y, na końcu WHERE (u.ID).
+        $params = [];
 
         $email_key = $map['email'] ?? 'user_email';
         if ( Openvote_Field_Map::is_core_field( $email_key ) ) {
@@ -136,7 +137,8 @@ class Openvote_Vote {
             $params    = array_merge( $params, $group_ids );
         }
 
-        $sql = "SELECT 1 FROM {$wpdb->users} u {$joins} WHERE " . implode( ' AND ', $where ) . " LIMIT 1";
+        $params[] = $user_id;
+        $sql      = "SELECT 1 FROM {$wpdb->users} u {$joins} WHERE " . implode( ' AND ', $where ) . " LIMIT 1";
         return (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) ) === 1;
     }
 

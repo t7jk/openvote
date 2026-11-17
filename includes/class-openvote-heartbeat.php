@@ -5,9 +5,15 @@ defined( 'ABSPATH' ) || exit;
  * Heartbeat — serwerowy cron (cPanel / crontab) wywołujący wtyczkę co ~15 minut, także gdy nikt nie jest zalogowany.
  *
  * Zadania jednego uderzenia (tick):
+ *  (-) migracja schematu DB, jeśli wtyczkę zaktualizowano bez wejścia do panelu (np. przez FTP) — Openvote_Activator::maybe_upgrade(),
+ *  (0) domknięcie głosowań i ankiet ze statusem „open”, których termin zakończenia minął (open → closed),
+ *      oraz samonaprawa harmonogramu auto-synchronizacji grup (Openvote_Cron_Sync::ensure_scheduled),
+ *  (0') grupa systemowa system.Wszyscy: utworzenie, sprzątanie wycofanych grup ról, uzgodnienie członkostwa partiami
+ *      (Openvote_System_Groups, własny podbudżet ~10 s) — przed zaproszeniami, by trafiały do aktualnych członków,
  *  (a) automatyczne zaproszenia dla trwających głosowań z notify_start=1 (tylko głosowania wystartowane PO zainstalowaniu funkcji
  *      i bez żadnego wpisu w kolejce zaproszeń — patrz OPT_SINCE),
- *  (b) wznowienie zadań wysyłki wstrzymanych limitami (zaproszenia i wiadomości z „Wysyłki”),
+ *  (b) wznowienie zadań wysyłki wstrzymanych limitami oraz porzuconych (status „running”, bez partii od STALE_AFTER s —
+ *      np. zamknięta karta panelu) — zaproszenia i wiadomości z „Wysyłki”,
  *  (c) uruchomienie zaległych zdarzeń WP-Cron wtyczki (hooki openvote_*),
  *  (d) zapis czasu i krótkiego podsumowania ostatniego uruchomienia.
  *
@@ -24,10 +30,48 @@ class Openvote_Heartbeat {
 	const LOCK_NAME    = 'openvote_heartbeat_lock';
 	const LOCK_TTL     = 180;   // sekund — po tym czasie blokada uznawana za porzuconą.
 	const BUDGET       = 40;    // sekund pracy w jednym ticku.
+	const STALE_AFTER  = 300;   // sekund bez partii, po których zadanie „running” z panelu uznajemy za porzucone.
+	const NOTICE_AFTER = 20 * 60; // sekund od ostatniego ticku, po których panel pokazuje ostrzeżenie.
 
 	public static function register(): void {
 		add_action( 'rest_api_init', [ __CLASS__, 'register_routes' ] );
 		add_action( 'admin_init', [ __CLASS__, 'ensure_since' ] );
+		add_action( 'admin_notices', [ __CLASS__, 'render_stale_notice' ], 20 );
+	}
+
+	/**
+	 * Ostrzeżenie na ekranach OpenVote (tylko manage_options): zewnętrzny cron nie uruchomił się od NOTICE_AFTER s lub nigdy.
+	 */
+	public static function render_stale_notice(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen || ! str_contains( (string) $screen->id, 'openvote' ) ) {
+			return;
+		}
+		$last = self::status()['last'];
+		if ( ! self::is_tick_stale( $last, time() ) ) {
+			return;
+		}
+		$msg = $last > 0
+			? sprintf(
+				/* translators: %s: date and time of the last cron run */
+				__( 'OpenVote: zewnętrzny cron (heartbeat) nie uruchomił się od ponad 20 minut (ostatnio: %s). Automatyczne zamykanie głosowań i ankiet, zaproszenia oraz dokańczanie wysyłek nie działają.', 'openvote' ),
+				wp_date( 'Y-m-d H:i:s', $last )
+			)
+			: __( 'OpenVote: zewnętrzny cron (heartbeat) nie został jeszcze ani razu uruchomiony. Automatyczne zamykanie głosowań i ankiet, zaproszenia oraz dokańczanie wysyłek nie działają.', 'openvote' );
+		printf(
+			'<div class="notice notice-warning"><p>%s <a href="%s">%s</a></p></div>',
+			esc_html( $msg ),
+			esc_url( admin_url( 'admin.php?page=openvote-settings#tab-cron' ) ),
+			esc_html__( 'Skonfiguruj zadanie cron (Konfiguracja → Cron)', 'openvote' )
+		);
+	}
+
+	/** Czy ostatni tick crona (timestamp, 0 = nigdy) jest za stary. */
+	public static function is_tick_stale( int $last_ts, int $now ): bool {
+		return $last_ts <= 0 || ( $now - $last_ts ) >= self::NOTICE_AFTER;
 	}
 
 	// ─── Konfiguracja / klucz ───────────────────────────────────────────────
@@ -81,7 +125,7 @@ class Openvote_Heartbeat {
 		return [
 			'last'           => $ts,
 			'summary'        => is_array( $last ) ? (string) ( $last['summary'] ?? '' ) : '',
-			'ok'             => $ts > 0 && ( time() - $ts ) < 20 * MINUTE_IN_SECONDS,
+			'ok'             => ! self::is_tick_stale( $ts, time() ),
 			'manual_last'    => is_array( $man ) ? (int) ( $man['ts'] ?? 0 ) : 0,
 			'manual_summary' => is_array( $man ) ? (string) ( $man['summary'] ?? '' ) : '',
 		];
@@ -146,7 +190,11 @@ class Openvote_Heartbeat {
 		$parts = [];
 		try {
 			$deadline = time() + self::BUDGET;
+			$parts[] = self::task_schema_upgrade();
 			self::ensure_since();
+			$parts[] = self::task_close_expired( $deadline );
+			$parts[] = self::task_sync_schedule_health();
+			$parts[] = self::task_system_groups( $deadline );
 			$parts[] = self::task_auto_invitations();
 			$parts[] = self::task_resume_paused();
 			$parts[] = self::task_process_jobs( $deadline );
@@ -164,6 +212,148 @@ class Openvote_Heartbeat {
 		$summary .= sprintf( ' (%.1f s)', microtime( true ) - $started );
 		update_option( $option, [ 'ts' => time(), 'summary' => $summary ], false );
 		return [ 'ran' => true, 'summary' => $summary ];
+	}
+
+	// ─── (0) Domknięcie wygasłych głosowań i ankiet ─────────────────────────
+
+	/**
+	 * open → closed dla głosowań i ankiet z minionym terminem zakończenia (date_end bez zmian).
+	 * Zamknięcie atomowe (WHERE status = 'open'): przy wyścigu z ręcznym „Zakończ” tylko jeden proces
+	 * dostaje affected rows = 1 i tylko on nalicza „pominięte głosowania” — naliczanie jest więc jednokrotne.
+	 */
+	private static function task_close_expired( int $deadline ): string {
+		global $wpdb;
+		$out = [];
+
+		// Głosowania.
+		$pt     = $wpdb->prefix . 'openvote_polls';
+		$polls  = $wpdb->get_results( "SELECT id, title, status, date_end FROM {$pt} WHERE status = 'open' ORDER BY date_end ASC, id ASC" );
+		$closed = [];
+		$left   = 0;
+		foreach ( (array) $polls as $poll ) {
+			if ( ! Openvote_Poll::is_time_expired( $poll ) ) {
+				continue;
+			}
+			if ( time() >= $deadline ) {
+				$left++;
+				continue;
+			}
+			$id  = (int) $poll->id;
+			$aff = $wpdb->query( $wpdb->prepare( "UPDATE {$pt} SET status = 'closed' WHERE id = %d AND status = 'open'", $id ) );
+			if ( 1 !== (int) $aff ) {
+				continue; // zamknięte w międzyczasie (ręcznie lub równoległy tick) — nic nie naliczamy.
+			}
+			$closed[] = $id;
+			if ( function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
+				openvote_increment_missed_for_poll_non_voters( $id );
+			}
+			if ( function_exists( 'openvote_polls_audit_log_append' ) ) {
+				/* translators: %s: poll title */
+				openvote_polls_audit_log_append( 0, sprintf( __( 'automatycznie zakończono głosowanie %s (minął termin)', 'openvote' ), (string) $poll->title ) );
+			}
+		}
+		if ( $closed ) {
+			/* translators: %s: comma-separated poll IDs */
+			$out[] = sprintf( __( 'zamknięto wygasłe głosowania: %s', 'openvote' ), implode( ',', $closed ) );
+		}
+
+		// Ankiety.
+		$st      = $wpdb->prefix . 'openvote_surveys';
+		$surveys = $wpdb->get_results( "SELECT id, title, status, date_end FROM {$st} WHERE status = 'open' ORDER BY date_end ASC, id ASC" );
+		$closed  = [];
+		foreach ( (array) $surveys as $survey ) {
+			if ( ! self::survey_time_expired( $survey ) ) {
+				continue;
+			}
+			if ( time() >= $deadline ) {
+				$left++;
+				continue;
+			}
+			$id  = (int) $survey->id;
+			$aff = $wpdb->query( $wpdb->prepare( "UPDATE {$st} SET status = 'closed' WHERE id = %d AND status = 'open'", $id ) );
+			if ( 1 !== (int) $aff ) {
+				continue;
+			}
+			$closed[] = $id;
+			if ( function_exists( 'openvote_surveys_audit_log_append' ) ) {
+				/* translators: %s: survey title */
+				openvote_surveys_audit_log_append( 0, sprintf( __( 'automatycznie zakończono ankietę %s (minął termin)', 'openvote' ), (string) $survey->title ) );
+			}
+		}
+		if ( $closed ) {
+			/* translators: %s: comma-separated survey IDs */
+			$out[] = sprintf( __( 'zamknięto wygasłe ankiety: %s', 'openvote' ), implode( ',', $closed ) );
+		}
+		if ( $left > 0 ) {
+			/* translators: %d: number of items left for the next run */
+			$out[] = sprintf( __( 'do zamknięcia w kolejnym ticku: %d', 'openvote' ), $left );
+		}
+		return implode( '; ', $out );
+	}
+
+	/** Openvote_Survey::is_time_expired() (gdy dostępne) lub to samo obliczenie lokalnie. */
+	public static function survey_time_expired( object $survey ): bool {
+		if ( class_exists( 'Openvote_Survey' ) && method_exists( 'Openvote_Survey', 'is_time_expired' ) ) {
+			return Openvote_Survey::is_time_expired( $survey );
+		}
+		if ( 'open' !== ( $survey->status ?? '' ) || empty( $survey->date_end ) ) {
+			return false;
+		}
+		$end = (string) $survey->date_end;
+		if ( strlen( $end ) === 10 ) {
+			$end .= ' 23:59:59';
+		}
+		return openvote_current_time_for_voting( 'Y-m-d H:i:s' ) > $end;
+	}
+
+	/** Samonaprawa harmonogramu auto-synchronizacji grup (WP-Cron). */
+	private static function task_sync_schedule_health(): string {
+		if ( ! class_exists( 'Openvote_Cron_Sync' ) || ! method_exists( 'Openvote_Cron_Sync', 'ensure_scheduled' ) ) {
+			return '';
+		}
+		$fixed = Openvote_Cron_Sync::ensure_scheduled();
+		/* translators: %s: comma-separated hook names */
+		return $fixed ? sprintf( __( 'przywrócono harmonogram: %s', 'openvote' ), implode( ',', $fixed ) ) : '';
+	}
+
+	/** Migracja schematu, gdy brakuje kolumny system_key lub wersja DB jest starsza (aktualizacja przez FTP, cron CLI). */
+	private static function task_schema_upgrade(): string {
+		if ( ! class_exists( 'Openvote_System_Groups' ) || ! class_exists( 'Openvote_Activator' ) ) {
+			return '';
+		}
+		if ( Openvote_System_Groups::schema_ready() && Openvote_System_Groups::column_exists() ) {
+			// Jednorazowe zmiany danych poza numerem wersji (np. dev, gdzie 4.9.0 już przeszło).
+			return Openvote_Activator::ensure_city_required_default() ? __( 'pole Grupa ustawione jako wymagane do głosowania', 'openvote' ) : '';
+		}
+		$before = (string) get_option( 'openvote_db_version', '' );
+		Openvote_Activator::maybe_upgrade();
+		Openvote_System_Groups::flush_cache();
+		$after = (string) get_option( 'openvote_db_version', '' );
+		/* translators: 1: old DB version, 2: new DB version */
+		return $before !== $after ? sprintf( __( 'migracja bazy %1$s → %2$s', 'openvote' ), $before, $after ) : '';
+	}
+
+	/** Grupa system.Wszyscy: utwórz, jeśli brak; jednorazowo usuń wycofane grupy ról; uzgodnij członkostwo (podbudżet). */
+	private static function task_system_groups( int $deadline ): string {
+		if ( ! class_exists( 'Openvote_System_Groups' ) || ! Openvote_System_Groups::schema_ready() ) {
+			return '';
+		}
+		$out     = [];
+		$created = Openvote_System_Groups::ensure_groups();
+		if ( $created > 0 ) {
+			/* translators: %d: number of created groups */
+			$out[] = sprintf( __( 'utworzono grupy systemowe: %d', 'openvote' ), $created );
+		}
+		$cleanup = Openvote_System_Groups::cleanup_legacy_role_groups();
+		if ( ! empty( $cleanup['deleted'] ) || ! empty( $cleanup['skipped'] ) ) {
+			/* translators: 1: deleted groups count, 2: skipped groups count */
+			$out[] = sprintf( __( 'wycofane grupy ról: usunięto %1$d, pozostawiono %2$d', 'openvote' ), count( $cleanup['deleted'] ), count( $cleanup['skipped'] ) );
+		}
+		$res = Openvote_System_Groups::reconcile( min( $deadline, time() + Openvote_System_Groups::BUDGET ) );
+		if ( '' !== $res ) {
+			$out[] = $res;
+		}
+		return implode( '; ', $out );
 	}
 
 	// ─── (a) Automatyczne zaproszenia ───────────────────────────────────────
@@ -191,6 +381,7 @@ class Openvote_Heartbeat {
 			$invited = [];
 		}
 		$tracked = self::get_tracked();
+		$orig    = $tracked;
 		$started = [];
 		foreach ( $ids as $poll_id ) {
 			$poll_id = (int) $poll_id;
@@ -207,7 +398,7 @@ class Openvote_Heartbeat {
 			$invited[ $poll_id ] = time();
 			update_option( self::OPT_INVITED, $invited, false );
 			try {
-				$job_id = Openvote_Batch_Processor::start_job( 'send_invitations', [ 'poll_id' => $poll_id ] );
+				$job_id = Openvote_Batch_Processor::start_job( 'send_invitations', [ 'poll_id' => $poll_id ], 'heartbeat' );
 				$tracked[ 'p' . $poll_id ] = $job_id;
 				$started[] = $poll_id;
 				if ( function_exists( 'openvote_polls_audit_log_append' ) ) {
@@ -223,7 +414,7 @@ class Openvote_Heartbeat {
 			}
 		}
 		update_option( self::OPT_INVITED, $invited, false );
-		self::set_tracked( $tracked );
+		self::commit_tracked( $orig, $tracked );
 		return $started ? sprintf( __( 'rozpoczęto zaproszenia dla głosowań: %s', 'openvote' ), implode( ',', $started ) ) : '';
 	}
 
@@ -232,14 +423,21 @@ class Openvote_Heartbeat {
 	private static function task_resume_paused(): string {
 		global $wpdb;
 		$tracked = self::get_tracked();
+		$orig    = $tracked;
 		$added   = [];
+		$now     = time();
 
-		// Zadania wstrzymane limitem (transient joba ze statusem limit_exceeded) — zaproszenia i wiadomości.
+		// Zadania wstrzymane limitem (limit_exceeded) lub porzucone (running bez partii od STALE_AFTER s) — zaproszenia i wiadomości.
+		// Uwaga: przy zewnętrznym cache obiektów transienty nie trafiają do wp_options — wtedy działa rejestracja w start_job().
 		$rows = $wpdb->get_col( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_openvote\\_job\\_%' LIMIT 200" );
 		foreach ( (array) $rows as $name ) {
 			$job_id = substr( $name, strlen( '_transient_' ) );
 			$job    = get_transient( $job_id );
-			if ( ! is_array( $job ) || ( $job['status'] ?? '' ) !== 'limit_exceeded' ) {
+			if ( ! is_array( $job ) ) {
+				continue;
+			}
+			$st = $job['status'] ?? '';
+			if ( $st !== 'limit_exceeded' && ! ( $st === 'running' && self::is_job_stale( $job, $now ) ) ) {
 				continue;
 			}
 			$type = $job['type'] ?? '';
@@ -268,7 +466,7 @@ class Openvote_Heartbeat {
 			update_option( Openvote_Email_Resume_Cron::OPTION_IDS, [], false );
 		}
 
-		self::set_tracked( $tracked );
+		self::commit_tracked( $orig, $tracked );
 		return $added ? sprintf( __( 'do wznowienia: %s', 'openvote' ), implode( ',', $added ) ) : '';
 	}
 
@@ -280,11 +478,14 @@ class Openvote_Heartbeat {
 		if ( ! $tracked ) {
 			return '';
 		}
+		$orig = $tracked;
 		$eq  = $wpdb->prefix . 'openvote_email_queue';
 		$mq  = $wpdb->prefix . 'openvote_message_queue';
 		$out = [];
 
 		foreach ( $tracked as $key => $job_id ) {
+			$key    = (string) $key;
+			$job_id = (string) $job_id;
 			if ( time() >= $deadline ) {
 				$out[] = $key . ': ' . __( 'czeka na kolejny tick', 'openvote' );
 				continue;
@@ -316,6 +517,18 @@ class Openvote_Heartbeat {
 				unset( $tracked[ $key ] ); // zatrzymane przez człowieka — szanujemy.
 				continue;
 			}
+			if ( is_array( $job ) && ( $job['status'] ?? '' ) === 'running' && ! self::is_job_stale( $job, time() ) ) {
+				// Zadanie z panelu z niedawną partią — panel (AJAX) nadal je prowadzi; przejmiemy je, gdy ucichnie.
+				$out[] = $key . ': ' . __( 'prowadzone z panelu', 'openvote' );
+				continue;
+			}
+			if ( is_array( $job ) && ( $job['status'] ?? '' ) === 'running' && ( $job['owner'] ?? '' ) !== 'heartbeat' ) {
+				// Porzucone w panelu (np. zamknięta karta) — przejmujemy; blokada per cel w process_batch chroni przed dublem.
+				$job['owner']  = 'heartbeat';
+				$job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Przejęte przez cron (brak aktywności panelu).', 'openvote' );
+				set_transient( $job_id, $job, HOUR_IN_SECONDS );
+				$out[] = $key . ': ' . __( 'przejęto porzucone', 'openvote' );
+			}
 			if ( ! is_array( $job ) || ( $job['status'] ?? '' ) !== 'running' ) {
 				if ( is_array( $job ) && ( $job['status'] ?? '' ) === 'done' ) {
 					// „done”, a nadal są oczekujące — nic więcej nie da się wysłać automatycznie.
@@ -336,7 +549,7 @@ class Openvote_Heartbeat {
 					$job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Wznowione automatycznie przez cron.', 'openvote' );
 					set_transient( $job_id, $job, HOUR_IN_SECONDS );
 				}
-				$job_id = Openvote_Batch_Processor::start_job( $type, $params );
+				$job_id = Openvote_Batch_Processor::start_job( $type, $params, 'heartbeat' );
 				$tracked[ $key ] = $job_id;
 				$out[] = $key . ': ' . __( 'wznowiono', 'openvote' );
 			}
@@ -345,11 +558,16 @@ class Openvote_Heartbeat {
 			$batches = 0;
 			$delay   = function_exists( 'openvote_get_email_batch_delay' ) ? max( 0, (int) openvote_get_email_batch_delay() ) : 0; // ms
 			$status  = 'running';
+			$res     = null;
 			while ( time() < $deadline ) {
 				$res = Openvote_Batch_Processor::process_batch( $job_id );
 				if ( ! is_array( $res ) ) {
 					$status = 'expired';
 					break;
+				}
+				if ( ! empty( $res['lock_busy'] ) ) {
+					$status = 'running (' . __( 'równolegle wysyła inny proces', 'openvote' ) . ')';
+					break; // blokada per cel zajęta (np. panel) — nie kręcimy pętli, wrócimy w kolejnym ticku.
 				}
 				$batches++;
 				$status = (string) ( $res['status'] ?? '' );
@@ -363,14 +581,14 @@ class Openvote_Heartbeat {
 					usleep( $delay * 1000 );
 				}
 			}
-			$sent_now = is_array( $res ?? null ) ? (int) ( $res['processed'] ?? 0 ) : 0;
+			$sent_now = is_array( $res ) ? (int) ( $res['processed'] ?? 0 ) : 0;
 			$tracked[ $key ] = $job_id;
 			$out[] = sprintf( '%s: %s, %d partii, wysłano łącznie %d', $key, $status, $batches, $sent_now );
 			if ( $status === 'done' ) {
 				unset( $tracked[ $key ] );
 			}
 		}
-		self::set_tracked( $tracked );
+		self::commit_tracked( $orig, $tracked );
 		return $out ? implode( '; ', $out ) : '';
 	}
 
@@ -418,5 +636,72 @@ class Openvote_Heartbeat {
 
 	private static function set_tracked( array $t ): void {
 		update_option( self::OPT_TRACKED, $t, false );
+	}
+
+	/**
+	 * Zarejestruj zadanie wysyłki do śledzenia przez heartbeat (wołane z Openvote_Batch_Processor::start_job).
+	 * Dzięki temu zadanie z panelu zostanie dokończone przez cron, gdy karta przeglądarki zostanie zamknięta.
+	 *
+	 * @param string $key    'p{poll_id}' lub 'm{message_id}'.
+	 * @param string $job_id ID zadania (transient).
+	 */
+	public static function track_job( string $key, string $job_id ): void {
+		if ( ! preg_match( '/^[pm][1-9]\d*$/', $key ) ) {
+			return;
+		}
+		$t         = self::get_tracked();
+		$t[ $key ] = $job_id;
+		self::set_tracked( $t );
+	}
+
+	/**
+	 * Zapis zmian w śledzonych bez gubienia wpisów dodanych równolegle (np. start_job z panelu w trakcie ticka).
+	 */
+	private static function commit_tracked( array $original, array $final ): void {
+		$current = self::get_tracked();
+		$merged  = self::merge_tracked( $original, $final, $current );
+		if ( $merged !== $current ) {
+			self::set_tracked( $merged );
+		}
+	}
+
+	/**
+	 * Nałóż zmiany ($original → $final) na stan bieżący $current. Zmiana klucza jest stosowana tylko wtedy,
+	 * gdy w międzyczasie nikt inny go nie zmienił ($current[$k] === $original[$k]); inaczej wygrywa $current.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function merge_tracked( array $original, array $final, array $current ): array {
+		$keys = array_unique( array_merge( array_keys( $original ), array_keys( $final ) ) );
+		foreach ( $keys as $k ) {
+			$had_o = array_key_exists( $k, $original );
+			$had_f = array_key_exists( $k, $final );
+			if ( $had_o && $had_f && $original[ $k ] === $final[ $k ] ) {
+				continue; // bez zmian po naszej stronie.
+			}
+			$had_c     = array_key_exists( $k, $current );
+			$untouched = ( $had_o === $had_c ) && ( ! $had_o || $current[ $k ] === $original[ $k ] );
+			if ( ! $untouched ) {
+				continue; // ktoś inny zmienił ten wpis — nie nadpisujemy.
+			}
+			if ( $had_f ) {
+				$current[ $k ] = $final[ $k ];
+			} else {
+				unset( $current[ $k ] );
+			}
+		}
+		return $current;
+	}
+
+	/**
+	 * Czy zadanie „running” jest porzucone: właściciel ≠ heartbeat i brak partii od STALE_AFTER s.
+	 * Zadania uruchomione przez heartbeat są zawsze „do wzięcia”.
+	 */
+	public static function is_job_stale( array $job, int $now ): bool {
+		if ( ( $job['owner'] ?? '' ) === 'heartbeat' ) {
+			return true;
+		}
+		$last = (int) ( $job['last_activity'] ?? ( $job['started_at'] ?? 0 ) );
+		return $last <= 0 || ( $now - $last ) >= self::STALE_AFTER;
 	}
 }

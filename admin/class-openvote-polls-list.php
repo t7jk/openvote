@@ -55,11 +55,12 @@ class Openvote_Polls_List extends WP_List_Table {
     // ─── Filtry statusów (widoki) ─────────────────────────────────────────
 
     protected function get_views(): array {
+        // Liczniki wg statusu „efektywnego”: wygasłe 'open' liczy się jako zakończone (także bez heartbeatu).
         $counts = [
             ''       => Openvote_Poll::count(),
-            'draft'  => Openvote_Poll::count( 'draft' ),
-            'open'   => Openvote_Poll::count( 'open' ),
-            'closed' => Openvote_Poll::count( 'closed' ),
+            'draft'  => self::count_by_effective_status( 'draft' ),
+            'open'   => self::count_by_effective_status( 'open' ),
+            'closed' => self::count_by_effective_status( 'closed' ),
         ];
 
         $labels = [
@@ -345,17 +346,19 @@ class Openvote_Polls_List extends WP_List_Table {
             if ( ! current_user_can( 'edit_others_posts' ) && ! Openvote_Admin::user_can_access_coordinators() ) {
                 return;
             }
-            $now     = current_time( 'Y-m-d H:i:s' );
+            $now     = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
             $count   = 0;
             $skipped = 0;
             foreach ( $ids as $id ) {
                 $poll = Openvote_Poll::get( $id );
                 if ( $poll && 'open' === $poll->status && Openvote_Poll::current_user_can_access( $poll ) ) {
-                    $date_end_was_past = isset( $poll->date_end ) && $poll->date_end <= $now;
-                    Openvote_Poll::update( $id, [
-                        'status'   => 'closed',
-                        'date_end' => $now,
-                    ] );
+                    // Termin minął (zegar głosowań) → zachowaj date_end; inaczej ustaw na „teraz”.
+                    $date_end_was_past = Openvote_Poll::is_time_expired( $poll );
+                    // Atomowo (WHERE status='open'): przy wyścigu z heartbeatem nalicza tylko ten, kto faktycznie zamknął.
+                    if ( ! Openvote_Poll::close_if_open( (int) $id, $date_end_was_past ? null : $now ) ) {
+                        ++$skipped;
+                        continue;
+                    }
                     if ( $date_end_was_past && function_exists( 'openvote_increment_missed_for_poll_non_voters' ) ) {
                         openvote_increment_missed_for_poll_non_voters( (int) $id );
                     }
@@ -453,8 +456,9 @@ class Openvote_Polls_List extends WP_List_Table {
         $params  = [];
 
         if ( ! empty( $args['status'] ) ) {
-            $where   .= ' AND p.status = %s';
-            $params[] = $args['status'];
+            [ $cond, $cond_params ] = Openvote_Poll::effective_status_where( (string) $args['status'], 'p' );
+            $where .= ' AND ' . $cond;
+            $params = array_merge( $params, $cond_params );
         }
 
         if ( ! empty( $args['search'] ) ) {
@@ -503,8 +507,9 @@ class Openvote_Polls_List extends WP_List_Table {
         $params = [];
 
         if ( ! empty( $args['status'] ) ) {
-            $where   .= ' AND status = %s';
-            $params[] = $args['status'];
+            [ $cond, $cond_params ] = Openvote_Poll::effective_status_where( (string) $args['status'] );
+            $where .= ' AND ' . $cond;
+            $params = array_merge( $params, $cond_params );
         }
 
         if ( ! empty( $args['search'] ) ) {
@@ -531,5 +536,16 @@ class Openvote_Polls_List extends WP_List_Table {
         return empty( $params )
             ? (int) $wpdb->get_var( $sql )
             : (int) $wpdb->get_var( $wpdb->prepare( $sql, ...$params ) );
+    }
+
+    /**
+     * Liczba głosowań wg statusu „efektywnego” (zob. Openvote_Poll::effective_status_where()).
+     */
+    private static function count_by_effective_status( string $status ): int {
+        global $wpdb;
+        $table = $wpdb->prefix . 'openvote_polls';
+        [ $cond, $cond_params ] = Openvote_Poll::effective_status_where( $status );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE {$cond}", ...$cond_params ) );
     }
 }

@@ -457,19 +457,12 @@ class Openvote_Admin_Settings {
     }
 
     /**
-     * Tworzy grupę "Wszyscy" jeśli nie istnieje (tryb "Nie używaj miast").
+     * Tryb „Nie używaj miast”: członkowie (z rolą, bez administratorów) to grupa system.Wszyscy (grupa systemowa).
+     * Dawna grupa „Wszyscy” została zastąpiona w migracji 4.9.0 — tu tylko upewniamy się, że grupy systemowe istnieją.
      */
     public static function ensure_wszyscy_group_exists(): void {
-        global $wpdb;
-        $table = $wpdb->prefix . 'openvote_groups';
-        $name  = Openvote_Field_Map::WSZYSCY_NAME;
-        $id    = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE name = %s", $name ) );
-        if ( ! $id ) {
-            $wpdb->insert(
-                $table,
-                [ 'name' => $name, 'type' => 'custom', 'description' => null, 'member_count' => 0 ],
-                [ '%s', '%s', '%s', '%d' ]
-            );
+        if ( class_exists( 'Openvote_System_Groups' ) ) {
+            Openvote_System_Groups::ensure_groups();
         }
     }
 
@@ -608,6 +601,13 @@ class Openvote_Admin_Settings {
             delete_option( $opt );
         }
         Openvote_Admin_Uninstall::purge_prefixed_options_and_transients( [ 'openvote_version', 'openvote_db_version' ] );
+
+        // 4. Grupa systemowa system.Wszyscy — odtworzona od razu; członkostwo uzgadniane w podbudżecie, resztę dokończy heartbeat.
+        if ( class_exists( 'Openvote_System_Groups' ) ) {
+            Openvote_System_Groups::flush_cache();
+            Openvote_System_Groups::ensure_groups( true );
+            Openvote_System_Groups::reconcile( time() + Openvote_System_Groups::BUDGET );
+        }
 
         set_transient( 'openvote_clean_success',
             __( 'Baza danych i ustawienia zostały przywrócone do stanu fabrycznego.', 'openvote' ), 30 );

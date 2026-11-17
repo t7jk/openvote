@@ -3,20 +3,33 @@ defined( 'ABSPATH' ) || exit;
 
 class Openvote_Activator {
 
-    const DB_VERSION = '4.8.0';
+    const DB_VERSION = '4.9.0';
 
     /** Nazwa grupy testowej (nie można jej usunąć z UI, tylko wyłączyć w Ustawieniach). */
     const TEST_GROUP_NAME = 'Test';
+
+    /** Ustawiane, gdy migracja 4.9.0 nie zdołała dodać kolumny system_key — wersja schematu nie jest wtedy podnoszona. */
+    private static bool $schema_failed = false;
+
+    /** Wersja do zapisania w openvote_db_version po migracjach. */
+    private static function version_to_store(): string {
+        return self::$schema_failed ? '4.8.0' : self::DB_VERSION;
+    }
 
     public static function activate(): void {
         self::create_tables();
         self::run_migrations();
         update_option( 'openvote_version', OPENVOTE_VERSION );
-        update_option( 'openvote_db_version', self::DB_VERSION );
+        update_option( 'openvote_db_version', self::version_to_store() );
         if ( get_option( 'openvote_create_test_group', null ) === null ) {
             update_option( 'openvote_create_test_group', 1, false );
         }
         self::ensure_test_group_exists();
+        require_once __DIR__ . '/class-openvote-system-groups.php';
+        Openvote_System_Groups::flush_cache();
+        Openvote_System_Groups::ensure_groups( true );
+        Openvote_System_Groups::cleanup_legacy_role_groups();
+        self::ensure_city_required_default();
         require_once __DIR__ . '/class-openvote-vote-page.php';
         Openvote_Vote_Page::add_rewrite_rule();
 
@@ -51,8 +64,48 @@ class Openvote_Activator {
         if ( $version_old || $table_missing ) {
             self::create_tables();
             self::run_migrations();
-            update_option( 'openvote_db_version', self::DB_VERSION );
+            update_option( 'openvote_db_version', self::version_to_store() );
+            if ( class_exists( 'Openvote_System_Groups' ) ) {
+                Openvote_System_Groups::flush_cache();
+                Openvote_System_Groups::ensure_groups( true );
+            }
         }
+        // Jednorazowe zmiany danych 4.9.0 niezależne od numeru wersji (dev, gdzie 4.9.0 przeszło wcześniej).
+        if ( class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::schema_ready() ) {
+            Openvote_System_Groups::cleanup_legacy_role_groups();
+        }
+        self::ensure_city_required_default();
+    }
+
+    /** Znacznik jednorazowej zmiany B (4.9.0): pole „Grupa” domyślnie wymagane do głosowania. */
+    const OPT_CITY_REQUIRED_DONE = 'openvote_city_required_default_done';
+
+    /**
+     * Jednorazowo (4.9.0): gdy pole „Grupa” jest zmapowane, dodaj 'city' do openvote_required_fields (jeśli brak)
+     * z wpisem w dzienniku głosowań. Odróżnia członków od kont technicznych obsługi. Administrator może potem odznaczyć.
+     * Gdy pole jest wyłączone („Nie używaj miast”) / niezmapowane — tylko znacznik (domyślna wartość opcji i tak zawiera city).
+     *
+     * @return bool Czy dodano 'city'.
+     */
+    public static function ensure_city_required_default(): bool {
+        if ( get_option( self::OPT_CITY_REQUIRED_DONE ) ) {
+            return false;
+        }
+        $added = false;
+        if ( class_exists( 'Openvote_Field_Map' ) && null !== Openvote_Field_Map::grouping_field_key() ) {
+            $raw = get_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, null );
+            $req = is_array( $raw ) ? $raw : [];
+            if ( ! in_array( 'city', $req, true ) ) {
+                $req[] = 'city';
+                update_option( Openvote_Field_Map::REQUIRED_FIELDS_OPTION, array_values( $req ), false );
+                $added = true;
+                if ( function_exists( 'openvote_polls_audit_log_append' ) ) {
+                    openvote_polls_audit_log_append( 0, __( 'aktualizacja 4.9.0: pole „Grupa” ustawiono jako wymagane do głosowania (można odznaczyć w Konfiguracji)', 'openvote' ) );
+                }
+            }
+        }
+        update_option( self::OPT_CITY_REQUIRED_DONE, 1, true );
+        return $added;
     }
 
     private static function create_tables(): void {
@@ -129,13 +182,15 @@ class Openvote_Activator {
         CREATE TABLE {$groups} (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             name          VARCHAR(255) NOT NULL,
-            type          ENUM('city','custom') NOT NULL DEFAULT 'city',
+            type          ENUM('city','custom','system') NOT NULL DEFAULT 'city',
             description   TEXT,
             member_count  INT UNSIGNED NOT NULL DEFAULT 0,
             is_test_group TINYINT(1) NOT NULL DEFAULT 0,
+            system_key    VARCHAR(64) NULL DEFAULT NULL,
             created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
             UNIQUE KEY name (name),
+            UNIQUE KEY system_key (system_key),
             KEY type (type),
             KEY is_test_group (is_test_group)
         ) {$charset_collate};
@@ -486,6 +541,133 @@ class Openvote_Activator {
             if ( get_option( 'openvote_create_test_group', null ) === null ) {
                 update_option( 'openvote_create_test_group', 1, false );
             }
+        }
+
+        // ── 4.8.0 → 4.9.0 : grupa systemowa system.Wszyscy (type 'system', system_key 'all'), „Wszyscy” → system.Wszyscy ─
+        if ( version_compare( $installed, '4.9.0', '<' ) ) {
+            self::migrate_system_groups();
+        }
+    }
+
+    /**
+     * Migracja 4.9.0 (idempotentna): kolumna system_key + UNIQUE, typ 'system', utworzenie grup systemowych,
+     * zastąpienie dawnej grupy „Wszyscy” przez system.Wszyscy (najpierw członkowie i przepięcie odwołań, potem usunięcie).
+     */
+    private static function migrate_system_groups(): void {
+        global $wpdb;
+        $groups_table = $wpdb->prefix . 'openvote_groups';
+
+        $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$groups_table}" );
+        if ( ! is_array( $cols ) || empty( $cols ) ) {
+            return;
+        }
+        $type_def = (string) $wpdb->get_var( "SHOW COLUMNS FROM {$groups_table} LIKE 'type'", 1 );
+        if ( stripos( $type_def, "'system'" ) === false ) {
+            $wpdb->query( "ALTER TABLE {$groups_table} MODIFY COLUMN type ENUM('city','custom','system') NOT NULL DEFAULT 'city'" );
+        }
+        if ( ! in_array( 'system_key', $cols, true ) ) {
+            $wpdb->query( "ALTER TABLE {$groups_table} ADD COLUMN system_key VARCHAR(64) NULL DEFAULT NULL AFTER is_test_group" );
+        }
+        $indexes = array_column( (array) $wpdb->get_results( "SHOW INDEX FROM {$groups_table}", ARRAY_A ), 'Key_name' );
+        if ( ! in_array( 'system_key', $indexes, true ) ) {
+            $wpdb->query( "ALTER TABLE {$groups_table} ADD UNIQUE KEY system_key (system_key)" );
+        }
+        if ( ! in_array( 'system_key', (array) $wpdb->get_col( "SHOW COLUMNS FROM {$groups_table}" ), true ) ) {
+            self::$schema_failed = true; // ALTER się nie powiódł — wersja zostaje 4.8.0, ponowna próba przy następnym maybe_upgrade().
+            return;
+        }
+
+        require_once __DIR__ . '/class-openvote-system-groups.php';
+        Openvote_System_Groups::mark_schema_ready();
+        Openvote_System_Groups::ensure_groups( true );
+        self::replace_legacy_wszyscy_group();
+        // Pierwsze uzgodnienie (podbudżet; resztę dokończy heartbeat / przycisk w panelu).
+        Openvote_System_Groups::reconcile( time() + Openvote_System_Groups::BUDGET );
+    }
+
+    /**
+     * Dawna grupa „Wszyscy” (tryb „Nie używaj miast”) → system.Wszyscy.
+     * Kolejność bezpieczna dla trwających głosowań: (1) pełne wypełnienie system.Wszyscy, (2) przepięcie target_groups
+     * głosowań i wiadomości oraz grup koordynatorów, (3) usunięcie starej grupy BEZ remove_group_from_all_polls()
+     * (które zerowałoby target_groups = „głosować mogą wszyscy”). Ponowne uruchomienie po przerwaniu jest bezpieczne.
+     */
+    private static function replace_legacy_wszyscy_group(): void {
+        global $wpdb;
+        $groups_table = $wpdb->prefix . 'openvote_groups';
+        $gm_table     = $wpdb->prefix . 'openvote_group_members';
+
+        $new_id = Openvote_System_Groups::get_all_group_id();
+        if ( ! $new_id ) {
+            return;
+        }
+        $old = $wpdb->get_row( $wpdb->prepare(
+            "SELECT id, name, member_count FROM {$groups_table} WHERE name = %s AND system_key IS NULL AND is_test_group = 0 LIMIT 1",
+            Openvote_System_Groups::ALL_NAME
+        ) );
+        if ( ! $old || (int) $old->id === $new_id ) {
+            return;
+        }
+        $old_id = (int) $old->id;
+
+        // (1) system.Wszyscy kompletna, zanim cokolwiek na nią wskaże.
+        $max_id = (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->users}" );
+        foreach ( Openvote_System_Groups::chunk_ranges( max( 1, $max_id ), Openvote_System_Groups::CHUNK ) as $range ) {
+            Openvote_System_Groups::reconcile_range( $new_id, Openvote_System_Groups::KEY_ALL, $range[0], $range[1] >= $max_id ? null : $range[1] );
+        }
+        Openvote_System_Groups::recount( $new_id );
+
+        // (2) Przepięcie odwołań.
+        $replace = static function ( array $ids ) use ( $old_id, $new_id ): array {
+            $out = [];
+            foreach ( $ids as $id ) {
+                $id    = ( (int) $id === $old_id ) ? $new_id : (int) $id;
+                $out[] = $id;
+            }
+            return array_values( array_unique( $out ) );
+        };
+        $polls_moved = 0;
+        foreach ( [ 'openvote_polls', 'openvote_messages' ] as $t ) {
+            $table = $wpdb->prefix . $t;
+            if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+                continue;
+            }
+            $rows = (array) $wpdb->get_results( "SELECT id, target_groups FROM {$table} WHERE target_groups IS NOT NULL AND target_groups <> ''" );
+            foreach ( $rows as $row ) {
+                $ids = json_decode( (string) $row->target_groups, true );
+                if ( ! is_array( $ids ) || ! in_array( $old_id, array_map( 'intval', $ids ), true ) ) {
+                    continue;
+                }
+                $wpdb->update( $table, [ 'target_groups' => wp_json_encode( $replace( $ids ) ) ], [ 'id' => (int) $row->id ], [ '%s' ], [ '%d' ] );
+                ++$polls_moved;
+            }
+        }
+        $metas = (array) $wpdb->get_results( $wpdb->prepare(
+            "SELECT umeta_id, meta_value FROM {$wpdb->usermeta} WHERE meta_key = %s",
+            'openvote_groups'
+        ) );
+        foreach ( $metas as $m ) {
+            $raw = maybe_unserialize( $m->meta_value );
+            $ids = is_array( $raw ) ? $raw : json_decode( (string) $raw, true );
+            if ( ! is_array( $ids ) || ! in_array( $old_id, array_map( 'intval', $ids ), true ) ) {
+                continue;
+            }
+            $wpdb->update( $wpdb->usermeta, [ 'meta_value' => wp_json_encode( $replace( $ids ) ) ], [ 'umeta_id' => (int) $m->umeta_id ], [ '%s' ], [ '%d' ] );
+        }
+        if ( ! empty( $metas ) && function_exists( 'wp_cache_flush_group' ) ) {
+            wp_cache_flush_group( 'user_meta' );
+        }
+
+        // (3) Usunięcie starej grupy (bez remove_group_from_all_polls).
+        $wpdb->delete( $gm_table, [ 'group_id' => $old_id ], [ '%d' ] );
+        $wpdb->delete( $groups_table, [ 'id' => $old_id ], [ '%d' ] );
+
+        if ( function_exists( 'openvote_groups_audit_log_append' ) ) {
+            openvote_groups_audit_log_append( 0, sprintf(
+                /* translators: 1: old member count, 2: number of polls/messages re-pointed */
+                __( 'migracja 4.9.0: grupę Wszyscy (%1$d członków) zastąpiono grupą system.Wszyscy; przepięto głosowania/wiadomości: %2$d', 'openvote' ),
+                (int) $old->member_count,
+                $polls_moved
+            ) );
         }
     }
 

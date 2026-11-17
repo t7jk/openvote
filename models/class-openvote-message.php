@@ -121,6 +121,10 @@ class Openvote_Message {
             $params[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
         }
 
+        [ $cw, $cp ] = self::coordinator_where( $args );
+        $where      .= $cw;
+        $params      = array_merge( $params, $cp );
+
         $orderby = in_array( $args['orderby'] ?? '', [ 'title', 'created_at', 'sent_at' ], true )
             ? $args['orderby']
             : 'created_at';
@@ -137,6 +141,50 @@ class Openvote_Message {
         }
 
         return $wpdb->get_results( $wpdb->prepare( $sql, ...$params ) );
+    }
+
+    /**
+     * Fragment WHERE dla koordynatora ograniczonego do własnych grup (args['coordinator_group_ids']):
+     * ta sama reguła co lista głosowań — wiadomość widoczna, gdy jej target_groups zawierają którąś z jego grup.
+     *
+     * @return array{0:string,1:array}
+     */
+    private static function coordinator_where( array $args ): array {
+        $ids = $args['coordinator_group_ids'] ?? null;
+        if ( ! is_array( $ids ) ) {
+            return [ '', [] ];
+        }
+        $ids = array_values( array_filter( array_map( 'absint', $ids ) ) );
+        if ( empty( $ids ) ) {
+            return [ ' AND 1=0', [] ];
+        }
+        // JSON_CONTAINS z literałem JSON (jak '4') działa w MySQL i MariaDB.
+        $sql = ' AND (' . implode( ' OR ', array_fill( 0, count( $ids ), "JSON_CONTAINS(IF(JSON_VALID(target_groups), target_groups, '[]'), %s, '$')" ) ) . ')';
+        return [ $sql, array_map( 'strval', $ids ) ];
+    }
+
+    /**
+     * Argumenty widoczności listy dla bieżącego użytkownika ([] = bez ograniczeń).
+     *
+     * @return array{coordinator_group_ids?: int[]}
+     */
+    public static function visibility_args(): array {
+        if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
+            return [ 'coordinator_group_ids' => openvote_coordinator_own_group_ids() ];
+        }
+        return [];
+    }
+
+    /**
+     * Czy bieżący użytkownik (koordynator ograniczony do „własnych grup”) ma dostęp do wiadomości
+     * (podgląd, edycja, wysyłka, duplikat, usunięcie). Administrator i koordynator bez ograniczenia: zawsze true.
+     */
+    public static function current_user_can_access( object $message ): bool {
+        $vis = self::visibility_args();
+        if ( ! isset( $vis['coordinator_group_ids'] ) ) {
+            return true;
+        }
+        return ! empty( array_intersect( self::get_target_group_ids( $message ), array_map( 'absint', $vis['coordinator_group_ids'] ) ) );
     }
 
     /**
@@ -178,6 +226,10 @@ class Openvote_Message {
             $where   .= ' AND title LIKE %s';
             $params[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
         }
+
+        [ $cw, $cp ] = self::coordinator_where( $args );
+        $where      .= $cw;
+        $params      = array_merge( $params, $cp );
 
         if ( empty( $params ) ) {
             return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE {$where}" );

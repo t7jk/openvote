@@ -53,7 +53,7 @@ class Openvote_Survey {
     /**
      * Pobierz listę ankiet.
      *
-     * @param array{status?: string, orderby?: string, order?: string} $args
+     * @param array{status?: string, effective_status?: bool, orderby?: string, order?: string} $args
      * @return object[]
      */
     public static function get_all( array $args = [] ): array {
@@ -64,8 +64,15 @@ class Openvote_Survey {
         $params = [];
 
         if ( ! empty( $args['status'] ) ) {
-            $where   .= ' AND status = %s';
-            $params[] = $args['status'];
+            if ( ! empty( $args['effective_status'] ) ) {
+                // Status „efektywny”: wygasła ankieta 'open' traktowana jak zakończona.
+                [ $cond, $cond_params ] = self::effective_status_where( (string) $args['status'] );
+                $where .= ' AND ' . $cond;
+                $params = array_merge( $params, $cond_params );
+            } else {
+                $where   .= ' AND status = %s';
+                $params[] = $args['status'];
+            }
         }
 
         $order   = strtoupper( $args['order'] ?? 'DESC' ) === 'ASC' ? 'ASC' : 'DESC';
@@ -648,7 +655,10 @@ class Openvote_Survey {
     /**
      * Polska etykieta statusu ankiety (jedno słownictwo w całej wtyczce).
      */
-    public static function status_label( string $status ): string {
+    public static function status_label( string $status, ?object $survey = null ): string {
+        if ( 'open' === $status && $survey && self::is_time_expired( $survey ) ) {
+            return __( 'Zakończona (czas minął)', 'openvote' );
+        }
         return match ( $status ) {
             'draft'  => __( 'Szkic', 'openvote' ),
             'open'   => __( 'Trwa', 'openvote' ),
@@ -742,13 +752,94 @@ class Openvote_Survey {
 
     /**
      * Sprawdź czy ankieta jest aktualnie aktywna (status open i w przedziale dat).
+     * Zegar jak w głosowaniach: openvote_current_time_for_voting() (z przesunięciem z Konfiguracji).
      */
     public static function is_active( object $survey ): bool {
-        if ( $survey->status !== 'open' ) {
+        if ( 'open' !== ( $survey->status ?? '' ) || empty( $survey->date_end ) ) {
             return false;
         }
+        if ( self::is_time_expired( $survey ) ) {
+            return false;
+        }
+        $start = (string) ( $survey->date_start ?? '' );
+        if ( strlen( $start ) === 10 ) {
+            $start .= ' 00:00:00';
+        }
+        return openvote_current_time_for_voting( 'Y-m-d H:i:s' ) >= $start;
+    }
+
+    /**
+     * Czy ankieta ze statusem 'open' ma już miniony termin zakończenia (tylko obliczenie, bez zmian w bazie).
+     * Analogicznie do Openvote_Poll::is_time_expired(); data 10-znakowa (Y-m-d) = koniec dnia 23:59:59.
+     */
+    public static function is_time_expired( object $survey ): bool {
+        if ( 'open' !== ( $survey->status ?? '' ) || empty( $survey->date_end ) ) {
+            return false;
+        }
+        $end = (string) $survey->date_end;
+        if ( strlen( $end ) === 10 ) {
+            $end .= ' 23:59:59';
+        }
+        return openvote_current_time_for_voting( 'Y-m-d H:i:s' ) > $end;
+    }
+
+    /**
+     * Czy ankieta jest zakończona: status 'closed' albo 'open' z minionym terminem.
+     */
+    public static function is_ended( object $survey ): bool {
+        return 'closed' === ( $survey->status ?? '' ) || self::is_time_expired( $survey );
+    }
+
+    /**
+     * Warunek SQL dla „efektywnego” statusu ankiety (z uwzględnieniem wygaśnięcia czasu):
+     * 'open' = trwa (termin nie minął), 'closed' = zamknięta lub wygasła, 'draft' = szkic.
+     * Kolumna date_end jest typu DATETIME, więc porównanie z 'Y-m-d H:i:s' jest zgodne z is_time_expired().
+     *
+     * @param string $status 'draft' | 'open' | 'closed'.
+     * @return array{0: string, 1: array<int, string>} Fragment WHERE (z placeholderami) i parametry.
+     */
+    public static function effective_status_where( string $status ): array {
+        $now = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
+        return match ( $status ) {
+            'open'   => [ "(status = 'open' AND date_end >= %s)", [ $now ] ],
+            'closed' => [ "(status = 'closed' OR (status = 'open' AND date_end < %s))", [ $now ] ],
+            default  => [ 'status = %s', [ $status ] ],
+        };
+    }
+
+    /**
+     * Atomowo zamyka ankietę, o ile nadal ma status 'open' (bezpieczne względem równoległego
+     * auto-zamknięcia w heartbeacie). Zwraca true tylko gdy to wywołanie faktycznie ją zamknęło.
+     *
+     * @param int         $survey_id
+     * @param string|null $new_date_end Nowa data zakończenia albo null = pozostaw date_end bez zmian.
+     */
+    public static function close_if_open( int $survey_id, ?string $new_date_end = null ): bool {
+        global $wpdb;
+
+        $table = self::surveys_table();
         $now   = current_time( 'mysql' );
-        return $now >= $survey->date_start && $now <= $survey->date_end;
+        $uid   = get_current_user_id();
+
+        if ( null !== $new_date_end ) {
+            $sql = $wpdb->prepare(
+                "UPDATE {$table} SET status = 'closed', date_end = %s, modified_by = %d, modified_at = %s WHERE id = %d AND status = 'open'",
+                $new_date_end,
+                $uid,
+                $now,
+                $survey_id
+            );
+        } else {
+            $sql = $wpdb->prepare(
+                "UPDATE {$table} SET status = 'closed', modified_by = %d, modified_at = %s WHERE id = %d AND status = 'open'",
+                $uid,
+                $now,
+                $survey_id
+            );
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        return 1 === (int) $wpdb->query( $sql );
     }
 
     /**

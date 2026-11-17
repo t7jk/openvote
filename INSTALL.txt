@@ -27,10 +27,15 @@ i WordPress zgłasza, że „niektórych plików nie można było skopiować”:
 CO ZROBIĆ:
   1. Zainstaluj paczkę utworzoną przez make-install-zip.sh (mniej plików).
   2. Jeśli nadal błąd — instalacja ręczna:
-     a) Zdezaktywuj i usuń starą wersję wtyczki w panelu WP.
+     a) UWAGA: NIE usuwaj starej wersji w panelu WP (Wtyczki → Usuń)!
+        Usunięcie wtyczki uruchamia uninstall.php, który KASUJE wszystkie
+        dane OpenVote (tabele głosowań, głosów, grup, ankiet, ustawienia).
+        Przy aktualizacji wystarczy wtyczkę zdezaktywować.
      b) Przez SSH (lub FTP) rozpakuj openvote-install.zip do:
         wp-content/plugins/
+        nadpisując istniejące pliki
         (powinien powstać katalog: wp-content/plugins/openvote/).
+        Nie usuwaj pliku cron/cron-log.php (dziennik crona serwera).
      c) Ustaw właściciela plików na użytkownika serwera WWW, np.:
         chown -R www-data:www-data wp-content/plugins/openvote
      d) W panelu WP: Wtyczki → włącz „OpenVote”.

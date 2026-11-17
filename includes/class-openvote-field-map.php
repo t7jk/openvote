@@ -86,6 +86,13 @@ class Openvote_Field_Map {
     const DEFAULT_SURVEY_OPTIONAL_REQUIRED = [ 'phone' ];
 
     /**
+     * Domyślna wartość opcji „wymagane do głosowania” dla pól opcjonalnych, gdy opcja nie była jeszcze zapisana.
+     * Pole „Grupa” (city) jest domyślnie wymagane (gdy zmapowane) — odróżnia członków od kont technicznych obsługi.
+     * Administrator może je odznaczyć (nie ma go w ALWAYS_REQUIRED).
+     */
+    const DEFAULT_OPTIONAL_REQUIRED = [ 'city' ];
+
+    /**
      * WordPress core wp_users columns (not usermeta).
      * Values from these fields must be read via $user->{field},
      * not get_user_meta().
@@ -163,6 +170,18 @@ class Openvote_Field_Map {
     }
 
     /**
+     * Klucz pola grupującego (pole logiczne 'city' = „Grupa”: miasto, sejmik, dzielnica, partia…)
+     * albo null, gdy pole jest wyłączone („Nie używaj miast”) lub niezmapowane.
+     */
+    public static function grouping_field_key(): ?string {
+        $actual = self::get_field( 'city' );
+        if ( '' === $actual || self::NO_CITY_KEY === $actual || self::NOT_SET_KEY === $actual ) {
+            return null;
+        }
+        return $actual;
+    }
+
+    /**
      * Read a user field value regardless of whether it is a core
      * column or a usermeta entry.
      *
@@ -192,11 +211,11 @@ class Openvote_Field_Map {
      * Returns array: [ 'first_name' => 'Imię', 'email' => 'E-mail', ... ]
      */
     public static function get_required_fields(): array {
-        $saved    = (array) get_option( self::REQUIRED_FIELDS_OPTION, [] );
+        $saved    = (array) get_option( self::REQUIRED_FIELDS_OPTION, self::DEFAULT_OPTIONAL_REQUIRED );
         $required = [];
         foreach ( array_keys( self::DEFAULTS ) as $logical ) {
-            // city — skip if disabled
-            if ( 'city' === $logical && self::is_city_disabled() ) {
+            // city — skip if disabled or not mapped (inaczej nikt nie mógłby głosować)
+            if ( 'city' === $logical && null === self::grouping_field_key() ) {
                 continue;
             }
             // Always-required fields are included regardless of saved option
@@ -214,7 +233,7 @@ class Openvote_Field_Map {
         if ( in_array( $logical, self::ALWAYS_REQUIRED, true ) ) {
             return true;
         }
-        $saved = (array) get_option( self::REQUIRED_FIELDS_OPTION, [] );
+        $saved = (array) get_option( self::REQUIRED_FIELDS_OPTION, self::DEFAULT_OPTIONAL_REQUIRED );
         return in_array( $logical, $saved, true );
     }
 

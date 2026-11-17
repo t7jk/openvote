@@ -99,24 +99,22 @@ class Openvote_Eligibility {
         $group_ids = Openvote_Poll::get_target_group_ids( $poll );
 
         if ( ! empty( $group_ids ) ) {
-            if ( Openvote_Field_Map::is_city_disabled() ) {
-                $wszyscy_id = self::get_wszyscy_group_id();
-                if ( $wszyscy_id && [ $wszyscy_id ] === array_map( 'intval', $group_ids ) ) {
-                    return [ 'eligible' => true, 'reason' => '' ];
-                }
+            // system.Wszyscy sprawdzana na żywo — niepuste pole „Grupa”, jakakolwiek rola, brak roli administrator;
+            // prawo głosu nie czeka na uzgodnienie członkostwa. Pozostałe grupy — wg członkostwa. Przed migracją 4.9.0: dawne zachowanie grupy „Wszyscy”.
+            if ( class_exists( 'Openvote_System_Groups' ) ) {
+                $is_member = Openvote_System_Groups::user_in_groups( $user_id, array_map( 'intval', $group_ids ) );
+            } else {
+                global $wpdb;
+                $gm_table     = $wpdb->prefix . 'openvote_group_members';
+                $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
+                $is_member    = (bool) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$gm_table}
+                         WHERE user_id = %d AND group_id IN ({$placeholders})",
+                        array_merge( [ $user_id ], $group_ids )
+                    )
+                );
             }
-
-            global $wpdb;
-            $gm_table     = $wpdb->prefix . 'openvote_group_members';
-            $placeholders = implode( ',', array_fill( 0, count( $group_ids ), '%d' ) );
-
-            $is_member = (bool) $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$gm_table}
-                     WHERE user_id = %d AND group_id IN ({$placeholders})",
-                    array_merge( [ $user_id ], $group_ids )
-                )
-            );
 
             if ( ! $is_member ) {
                 return self::no(
@@ -131,18 +129,6 @@ class Openvote_Eligibility {
         }
 
         return [ 'eligible' => true, 'reason' => '' ];
-    }
-
-    /**
-     * ID grupy "Wszyscy" (gdy opcja "Nie używaj miast" jest włączona).
-     *
-     * @return int|null
-     */
-    private static function get_wszyscy_group_id(): ?int {
-        global $wpdb;
-        $table = $wpdb->prefix . 'openvote_groups';
-        $id    = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE name = %s", Openvote_Field_Map::WSZYSCY_NAME ) );
-        return $id ? (int) $id : null;
     }
 
     /**

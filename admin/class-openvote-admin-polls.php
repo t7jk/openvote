@@ -255,16 +255,34 @@ class Openvote_Admin_Polls {
 
         // target_groups: multi-select of group IDs → store as JSON.
         $raw_groups    = array_map( 'absint', (array) ( $_POST['target_groups'] ?? [] ) );
-        // A5: koordynator ograniczony do własnych grup może wskazać wyłącznie swoje grupy (egzekwowane po stronie serwera).
+        // Grupy systemowe (system.Wszyscy): przy włączonym ograniczeniu koordynatorów wskazuje je administrator WP (manage_options)
+        // albo koordynator, któremu grupa systemowa jest przypisana (openvote_groups). Nowe nieprzypisane odrzucamy;
+        // zapisane wcześniej w edytowanym głosowaniu (przez administratora) zachowujemy.
+        $edit_poll_id  = absint( $_POST['poll_id'] ?? 0 );
+        $edit_poll     = $edit_poll_id ? Openvote_Poll::get( $edit_poll_id ) : null;
+        $existing_tg   = $edit_poll ? Openvote_Poll::get_target_group_ids( $edit_poll ) : [];
+        $policy        = Openvote_System_Groups::apply_target_policy( $raw_groups, $existing_tg );
+        if ( ! empty( $policy['denied'] ) ) {
+            return new \WP_Error( 'system_group_denied', __( 'Grupy systemowe (system.…) może wskazać jako docelowe tylko administrator WordPress lub koordynator, któremu dana grupa systemowa jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' ) );
+        }
+        $sys_existing  = array_values( array_intersect( $existing_tg, Openvote_System_Groups::get_system_group_ids() ) );
+        $raw_groups    = $policy['ids'];
+        // A5: koordynator ograniczony do własnych grup może wskazać wyłącznie swoje grupy (także przypisane mu grupy
+        // systemowe) — egzekwowane po stronie serwera.
         if ( function_exists( 'openvote_is_coordinator_restricted_to_own_groups' ) && openvote_is_coordinator_restricted_to_own_groups() ) {
-            $own = array_map( 'absint', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
-            if ( openvote_create_test_group_enabled() && openvote_get_test_group_id() ) {
-                $own[] = openvote_get_test_group_id();
+            $own = openvote_coordinator_own_group_ids();
+            if ( ! Openvote_System_Groups::current_user_can_target() ) {
+                $own = array_merge( $own, $sys_existing );
             }
             $raw_groups = array_values( array_intersect( $raw_groups, $own ) );
             if ( empty( $raw_groups ) ) {
                 return new \WP_Error( 'missing_group', __( 'Wybierz co najmniej jedną ze swoich grup docelowych.', 'openvote' ) );
             }
+        }
+        // E: głosowanie bez grup docelowych = „głosować mogą wszyscy” — przy ograniczeniu koordynatorów tylko manage_options
+        // (dotyczy też edycji głosowania utworzonego przez administratora bez grup oraz zapisu szkicu).
+        if ( empty( $raw_groups ) && function_exists( 'openvote_current_user_can_target_everyone' ) && ! openvote_current_user_can_target_everyone() ) {
+            return new \WP_Error( 'missing_group', __( 'Głosowanie bez grup docelowych (dostępne dla wszystkich) może zapisać tylko administrator WordPress, gdy koordynatorzy są ograniczeni do własnych grup. Wybierz co najmniej jedną grupę docelową.', 'openvote' ) );
         }
         $target_groups = ! empty( $raw_groups ) ? wp_json_encode( array_values( $raw_groups ) ) : '';
 

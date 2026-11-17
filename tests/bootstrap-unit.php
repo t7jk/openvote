@@ -114,4 +114,6 @@ function openvote_get_email_limit_per_day(): int   { return OpenvoteTestConfig::
 
 require_once dirname(__DIR__) . '/models/class-openvote-poll.php';
 require_once dirname(__DIR__) . '/models/class-openvote-vote.php';
+require_once dirname(__DIR__) . '/models/class-openvote-survey.php';
 require_once dirname(__DIR__) . '/includes/class-openvote-email-rate-limits.php';
+require_once dirname(__DIR__) . '/includes/class-openvote-system-groups.php';

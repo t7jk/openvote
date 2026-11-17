@@ -62,8 +62,10 @@ class Openvote_Admin_Uninstall {
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_survey_questions" );
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}openvote_surveys" );
 
-        // Clear scheduled email-resume cron.
-        wp_clear_scheduled_hook( 'openvote_resume_scheduled_invitations' );
+        // Usuń wszystkie zdarzenia WP-Cron wtyczki (wznowienie zaproszeń + auto-synchronizacja grup i jej tick).
+        foreach ( [ 'openvote_resume_scheduled_invitations', 'openvote_cron_sync_sejmiki', 'openvote_cron_sync_tick' ] as $openvote_hook ) {
+            wp_clear_scheduled_hook( $openvote_hook );
+        }
 
         // Delete all plugin options (single source of list).
         foreach ( self::get_option_keys() as $key ) {

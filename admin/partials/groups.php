@@ -57,19 +57,28 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
-// Grupa Test zawsze pierwsza (w listach i selectach). Identyfikacja po is_test_group lub po nazwie "Test".
+// Kolejność: grupa Test, grupy systemowe (system.Wszyscy pierwsza), pozostałe — alfabetycznie.
+// Test identyfikowana po is_test_group lub po nazwie "Test"; systemowe po system_key.
 $test_group_name = defined( 'OPENVOTE_PLUGIN_DIR' ) && class_exists( 'Openvote_Activator' ) ? Openvote_Activator::TEST_GROUP_NAME : 'Test';
-usort( $groups, function ( $a, $b ) use ( $test_group_name ) {
-    $a_test = ( ! empty( $a->is_test_group ) ) || ( isset( $a->name ) && $a->name === $test_group_name );
-    $b_test = ( ! empty( $b->is_test_group ) ) || ( isset( $b->name ) && $b->name === $test_group_name );
-    if ( $a_test && ! $b_test ) {
-        return -1;
+$openvote_group_rank = static function ( $g ) use ( $test_group_name ): int {
+    if ( ! empty( $g->is_test_group ) || ( isset( $g->name ) && $g->name === $test_group_name ) ) {
+        return 0;
     }
-    if ( ! $a_test && $b_test ) {
-        return 1;
+    if ( ! empty( $g->system_key ) ) {
+        return Openvote_System_Groups::KEY_ALL === $g->system_key ? 1 : 2;
+    }
+    return 3;
+};
+usort( $groups, function ( $a, $b ) use ( $openvote_group_rank ) {
+    $ra = $openvote_group_rank( $a );
+    $rb = $openvote_group_rank( $b );
+    if ( $ra !== $rb ) {
+        return $ra <=> $rb;
     }
     return strcasecmp( $a->name ?? '', $b->name ?? '' );
 } );
+// Listy wyboru do ręcznego przypisywania (Dodaj do grup, Import CSV): bez grup systemowych — ich członkostwo jest automatyczne.
+$manual_groups = array_values( array_filter( $groups, static fn( $g ) => empty( $g->system_key ) ) );
 
 // Parametry AJAX przekazane do JS.
 wp_enqueue_script(
@@ -120,16 +129,24 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 <tr><td colspan="3"><?php esc_html_e( 'Brak grup.', 'openvote' ); ?></td></tr>
             <?php else : ?>
                 <?php foreach ( $groups as $group ) : ?>
-                    <?php $is_test = ! empty( $group->is_test_group ); ?>
+                    <?php
+                    $is_test      = ! empty( $group->is_test_group );
+                    $is_system    = ! empty( $group->system_key );
+                    ?>
                     <tr<?php echo $is_test ? ' class="openvote-group-test"' : ''; ?>>
-                        <td><strong><?php echo esc_html( $group->name ); ?></strong></td>
+                        <td>
+                            <strong><?php echo esc_html( $group->name ); ?></strong>
+                            <?php if ( $is_system ) : ?>
+                                <span class="openvote-badge openvote-badge--meta" title="<?php esc_attr_e( 'Członkostwo zarządzane automatycznie: członkowie z wypełnionym polem Grupa, bez administratorów', 'openvote' ); ?>"><?php esc_html_e( 'Systemowa', 'openvote' ); ?></span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $group->id ) . '#tab-list' ); ?>">
                                 <?php echo esc_html( sprintf( _n( '%d członek', '%d członków', (int) $group->member_count, 'openvote' ), (int) $group->member_count ) ); ?>
                             </a>
                         </td>
                         <td>
-                            <?php if ( ! $is_test ) : ?>
+                            <?php if ( ! $is_test && ! $is_system ) : ?>
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
                                 <input type="hidden" name="openvote_groups_action" value="delete">
@@ -177,6 +194,10 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
             <span class="openvote-badge openvote-badge--meta"><?php echo esc_html( $total_members ); ?></span>
         </h2>
 
+        <?php $view_is_system = ! empty( $group->system_key ); ?>
+        <?php if ( $view_is_system ) : ?>
+            <p class="description" style="margin:0 0 16px;"><?php esc_html_e( 'Członkostwo zarządzane automatycznie: członkowie z wypełnionym polem Grupa, bez administratorów', 'openvote' ); ?>.</p>
+        <?php else : ?>
         <?php // Dodaj członka ręcznie ?>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid ) ); ?>" style="margin-bottom:16px;">
             <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
@@ -187,6 +208,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
             <p class="description" id="openvote-add-by-id-hint" style="margin:4px 0 0;"><?php esc_html_e( 'Numer ID widoczny w Użytkownicy → Edytuj (w adresie strony: user_id=…). Nie znasz ID? Użyj zakładki „Dodaj do grup” i wyszukaj po adresie e-mail.', 'openvote' ); ?></p>
             <button type="submit" class="button"><?php esc_html_e( 'Dodaj ręcznie', 'openvote' ); ?></button>
         </form>
+        <?php endif; ?>
 
         <div class="openvote-table-scroll"><table class="wp-list-table widefat fixed striped" style="max-width:800px;margin-bottom:16px;">
             <thead>
@@ -213,6 +235,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                             <td><?php echo esc_html( $m->source ); ?></td>
                             <td><?php echo esc_html( $m->added_at ); ?></td>
                             <td>
+                                <?php if ( ! $view_is_system ) : ?>
                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=openvote-groups&action=members&group_id=' . $view_gid ) ); ?>">
                                     <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
                                     <input type="hidden" name="openvote_groups_action" value="remove_member">
@@ -223,6 +246,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                                         <?php esc_html_e( 'Usuń', 'openvote' ); ?>
                                     </button>
                                 </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -246,7 +270,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
     </div>
 
     <div class="openvote-tab-panel" id="tab-members" data-tab="members" role="tabpanel" aria-labelledby="tabbtn-members">
-    <?php if ( ! empty( $groups ) ) : ?>
+    <?php if ( ! empty( $manual_groups ) ) : ?>
         <?php // ─── Dodaj użytkownika do grup (ręcznie, np. do testów) ───────── ?>
         <hr>
         <h2><?php esc_html_e( 'Dodaj członków do grup', 'openvote' ); ?></h2>
@@ -277,7 +301,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                     <label for="openvote_user_groups"><?php esc_html_e( 'Grupy:', 'openvote' ); ?></label>
                     <p class="description" style="margin:4px 0 6px;"><?php esc_html_e( 'Przytrzymaj Ctrl (Cmd na Mac), aby zaznaczyć wiele grup. Na telefonie dotknij kilku pozycji.', 'openvote' ); ?></p>
                     <select name="openvote_user_groups[]" id="openvote_user_groups" multiple size="15" style="min-width:200px; width:100%; max-width:100%; box-sizing:border-box; display:block;">
-                        <?php foreach ( $groups as $g ) : ?>
+                        <?php foreach ( $manual_groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -287,7 +311,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
     <?php endif; ?>
 
     <?php // ─── Dodaj członka po adresie e-mail (nad „Dodaj grupę”) ───────── ?>
-    <?php if ( ! empty( $groups ) ) : ?>
+    <?php if ( ! empty( $manual_groups ) ) : ?>
     <hr>
     <section class="openvote-groups-add-by-email" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff; box-shadow:0 1px 1px rgba(0,0,0,.04);">
         <h2 class="openvote-section-title" style="margin:0 0 16px; font-size:1.1em; font-weight:600; padding-bottom:8px; border-bottom:1px solid #eee;"><?php esc_html_e( 'Dodaj członka po adresie e-mail', 'openvote' ); ?></h2>
@@ -318,7 +342,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                     <h3 style="margin:0 0 6px; font-size:13px; font-weight:600; color:#1d2327;"><?php esc_html_e( 'Grupy', 'openvote' ); ?></h3>
                     <p class="description" style="margin:0 0 8px;"><?php esc_html_e( 'Przytrzymaj Ctrl (Cmd na Mac), aby zaznaczyć wiele grup.', 'openvote' ); ?></p>
                     <select name="openvote_user_groups[]" id="openvote_member_email_user_groups" multiple size="12" style="width:100%; max-width:100%; box-sizing:border-box; display:block;">
-                        <?php foreach ( $groups as $g ) : ?>
+                        <?php foreach ( $manual_groups as $g ) : ?>
                             <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -333,11 +357,16 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
     <div class="openvote-tab-panel" id="tab-csv" data-tab="csv" role="tabpanel" aria-labelledby="tabbtn-csv">
     <?php // ─── Dodaj członków z pliku CSV ───────────────────────────────────── ?>
     <?php $csv_report = get_transient( 'openvote_groups_csv_report_' . get_current_user_id() ); if ( $csv_report ) { delete_transient( 'openvote_groups_csv_report_' . get_current_user_id() ); } ?>
-    <?php if ( ! empty( $groups ) ) : ?>
+    <?php if ( ! empty( $manual_groups ) ) : ?>
     <hr>
     <section class="openvote-groups-csv-import" style="max-width:800px; margin-top:24px; border:1px solid #c3c4c7; border-radius:4px; padding:20px 24px; background:#fff;">
         <h2 style="margin:0 0 16px; font-size:1.1em; font-weight:600;"><?php esc_html_e( 'Dodaj członków z pliku CSV', 'openvote' ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Plik .csv lub .txt (maks. 2 MB) z adresami e-mail; pozostałe kolumny są ignorowane. Konta nie są tworzone — dodawani są tylko istniejący użytkownicy.', 'openvote' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Plik .csv lub .txt (maks. 2 MB) z adresami e-mail; pozostałe kolumny są ignorowane.', 'openvote' ); ?></p>
+        <div class="notice notice-warning inline" style="margin:12px 0;">
+            <p><strong><?php esc_html_e( 'Import nie tworzy nowych kont — tylko przypisuje do grupy osoby, które już mają konto.', 'openvote' ); ?></strong></p>
+            <p><?php esc_html_e( 'Głosowania odbywają się na rzeczywistych kontach użytkowników tej strony: każdy głos jest powiązany z kontem, co pozwala sprawdzić uprawnienia i zapobiec podwójnemu głosowaniu. Dlatego plik CSV służy wyłącznie do przypisania istniejących kont do wybranej grupy (konto jest rozpoznawane po adresie e-mail).', 'openvote' ); ?></p>
+            <p><?php esc_html_e( 'Adres z pliku, dla którego nie istnieje jeszcze konto, zostanie odrzucony. To nie jest błąd pliku — ta osoba musi najpierw sama założyć konto (zarejestrować się na stronie) tym samym adresem e-mail. Po rejestracji wystarczy ponownie zaimportować plik: osoby już przypisane zostaną pominięte, a nowe konta zostaną dodane do grupy.', 'openvote' ); ?></p>
+        </div>
         <?php if ( is_array( $csv_report ) ) : ?>
             <div class="notice notice-info inline" style="margin:12px 0;">
                 <p><strong><?php
@@ -352,6 +381,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                     );
                 ?></strong></p>
                 <?php if ( ! empty( $csv_report['rejected'] ) ) : ?>
+                    <p><?php esc_html_e( 'Odrzucone adresy nie mają jeszcze konta na stronie. Poproś te osoby o założenie konta tym samym adresem e-mail, a następnie zaimportuj plik ponownie.', 'openvote' ); ?></p>
                     <details><summary><?php esc_html_e( 'Odrzucone adresy', 'openvote' ); ?></summary>
                         <ul style="max-height:240px;overflow:auto;margin:8px 0 0 18px;list-style:disc;">
                             <?php foreach ( $csv_report['rejected'] as $r ) : ?><li><code><?php echo esc_html( $r ); ?></code></li><?php endforeach; ?>
@@ -368,7 +398,7 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
                 <label for="openvote_csv_group"><?php esc_html_e( 'Grupa', 'openvote' ); ?></label>
                 <select name="group_id" id="openvote_csv_group" required>
                     <option value="">— <?php esc_html_e( 'wybierz grupę', 'openvote' ); ?> —</option>
-                    <?php foreach ( $groups as $g ) : ?>
+                    <?php foreach ( $manual_groups as $g ) : ?>
                         <option value="<?php echo esc_attr( $g->id ); ?>"><?php echo esc_html( $g->name ); ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -419,6 +449,20 @@ wp_localize_script( 'openvote-batch-progress', 'openvoteBatch', [
         </button>
         <div id="openvote-sync-all-progress" style="margin-top:10px;"></div>
     </div>
+
+    <?php if ( current_user_can( 'manage_options' ) ) : ?>
+    <div style="margin-bottom:20px;padding:12px 16px;background:#fff;border:1px solid #ddd;border-left:4px solid #2271b1;max-width:800px;">
+        <strong><?php esc_html_e( 'Grupa systemowa system.Wszyscy', 'openvote' ); ?></strong>
+        <p class="description" style="margin:4px 0 8px;">
+            <?php esc_html_e( 'Grupa system.Wszyscy jest tworzona automatycznie: członkowie z wypełnionym polem Grupa i jakąkolwiek rolą, bez administratorów. Członkostwo aktualizuje się samo przy zmianie pola Grupa lub roli i co kwadrans przez cron (heartbeat). Przycisk wymusza natychmiastowe uzgodnienie.', 'openvote' ); ?>
+        </p>
+        <form method="post" action="">
+            <?php wp_nonce_field( 'openvote_groups_action', 'openvote_groups_nonce' ); ?>
+            <input type="hidden" name="openvote_groups_action" value="system_sync">
+            <button type="submit" class="button"><?php esc_html_e( 'Synchronizuj system.Wszyscy teraz', 'openvote' ); ?></button>
+        </form>
+    </div>
+    <?php endif; ?>
 
     </div>
 

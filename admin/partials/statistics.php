@@ -9,19 +9,24 @@ $gm_table     = $wpdb->prefix . 'openvote_group_members';
 $polls_table  = $wpdb->prefix . 'openvote_polls';
 $surveys_table  = $wpdb->prefix . 'openvote_surveys';
 $responses_table = $wpdb->prefix . 'openvote_survey_responses';
-$now            = current_time( 'mysql' );
+// Zegar jak przy głosowaniu (z przesunięciem z Konfiguracji) — spójnie z Openvote_Poll::is_time_expired().
+$now            = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
 
 $groups_count   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$groups_table}" );
-$members_count  = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$gm_table}" );
+// Członkowie/nieaktywni: bez grup systemowych (system.Wszyscy obejmuje każdego z rolą — zawyżałaby liczniki).
+$sys_ids        = class_exists( 'Openvote_System_Groups' ) ? array_map( 'intval', Openvote_System_Groups::get_system_group_ids() ) : [];
+$gm_non_system  = $sys_ids ? ' WHERE group_id NOT IN (' . implode( ',', $sys_ids ) . ')' : '';
+$members_count  = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$gm_table}{$gm_non_system}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tylko liczby całkowite
+// Zakończone = 'closed' albo 'open' z minionym terminem (jak Openvote_Poll::get_closed_polls_for_user()); bez szkiców.
 $closed_polls_count = (int) $wpdb->get_var( $wpdb->prepare(
-	"SELECT COUNT(*) FROM {$polls_table} WHERE status = 'closed' AND date_end <= %s",
+	"SELECT COUNT(*) FROM {$polls_table} WHERE ( status = 'closed' OR ( status = 'open' AND date_end < %s ) )",
 	$now
 ) );
 $surveys_launched  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$surveys_table} WHERE status IN ('open','closed')" );
 $surveys_filled    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$responses_table} WHERE response_status = 'ready'" );
 $surveys_views     = (int) get_option( 'openvote_survey_views', 0 );
 
-$member_ids = $wpdb->get_col( "SELECT DISTINCT user_id FROM {$gm_table}" );
+$member_ids = $wpdb->get_col( "SELECT DISTINCT user_id FROM {$gm_table}{$gm_non_system}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- tylko liczby całkowite
 $active_count   = 0;
 $inactive_count = 0;
 foreach ( (array) $member_ids as $uid ) {
@@ -32,13 +37,11 @@ foreach ( (array) $member_ids as $uid ) {
 	}
 }
 
-$last_10_polls = Openvote_Poll::get_all( [
-	'status'  => 'closed',
-	'orderby' => 'date_end',
-	'order'   => 'DESC',
-	'limit'   => 10,
-	'offset'  => 0,
-] );
+// Ostatnie 10 zakończonych głosowań (ten sam zakres co $closed_polls_count — także wygasłe ze statusem 'open').
+$last_10_polls = (array) $wpdb->get_results( $wpdb->prepare(
+	"SELECT id, title FROM {$polls_table} WHERE ( status = 'closed' OR ( status = 'open' AND date_end < %s ) ) ORDER BY date_end DESC LIMIT 10",
+	$now
+) );
 
 $chart_data = [];
 $max_pct    = 0;

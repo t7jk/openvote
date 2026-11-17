@@ -49,9 +49,9 @@ wp_localize_script( 'openvote-survey-public', 'openvoteSurveyPublic', [
 $user_id   = get_current_user_id();
 $logged_in = is_user_logged_in();
 $surveys   = Openvote_Survey::get_all( [ 'status' => 'open', 'orderby' => 'date_start', 'order' => 'ASC' ] );
-$now       = current_time( 'mysql' );
 
-$active_surveys = array_filter( $surveys, fn( $s ) => $s->date_start <= $now && $s->date_end >= $now );
+// Ten sam zegar co w głosowaniach (openvote_current_time_for_voting) — zob. Openvote_Survey::is_active().
+$active_surveys = array_filter( $surveys, fn( $s ) => Openvote_Survey::is_active( $s ) );
 
 ?>
 <div class="openvote-survey-wrap">

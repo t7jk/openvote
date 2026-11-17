@@ -33,11 +33,15 @@ class Openvote_Batch_Processor {
      *
      * Dla `send_invitations` wypełnia tabelę wp_openvote_email_queue przed startem.
      *
+     * Zadania wysyłki (zaproszenia, wiadomości) są rejestrowane w heartbeacie, który dokończy je,
+     * gdy panel przestanie wywoływać kolejne partie (patrz Openvote_Heartbeat::STALE_AFTER).
+     *
      * @param string $type   Typ zadania (np. 'sync_group').
      * @param array  $params Parametry zadania.
+     * @param string $owner  Kto prowadzi zadanie: 'panel' (AJAX z przeglądarki) lub 'heartbeat' (cron serwera).
      * @return string Job ID.
      */
-    public static function start_job( string $type, array $params ): string {
+    public static function start_job( string $type, array $params, string $owner = 'panel' ): string {
         $job_id = uniqid( 'openvote_job_', true );
 
         // Dla wysyłki zaproszeń: najpierw wypełnij kolejkę w bazie.
@@ -62,6 +66,8 @@ class Openvote_Batch_Processor {
             'results'   => [],
             'logs'      => [],
             'started_at' => time(),
+            'last_activity' => time(),
+            'owner'     => ( 'heartbeat' === $owner ) ? 'heartbeat' : 'panel',
         ];
 
         if ( 'sync_all_city_groups' === $type ) {
@@ -139,7 +145,28 @@ class Openvote_Batch_Processor {
         }
         set_transient( $job_id, $job_data, HOUR_IN_SECONDS );
 
+        // Rejestracja w heartbeacie (heartbeat śledzi własne zadania sam). Kolejka w DB jest źródłem prawdy,
+        // więc nawet po wygaśnięciu transientu cron wznowi wysyłkę oczekujących wierszy.
+        if ( 'heartbeat' !== $owner && class_exists( 'Openvote_Heartbeat', false ) && method_exists( 'Openvote_Heartbeat', 'track_job' ) ) {
+            $key = self::tracking_key( $job_data );
+            if ( $key !== '' ) {
+                Openvote_Heartbeat::track_job( $key, $job_id );
+            }
+        }
+
         return $job_id;
+    }
+
+    /** Klucz śledzenia heartbeatu dla zadania wysyłki: 'p{poll_id}' / 'm{message_id}', inaczej ''. */
+    private static function tracking_key( array $job ): string {
+        $type = $job['type'] ?? '';
+        if ( 'send_invitations' === $type && ! empty( $job['params']['poll_id'] ) ) {
+            return 'p' . absint( $job['params']['poll_id'] );
+        }
+        if ( 'send_mass_message' === $type && ! empty( $job['params']['message_id'] ) ) {
+            return 'm' . absint( $job['params']['message_id'] );
+        }
+        return '';
     }
 
     /**
@@ -187,7 +214,9 @@ class Openvote_Batch_Processor {
         $lock = self::send_lock_name( $job );
         if ( $lock !== '' ) {
             if ( ! self::acquire_send_lock( $lock ) ) {
-                return $job; // inny proces właśnie wysyła tę partię — klient spróbuje ponownie.
+                // Inny proces właśnie wysyła tę partię — klient spróbuje ponownie. 'lock_busy' tylko w odpowiedzi (nie zapisywane).
+                $job['lock_busy'] = true;
+                return $job;
             }
             try {
                 return self::process_batch_unlocked( $job_id );
@@ -199,14 +228,8 @@ class Openvote_Batch_Processor {
     }
 
     private static function send_lock_name( array $job ): string {
-        $type = $job['type'] ?? '';
-        if ( 'send_invitations' === $type && ! empty( $job['params']['poll_id'] ) ) {
-            return 'openvote_sendlock_p' . absint( $job['params']['poll_id'] );
-        }
-        if ( 'send_mass_message' === $type && ! empty( $job['params']['message_id'] ) ) {
-            return 'openvote_sendlock_m' . absint( $job['params']['message_id'] );
-        }
-        return '';
+        $key = self::tracking_key( $job );
+        return $key !== '' ? 'openvote_sendlock_' . $key : '';
     }
 
     private static function acquire_send_lock( string $name ): bool {
@@ -252,6 +275,8 @@ class Openvote_Batch_Processor {
         if ( ! isset( $job['logs'] ) || ! is_array( $job['logs'] ) ) {
             $job['logs'] = [];
         }
+        // Znacznik aktywności — heartbeat przejmuje zadania „running” bez partii od Openvote_Heartbeat::STALE_AFTER s.
+        $job['last_activity'] = time();
         $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
             /* translators: 1: offset, 2: total */
             __( 'Partia offset %1$d / %2$d', 'openvote' ),
@@ -262,6 +287,7 @@ class Openvote_Batch_Processor {
 
         $result = self::run_batch( $job );
         $job    = $result['job'];
+        $job['last_activity'] = time();
 
         if ( ( $job['status'] ?? '' ) === 'limit_exceeded' ) {
             set_transient( $job_id, $job, HOUR_IN_SECONDS );
@@ -784,8 +810,26 @@ class Openvote_Batch_Processor {
 
         $city_value = sanitize_text_field( $cities[0] );
 
+        // Wartość „system.…” jest zarezerwowana dla grup systemowych — miasta o takiej nazwie pomijamy.
+        if ( class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::is_reserved_name( $city_value ) ) {
+            $job['logs'][] = gmdate( 'Y-m-d H:i:s' ) . ' ' . sprintf(
+                /* translators: %s: city name */
+                __( 'Pominięto wartość %s — nazwy „system.…” są zarezerwowane dla grup systemowych.', 'openvote' ),
+                $city_value
+            );
+            $job['offset']++;
+            $job['processed']++;
+            $job['params']['sync_user_offset'] = 0;
+            if ( $job_id ) {
+                set_transient( $job_id, $job, HOUR_IN_SECONDS );
+            }
+            return [ $city_value ];
+        }
+
+        // Tylko grupy niesystemowe (system_key IS NULL) — grupa systemowa nigdy nie jest grupą miasta.
+        $non_system  = ( class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::schema_ready() ) ? ' AND system_key IS NULL' : '';
         $existing_id = $wpdb->get_var(
-            $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s", $city_value )
+            $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s{$non_system}", $city_value )
         );
         if ( ! $existing_id ) {
             $wpdb->insert(
@@ -889,25 +933,11 @@ class Openvote_Batch_Processor {
     }
 
     /**
-     * Jedna partia: dodaj SYNC_BATCH_SIZE użytkowników do grupy "Wszyscy" (tryb bez miast).
+     * Tryb bez miast: jedna partia SYNC_BATCH_SIZE użytkowników — dopasowanie ich członkostwa w grupach systemowych
+     * (system.Wszyscy = członkowie z rolą, bez administratorów; w tym trybie warunek pola Grupa odpada). Dawną grupę „Wszyscy” zastąpiła system.Wszyscy (4.9.0).
      */
     private static function batch_sync_wszyscy( int $offset ): array {
         global $wpdb;
-
-        $groups_table = $wpdb->prefix . 'openvote_groups';
-        $gm_table     = $wpdb->prefix . 'openvote_group_members';
-        $name         = Openvote_Field_Map::WSZYSCY_NAME;
-
-        $wszyscy_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$groups_table} WHERE name = %s", $name ) );
-        if ( ! $wszyscy_id ) {
-            $wpdb->insert(
-                $groups_table,
-                [ 'name' => $name, 'type' => 'custom', 'description' => null, 'member_count' => 0 ],
-                [ '%s', '%s', '%s', '%d' ]
-            );
-            $wszyscy_id = $wpdb->insert_id;
-        }
-        $wszyscy_id = (int) $wszyscy_id;
 
         $user_ids = $wpdb->get_col(
             $wpdb->prepare(
@@ -917,26 +947,22 @@ class Openvote_Batch_Processor {
             )
         );
 
-        $now = current_time( 'mysql' );
-        foreach ( $user_ids as $uid ) {
-            $wpdb->query(
-                $wpdb->prepare(
-                    "INSERT IGNORE INTO {$gm_table} (group_id, user_id, source, added_at) VALUES (%d, %d, 'auto', %s)",
-                    $wszyscy_id,
-                    (int) $uid,
-                    $now
-                )
-            );
+        if ( ! class_exists( 'Openvote_System_Groups' ) || ! Openvote_System_Groups::schema_ready() ) {
+            return array_map( 'intval', (array) $user_ids );
+        }
+        Openvote_System_Groups::ensure_groups();
+
+        $touched = [];
+        foreach ( (array) $user_ids as $uid ) {
+            foreach ( Openvote_System_Groups::sync_user( (int) $uid ) as $gid ) {
+                $touched[ $gid ] = true;
+            }
+        }
+        foreach ( array_keys( $touched ) as $gid ) {
+            Openvote_System_Groups::recount( (int) $gid );
         }
 
-        if ( ! empty( $user_ids ) ) {
-            $count = (int) $wpdb->get_var(
-                $wpdb->prepare( "SELECT COUNT(*) FROM {$gm_table} WHERE group_id = %d", $wszyscy_id )
-            );
-            $wpdb->update( $groups_table, [ 'member_count' => $count ], [ 'id' => $wszyscy_id ], [ '%d' ], [ '%d' ] );
-        }
-
-        return array_map( 'intval', $user_ids );
+        return array_map( 'intval', (array) $user_ids );
     }
 
     /**

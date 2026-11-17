@@ -11,7 +11,7 @@ Logika w `includes/class-openvote-i18n.php`: po załadowaniu domeny `openvote` d
 
 | Plik | Opis |
 |------|------|
-| `openvote.pot` | Szablon (źródło stringów) — generowany np. przez `wp i18n make-pot`. |
+| `openvote.pot` | Szablon (źródło stringów) — generowany przez `xgettext` (dokładne polecenie w nagłówku `make-en-us-po.php`). |
 | `openvote-en_US.po` | Tłumaczenia PL → EN (msgid po polsku, msgstr po angielsku). |
 | `openvote-en_US.mo` | Skompilowany plik dla gettext (generowany przez `msgfmt`). |
 

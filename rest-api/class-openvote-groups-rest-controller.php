@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET  /groups/{id}/members         — członkowie grupy (paginacja, offset)
  *   POST /groups/{id}/sync            — start synchronizacji → zwraca job_id
  *   POST /groups/sync-all             — sync wszystkich grup-miast → zwraca job_id
+ *   POST /groups/system-sync          — grupa system.Wszyscy: utwórz, jeśli brak, i uzgodnij członkostwo
  *   GET  /jobs/{job_id}/progress      — status zadania masowego
  *   POST /jobs/{job_id}/next          — przetwórz następną partię
  */
@@ -62,6 +63,13 @@ class Openvote_Groups_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/groups/sync-all', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'sync_all_city_groups' ],
+            'permission_callback' => fn() => current_user_can( 'manage_options' ),
+        ] );
+
+        // POST /groups/system-sync — utwórz system.Wszyscy, jeśli brak, i uzgodnij członkostwo (podbudżet)
+        register_rest_route( self::NAMESPACE, '/groups/system-sync', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [ $this, 'system_sync' ],
             'permission_callback' => fn() => current_user_can( 'manage_options' ),
         ] );
 
@@ -207,14 +215,19 @@ class Openvote_Groups_Rest_Controller {
             } );
         }
 
-        $data = array_map( fn( $g ) => [
-            'id'           => (int) $g->id,
-            'name'         => $g->name,
-            'type'         => $g->type,
-            'description'  => $g->description,
-            'member_count' => (int) $g->member_count,
-            'created_at'   => $g->created_at,
-        ], $groups );
+        $data = array_map( function ( $g ) {
+            $key = isset( $g->system_key ) && null !== $g->system_key ? (string) $g->system_key : null;
+            return [
+                'id'           => (int) $g->id,
+                'name'         => $g->name,
+                'type'         => $g->type,
+                'description'  => $g->description,
+                'member_count' => (int) $g->member_count,
+                'created_at'   => $g->created_at,
+                'is_system'    => null !== $key,
+                'system_key'   => $key,
+            ];
+        }, array_values( $groups ) );
 
         return new WP_REST_Response( $data, 200 );
     }
@@ -302,6 +315,21 @@ class Openvote_Groups_Rest_Controller {
         return new WP_REST_Response( [
             'job_id'  => $job_id,
             'message' => __( 'Synchronizacja uruchomiona.', 'openvote' ),
+        ], 200 );
+    }
+
+    /**
+     * POST /groups/system-sync — ręczna synchronizacja grup systemowych (tylko administrator).
+     */
+    public function system_sync( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+        if ( ! Openvote_System_Groups::schema_ready() ) {
+            return new WP_Error( 'schema_outdated', __( 'Baza danych wymaga aktualizacji — otwórz panel administracyjny, aby ją przeprowadzić.', 'openvote' ), [ 'status' => 409 ] );
+        }
+        $res = Openvote_System_Groups::run_manual();
+        return new WP_REST_Response( [
+            'created' => (int) $res['created'],
+            'summary' => (string) $res['summary'],
+            'done'    => (bool) $res['done'],
         ], 200 );
     }
 

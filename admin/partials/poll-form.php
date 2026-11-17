@@ -100,6 +100,10 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
+// Grupy systemowe jako docelowe (przy włączonym ograniczeniu koordynatorów) wybiera administrator WP albo koordynator,
+// któremu grupa systemowa jest przypisana; zapisane wcześniej przez administratora są zachowywane przy zapisie.
+$openvote_targets_required = function_exists( 'openvote_current_user_can_target_everyone' ) && ! openvote_current_user_can_target_everyone();
+$all_groups = Openvote_System_Groups::filter_selectable_rows( (array) $all_groups );
 ?>
 <div class="wrap">
     <h1><?php
@@ -207,6 +211,9 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
                         </select>
                         <?php if ( ! $is_read_only ) : ?>
                             <p class="description"><?php esc_html_e( 'Ctrl+klik wybiera wiele grup. Do startu głosowania zaznacz co najmniej jedną grupę.', 'openvote' ); ?></p>
+                            <?php if ( $openvote_targets_required ) : ?>
+                                <p class="description"><strong><?php esc_html_e( 'Koordynatorzy są ograniczeni do własnych grup: głosowanie musi mieć co najmniej jedną grupę docelową. Głosowanie bez grup (dostępne dla wszystkich) może zapisać tylko administrator WordPress.', 'openvote' ); ?></strong></p>
+                            <?php endif; ?>
                         <?php endif; ?>
                     <?php else : ?>
                         <p class="description"><?php esc_html_e( 'Brak grup. Dodaj grupy w sekcji Grupy, a głosowanie będzie dostępne dla wszystkich uprawnionych.', 'openvote' ); ?></p>

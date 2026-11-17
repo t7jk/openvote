@@ -16,7 +16,7 @@ if ( isset( $survey ) && $survey ) {
     $page_title      = sprintf( __( 'Zgłoszenia: %s', 'openvote' ), $survey->title );
 } else {
     // ── Widok zbiorczy — wszystkie zamknięte ankiety ─────────────────────
-    $surveys_to_show = Openvote_Survey::get_all( [ 'status' => 'closed', 'orderby' => 'title', 'order' => 'ASC' ] );
+    $surveys_to_show = Openvote_Survey::get_all( [ 'status' => 'closed', 'effective_status' => true, 'orderby' => 'title', 'order' => 'ASC' ] );
     $page_title      = __( 'Zgłoszenia — zakończone ankiety', 'openvote' );
 }
 ?>

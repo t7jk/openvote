@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
- * Version:           1.0.36
+ * Version:           1.0.37
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.36' );
+define( 'OPENVOTE_VERSION', '1.0.37' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -50,6 +50,7 @@ require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-batch-processor.php'
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-cron-sync.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-email-resume-cron.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-heartbeat.php';
+require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-system-groups.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-eligibility.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-activator.php';
 require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-deactivator.php';
@@ -72,6 +73,7 @@ function openvote_run(): void {
 }
 
 Openvote_Cron_Sync::register();
+Openvote_System_Groups::register();
 Openvote_Email_Resume_Cron::register();
 Openvote_Heartbeat::register();
 openvote_run();
@@ -629,7 +631,10 @@ function openvote_update_user_vote_stats( int $user_id ): void {
 }
 
 /**
- * Przelicza openvote_missed_polls_count dla jednego użytkownika (tylko głosowania z date_end <= now()).
+ * Przelicza openvote_missed_polls_count dla jednego użytkownika — tylko głosowania ze statusem 'closed'.
+ * Wygasłe 'open' celowo NIE są liczone: heartbeat (task_close_expired) zamyka je w ciągu ~15 min
+ * i wtedy jednorazowo dolicza +1 (openvote_increment_missed_for_poll_non_voters). Liczenie ich tutaj
+ * dawałoby podwójne naliczenie, gdy przeliczenie trafi między upływ terminu a tick heartbeatu.
  *
  * @param int $user_id
  */
@@ -637,7 +642,9 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 	global $wpdb;
 	$polls_table = $wpdb->prefix . 'openvote_polls';
 	$votes_table = $wpdb->prefix . 'openvote_votes';
-	$now         = current_time( 'mysql' );
+	// Zegar jak przy głosowaniu (z przesunięciem z Konfiguracji). date_end to DATETIME, więc porównanie
+	// „date_end < now” odpowiada Openvote_Poll::is_time_expired() (now > date_end).
+	$now         = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
 	$count       = 0;
 	$poll_ids    = $wpdb->get_col(
 		$wpdb->prepare(
@@ -648,7 +655,7 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 	foreach ( (array) $poll_ids as $poll_id ) {
 		$poll_id = (int) $poll_id;
 		$poll    = Openvote_Poll::get( $poll_id );
-		if ( ! $poll ) {
+		if ( ! $poll || ! Openvote_Poll::is_ended( $poll ) ) {
 			continue;
 		}
 		if ( ! Openvote_Vote::user_was_eligible_for_poll( $user_id, $poll ) ) {
@@ -676,9 +683,9 @@ function openvote_recalculate_missed_polls_count( int $user_id ): void {
 }
 
 /**
- * Dla zakończonego głosowania (date_end <= now): zwiększa openvote_missed_polls_count o 1
- * dla każdego uprawnionego użytkownika, który nie oddał głosu. Partiami po 100.
- * Wywoływać tylko gdy date_end danego głosowania jest w przeszłości.
+ * Dla zakończonego głosowania (status 'closed' lub termin minął wg openvote_current_time_for_voting()):
+ * zwiększa openvote_missed_polls_count o 1 dla każdego uprawnionego użytkownika, który nie oddał głosu.
+ * Partiami po 100. Wywoływać tylko raz na głosowanie, gdy date_end danego głosowania jest w przeszłości.
  *
  * @param int $poll_id
  */
@@ -687,8 +694,8 @@ function openvote_increment_missed_for_poll_non_voters( int $poll_id ): void {
 	if ( ! $poll ) {
 		return;
 	}
-	$now = current_time( 'mysql' );
-	if ( ! isset( $poll->date_end ) || $poll->date_end > $now ) {
+	// Openvote_Poll::is_ended(): 'closed' albo termin minął (data 10-znakowa = koniec dnia), ten sam zegar co przy głosowaniu.
+	if ( ! isset( $poll->date_end ) || 'draft' === ( $poll->status ?? '' ) || ! Openvote_Poll::is_ended( $poll ) ) {
 		return;
 	}
 	$batch_size = 100;
@@ -896,6 +903,62 @@ function openvote_is_test_group( int $group_id ): bool {
 		$group_id
 	) );
 	return (int) $val === 1;
+}
+
+/**
+ * Czy grupa o podanym ID to grupa systemowa (system.Wszyscy, system_key NOT NULL)?
+ *
+ * @param int $group_id
+ * @return bool
+ */
+function openvote_is_system_group( int $group_id ): bool {
+	return class_exists( 'Openvote_System_Groups' ) && Openvote_System_Groups::is_system_group( $group_id );
+}
+
+/**
+ * Czy bieżący użytkownik może wskazywać DOWOLNE grupy systemowe jako docelowe (głosowania, wiadomości, zaproszenia)?
+ * Gdy w Konfiguracji włączone jest ograniczenie koordynatorów do własnych grup („own”) — tylko administrator WordPress
+ * (manage_options); koordynator może dodatkowo wskazać grupy systemowe przypisane mu w openvote_groups
+ * (Openvote_System_Groups::apply_target_policy() / denied_system_targets()). Gdy wyłączone — każdy, kto ma dostęp do formularzy.
+ *
+ * @return bool
+ */
+function openvote_current_user_can_target_system_groups(): bool {
+	if ( openvote_coordinator_poll_access_scope() !== 'own' ) {
+		return true;
+	}
+	return current_user_can( 'manage_options' );
+}
+
+/**
+ * Czy bieżący użytkownik może zapisać głosowanie / wiadomość / uruchomić wysyłkę BEZ grup docelowych
+ * (głosowanie bez grup = „głosować mogą wszyscy”)? Przy ograniczeniu koordynatorów do własnych grup („own”)
+ * — tylko administrator WordPress (manage_options).
+ *
+ * @return bool
+ */
+function openvote_current_user_can_target_everyone(): bool {
+	return Openvote_System_Groups::empty_targets_allowed(
+		openvote_coordinator_poll_access_scope() === 'own',
+		current_user_can( 'manage_options' )
+	);
+}
+
+/**
+ * Grupy „własne” koordynatora ograniczonego do własnych grup: przypisane w openvote_groups (także grupy systemowe)
+ * + grupa Test (gdy włączona). Używane do filtrowania list i sprawdzania dostępu.
+ *
+ * @return int[]
+ */
+function openvote_coordinator_own_group_ids(): array {
+	$ids = array_map( 'absint', Openvote_Role_Manager::get_user_groups( get_current_user_id() ) );
+	if ( openvote_create_test_group_enabled() ) {
+		$test_gid = openvote_get_test_group_id();
+		if ( $test_gid ) {
+			$ids[] = $test_gid;
+		}
+	}
+	return array_values( array_unique( array_filter( $ids ) ) );
 }
 
 // ── Szablon e-maila zapraszającego ───────────────────────────────────────

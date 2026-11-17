@@ -16,6 +16,9 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
         return isset( $my_group_ids[ (int) $g->id ] );
     } );
 }
+// Grupy systemowe jako odbiorców (przy włączonym ograniczeniu koordynatorów) wybiera administrator WP albo koordynator,
+// któremu grupa systemowa jest przypisana. Zapisane już w edytowanej wiadomości (przez administratora) backend zachowuje.
+$all_groups = Openvote_System_Groups::filter_selectable_rows( (array) $all_groups );
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php esc_html_e( 'Wysyłka', 'openvote' ); ?></h1>
@@ -57,6 +60,8 @@ if ( openvote_is_coordinator_restricted_to_own_groups() ) {
             <?php
             if ( '2' === (string) $_GET['save_error'] ) {
                 esc_html_e( 'Wybierz co najmniej jedną grupę docelową.', 'openvote' );
+            } elseif ( '3' === (string) $_GET['save_error'] ) {
+                esc_html_e( 'Grupę systemową (system.…) może wskazać jako odbiorców tylko administrator WordPress lub koordynator, któremu jest przypisana, gdy koordynatorzy są ograniczeni do własnych grup.', 'openvote' );
             } else {
                 esc_html_e( 'Zapis nie powiódł się. Sprawdź tytuł i czy wiadomość nie została już wysłana.', 'openvote' );
             }

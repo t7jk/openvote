@@ -64,11 +64,11 @@ class Openvote_Surveys_Rest_Controller {
 
     public function get_surveys( WP_REST_Request $request ): WP_REST_Response {
         $surveys = Openvote_Survey::get_all( [ 'status' => 'open' ] );
-        $now     = current_time( 'mysql' );
 
         $result = [];
         foreach ( $surveys as $s ) {
-            if ( $s->date_start > $now || $s->date_end < $now ) {
+            // Ten sam zegar co w głosowaniach (openvote_current_time_for_voting) — zob. Openvote_Survey::is_active().
+            if ( ! Openvote_Survey::is_active( $s ) ) {
                 continue;
             }
             $result[] = $this->format_survey( $s, false );

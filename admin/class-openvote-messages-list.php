@@ -49,10 +49,12 @@ class Openvote_Messages_List extends WP_List_Table {
     }
 
     protected function get_views(): array {
+        // F: liczniki wg tej samej widoczności co lista (koordynator ograniczony — tylko wiadomości do jego grup).
+        $vis    = Openvote_Message::visibility_args();
         $counts = [
-            ''     => Openvote_Message::count(),
-            'draft' => Openvote_Message::count( 'draft' ),
-            'sent'  => Openvote_Message::count( 'sent' ),
+            ''      => Openvote_Message::count_with_filters( $vis ),
+            'draft' => Openvote_Message::count_with_filters( $vis + [ 'status' => 'draft' ] ),
+            'sent'  => Openvote_Message::count_with_filters( $vis + [ 'status' => 'sent' ] ),
         ];
 
         $labels = [
@@ -101,6 +103,9 @@ class Openvote_Messages_List extends WP_List_Table {
         if ( $search ) {
             $args['search'] = $search;
         }
+
+        // F: koordynator ograniczony do własnych grup widzi tylko wiadomości kierowane do jego grup (jak lista głosowań).
+        $args += Openvote_Message::visibility_args();
 
         $this->items = Openvote_Message::get_all( $args );
         $total_items = Openvote_Message::count_with_filters( $args );
@@ -286,7 +291,11 @@ class Openvote_Messages_List extends WP_List_Table {
         }
 
         foreach ( $ids as $id ) {
-            Openvote_Message::delete( $id );
+            $msg = Openvote_Message::get( $id );
+            // F: cudzych wiadomości (poza grupami koordynatora) nie usuwamy.
+            if ( $msg && Openvote_Message::current_user_can_access( $msg ) ) {
+                Openvote_Message::delete( $id );
+            }
         }
 
         wp_safe_redirect( add_query_arg( [ 'page' => 'openvote-communication', 'bulk_deleted' => count( $ids ) ], admin_url( 'admin.php' ) ) . '#tab-list' );

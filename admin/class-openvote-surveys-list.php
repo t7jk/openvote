@@ -51,6 +51,7 @@ class Openvote_Surveys_List extends WP_List_Table {
     // ─── Filtry statusów ──────────────────────────────────────────────────
 
     protected function get_views(): array {
+        // Liczniki wg statusu „efektywnego”: wygasła ankieta 'open' liczy się jako zakończona (także bez crona/heartbeatu).
         $counts = [
             ''       => self::count_surveys(),
             'draft'  => self::count_surveys( 'draft' ),
@@ -237,10 +238,13 @@ class Openvote_Surveys_List extends WP_List_Table {
     }
 
     protected function column_status( $item ): string {
+        $label   = Openvote_Survey::status_label( (string) $item->status, $item );
+        $expired = Openvote_Survey::is_time_expired( $item );
         return sprintf(
-            '<span class="openvote-status openvote-status--%s">%s</span>',
+            '<span class="openvote-status openvote-status--%s"%s>%s</span>',
             esc_attr( $item->status ),
-            esc_html( Openvote_Survey::status_label( (string) $item->status ) )
+            $expired ? ' title="' . esc_attr__( 'Termin zakończenia minął. Kliknij „Zakończ”, aby formalnie zamknąć ankietę.', 'openvote' ) . '"' : '',
+            esc_html( $label )
         );
     }
 
@@ -255,9 +259,8 @@ class Openvote_Surveys_List extends WP_List_Table {
     }
 
     protected function column_date_end( $item ): string {
-        $ts  = strtotime( $item->date_end );
-        $now = current_time( 'mysql' );
-        $style = ( $item->date_end < $now && 'open' === $item->status )
+        $ts    = strtotime( $item->date_end );
+        $style = Openvote_Survey::is_time_expired( $item )
             ? ' style="color:#d63638;font-weight:600;"'
             : '';
         return sprintf(
@@ -294,12 +297,15 @@ class Openvote_Surveys_List extends WP_List_Table {
         }
 
         if ( 'close' === $action ) {
-            $now   = current_time( 'Y-m-d H:i:s' );
+            $now   = openvote_current_time_for_voting( 'Y-m-d H:i:s' );
             $count = 0;
             foreach ( $ids as $id ) {
                 $s = Openvote_Survey::get( $id );
                 if ( $s && 'open' === $s->status ) {
-                    Openvote_Survey::update( $id, [ 'status' => 'closed', 'date_end' => $now ] );
+                    // Ankieta wygasła czasowo: zachowaj jej rzeczywistą datę zakończenia (jak heartbeat). Zamknięcie atomowe.
+                    if ( ! Openvote_Survey::close_if_open( $id, Openvote_Survey::is_time_expired( $s ) ? null : $now ) ) {
+                        continue;
+                    }
                     if ( ! empty( $s->title ) ) {
                         openvote_surveys_audit_log_append( get_current_user_id(), sprintf( __( 'zakończył ankietę %s', 'openvote' ), $s->title ) );
                     }
@@ -357,8 +363,9 @@ class Openvote_Surveys_List extends WP_List_Table {
         $params = [];
 
         if ( ! empty( $args['status'] ) ) {
-            $where   .= ' AND status = %s';
-            $params[] = $args['status'];
+            [ $cond, $cond_params ] = Openvote_Survey::effective_status_where( (string) $args['status'] );
+            $where .= ' AND ' . $cond;
+            $params = array_merge( $params, $cond_params );
         }
         if ( ! empty( $args['search'] ) ) {
             $where   .= ' AND title LIKE %s';
@@ -386,8 +393,9 @@ class Openvote_Surveys_List extends WP_List_Table {
         $params = [];
 
         if ( ! empty( $args['status'] ) ) {
-            $where   .= ' AND status = %s';
-            $params[] = $args['status'];
+            [ $cond, $cond_params ] = Openvote_Survey::effective_status_where( (string) $args['status'] );
+            $where .= ' AND ' . $cond;
+            $params = array_merge( $params, $cond_params );
         }
         if ( ! empty( $args['search'] ) ) {
             $where   .= ' AND title LIKE %s';
@@ -406,7 +414,9 @@ class Openvote_Surveys_List extends WP_List_Table {
         global $wpdb;
         $table = $wpdb->prefix . 'openvote_surveys';
         if ( $status ) {
-            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE status = %s", $status ) );
+            [ $cond, $cond_params ] = Openvote_Survey::effective_status_where( $status );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE {$cond}", ...$cond_params ) );
         }
         return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
     }
