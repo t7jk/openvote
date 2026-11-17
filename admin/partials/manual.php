@@ -181,7 +181,7 @@ $brand = openvote_get_brand_short_name();
     </tr>
     </tbody>
 </table>
-<p><?php esc_html_e( 'Zajrzyj też do zakładki „Nieaktywni”: osoby uznane tam za nieaktywne nie dostają powiadomień o nowych głosowaniach ani wiadomości masowych. Ustaw progi świadomie, aby nikt nie został pominięty przez przypadek.', 'openvote' ); ?></p>
+<p><?php esc_html_e( 'Zajrzyj też do zakładki „Nieaktywni”: osoby uznane tam za nieaktywne nie dostają wiadomości masowych. Zaproszenia do głosowań otrzymują zawsze wszyscy uprawnieni, także nieaktywni.', 'openvote' ); ?></p>
 
 <h4><?php esc_html_e( 'Krok 7. Treść zaproszenia (zakładka Szablon zaproszenia)', 'openvote' ); ?></h4>
 <p><strong><?php esc_html_e( 'Co zrobić:', 'openvote' ); ?></strong> <?php esc_html_e( 'Konfiguracja → zakładka „Szablon zaproszenia”. Ustaw „Temat”, „Od (nazwa nadawcy)” oraz „Treść e-maila (czysty tekst)”. Możesz używać pól wbudowanych z tabeli nad formularzem, np. {poll_title}, {vote_url}, {date_end}, {questions}, {brand_short}. Kliknij „Zobacz podgląd”, a na koniec „Zapisz konfigurację”.', 'openvote' ); ?></p>

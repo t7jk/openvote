@@ -1493,7 +1493,7 @@ function openvote_settings_select( string $logical, string $current, array $core
             <?php esc_html_e( 'Wystarczy aby jeden z wyżej ustawionych warunków został spełniony.', 'openvote' ); ?>
         </p>
         <p class="description">
-            <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać powiadomień o nowych głosowaniach i wiadomości masowych (newsletter).', 'openvote' ); ?>
+            <?php esc_html_e( 'Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze wszyscy uprawnieni.', 'openvote' ); ?>
         </p>
 
         <table class="form-table" role="presentation">

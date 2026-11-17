@@ -1074,10 +1074,9 @@ class Openvote_Batch_Processor {
             'From: ' . $from_name . ' <' . $from_email . '>',
         ];
         $sent = [];
+        // Zaproszenia do głosowania idą do WSZYSTKICH uprawnionych — status „nieaktywny” nie odbiera prawa głosu,
+        // więc nie może odbierać zaproszenia (filtr nieaktywnych dotyczy tylko wiadomości masowych).
         foreach ( $users as $user ) {
-            if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $user->ID ) ) {
-                continue;
-            }
             if ( is_email( $user->user_email ) && wp_mail( $user->user_email, $subject, $message, $headers ) ) {
                 $sent[] = $user->user_email;
             }
@@ -1145,9 +1144,7 @@ class Openvote_Batch_Processor {
             if ( ! is_email( $u->user_email ) ) {
                 continue;
             }
-            if ( function_exists( 'openvote_is_user_inactive' ) && openvote_is_user_inactive( (int) $u->ID ) ) {
-                continue;
-            }
+            // Bez filtra nieaktywnych: każdy uprawniony do głosowania dostaje zaproszenie.
             $values[] = $job_id;
             $values[] = $poll_id;
             $values[] = (int) $u->ID;

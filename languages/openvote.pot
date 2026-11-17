@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OpenVote\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 14:53+0100\n"
+"POT-Creation-Date: 2026-11-17 22:57+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -89,7 +89,7 @@ msgstr ""
 #: admin/class-openvote-admin-surveys.php:16
 #: admin/class-openvote-admin-uninstall.php:19
 #: admin/class-openvote-surveys-list.php:296
-#: includes/class-openvote-mailer.php:484
+#: includes/class-openvote-mailer.php:498
 msgid "Brak uprawnień."
 msgstr ""
 
@@ -2083,8 +2083,8 @@ msgstr ""
 #: admin/partials/manual.php:184
 msgid ""
 "Zajrzyj też do zakładki „Nieaktywni”: osoby uznane tam za nieaktywne nie "
-"dostają powiadomień o nowych głosowaniach ani wiadomości masowych. Ustaw "
-"progi świadomie, aby nikt nie został pominięty przez przypadek."
+"dostają wiadomości masowych. Zaproszenia do głosowań otrzymują zawsze "
+"wszyscy uprawnieni, także nieaktywni."
 msgstr ""
 
 #: admin/partials/manual.php:186
@@ -5835,7 +5835,8 @@ msgstr ""
 #: admin/partials/settings.php:1496
 msgid ""
 "Jeśli użytkownik jest uznany za nieaktywnego, nie będzie otrzymywać "
-"powiadomień o nowych głosowaniach i wiadomości masowych (newsletter)."
+"wiadomości masowych (newsletter). Zaproszenia do głosowań otrzymują zawsze "
+"wszyscy uprawnieni."
 msgstr ""
 
 #: admin/partials/settings.php:1501
@@ -7107,20 +7108,20 @@ msgid "Miasto %s zakończone."
 msgstr ""
 
 #. translators: %s: error message from email provider
-#: includes/class-openvote-batch-processor.php:1266
-#: includes/class-openvote-batch-processor.php:1288
-#: includes/class-openvote-batch-processor.php:1310
-#: includes/class-openvote-batch-processor.php:1332
+#: includes/class-openvote-batch-processor.php:1263
+#: includes/class-openvote-batch-processor.php:1285
+#: includes/class-openvote-batch-processor.php:1307
+#: includes/class-openvote-batch-processor.php:1329
 #, php-format
 msgid "Błąd dostawcy e-mail: %s"
 msgstr ""
 
-#: includes/class-openvote-batch-processor.php:1352
-#: includes/class-openvote-batch-processor.php:1675
+#: includes/class-openvote-batch-processor.php:1349
+#: includes/class-openvote-batch-processor.php:1672
 msgid "Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację."
 msgstr ""
 
-#: includes/class-openvote-batch-processor.php:1678
+#: includes/class-openvote-batch-processor.php:1675
 msgid "Szczegóły:"
 msgstr ""
 
@@ -7401,53 +7402,53 @@ msgstr ""
 msgid "Brak klucza API Brevo."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:256
+#: includes/class-openvote-mailer.php:270
 msgid "Połączenie z dostawcą e-mail OK."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:257
+#: includes/class-openvote-mailer.php:271
 msgid "Połączenie zostanie zweryfikowane przy pierwszej wysyłce."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:262
-#: includes/class-openvote-mailer.php:287
+#: includes/class-openvote-mailer.php:276
+#: includes/class-openvote-mailer.php:301
 msgid "Brak klucza API."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:338
+#: includes/class-openvote-mailer.php:352
 msgid "Brak klucza API lub sekretu Freshmail."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:423
+#: includes/class-openvote-mailer.php:437
 msgid "Brak klucza API GetResponse."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:426
+#: includes/class-openvote-mailer.php:440
 msgid "Brak From Field ID GetResponse."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:489
+#: includes/class-openvote-mailer.php:503
 msgid "Podaj prawidłowy adres e-mail odbiorcy."
 msgstr ""
 
-#: includes/class-openvote-mailer.php:499
+#: includes/class-openvote-mailer.php:513
 msgid "Test zaproszenia"
 msgstr ""
 
-#: includes/class-openvote-mailer.php:516
-#: includes/class-openvote-mailer.php:528
-#: includes/class-openvote-mailer.php:540
-#: includes/class-openvote-mailer.php:552
-#: includes/class-openvote-mailer.php:584
+#: includes/class-openvote-mailer.php:530
+#: includes/class-openvote-mailer.php:542
+#: includes/class-openvote-mailer.php:554
+#: includes/class-openvote-mailer.php:566
+#: includes/class-openvote-mailer.php:598
 #, php-format
 msgid "E-mail wysłany pomyślnie na: %s"
 msgstr ""
 
-#: includes/class-openvote-mailer.php:518
-#: includes/class-openvote-mailer.php:530
-#: includes/class-openvote-mailer.php:542
-#: includes/class-openvote-mailer.php:554
-#: includes/class-openvote-mailer.php:591
+#: includes/class-openvote-mailer.php:532
+#: includes/class-openvote-mailer.php:544
+#: includes/class-openvote-mailer.php:556
+#: includes/class-openvote-mailer.php:568
+#: includes/class-openvote-mailer.php:605
 msgid "Wysyłka nie powiodła się."
 msgstr ""
 

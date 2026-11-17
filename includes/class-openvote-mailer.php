@@ -186,15 +186,29 @@ class Openvote_Mailer {
             return [ 'sent' => 0, 'failed' => count( $recipients ), 'error' => __( 'Brak prawidłowych adresów e-mail.', 'openvote' ) ];
         }
 
+        // PRYWATNOŚĆ: każdy odbiorca dostaje osobną wiadomość (messageVersions, po jednym
+        // adresie w "to"). Nigdy nie wkładamy wielu adresów do jednego pola "to" —
+        // wtedy każdy adresat widziałby e-maile pozostałych.
+        $versions = [];
+        foreach ( $to_list as $entry ) {
+            $versions[] = [ 'to' => [ $entry ] ];
+        }
+
         $payload = [
-            'sender' => [ 'name' => $from_name, 'email' => $from_email ],
-            'to'     => $to_list,
-            'subject' => $subject,
+            'sender'          => [ 'name' => $from_name, 'email' => $from_email ],
+            'subject'         => $subject,
+            'messageVersions' => $versions,
         ];
         if ( $content_type === 'text/html' ) {
             $payload['htmlContent'] = $body_text;
         } else {
             $payload['textContent'] = $body_text;
+        }
+
+        foreach ( $payload['messageVersions'] as $v ) {
+            if ( count( $v['to'] ) !== 1 ) {
+                return [ 'sent' => 0, 'failed' => count( $to_list ), 'error' => 'Brevo: privacy guard — more than one recipient per message.' ];
+            }
         }
 
         $response = wp_remote_post(
