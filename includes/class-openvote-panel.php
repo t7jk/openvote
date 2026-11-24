@@ -88,8 +88,34 @@ class Openvote_Panel {
 			wp_die( esc_html__( 'Brak dostępu do panelu koordynatora.', 'openvote' ), esc_html__( 'Brak dostępu', 'openvote' ), [ 'response' => 403 ] );
 		}
 		self::set_cookie( 1 );
-		wp_safe_redirect( admin_url( 'admin.php?page=openvote' ) );
+		self::render_shell();
 		exit;
+	}
+
+	/**
+	 * Strona-ramka pod adresem panelu: pasek adresu stale pokazuje /openvote, a ekrany wp-admin
+	 * ładują się w pełnoekranowym iframe (ten sam origin — WP wysyła X-Frame-Options: SAMEORIGIN).
+	 * Konsekwencja: odświeżenie strony wraca do listy głosowań; linki „na zewnątrz” (wyloguj) mają target=_top.
+	 */
+	private static function render_shell(): void {
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=' . get_option( 'blog_charset' ) );
+		$title = openvote_get_brand_short_name() . ' — ' . __( 'panel koordynatora', 'openvote' );
+		$src   = admin_url( 'admin.php?page=openvote' );
+		?><!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+<meta charset="<?php echo esc_attr( get_option( 'blog_charset' ) ); ?>">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title><?php echo esc_html( $title ); ?></title>
+<style>html,body{margin:0;height:100%;overflow:hidden}iframe{display:block;border:0;width:100%;height:100%}</style>
+</head>
+<body>
+<iframe src="<?php echo esc_url( $src ); ?>" title="<?php echo esc_attr( $title ); ?>"></iframe>
+</body>
+</html>
+		<?php
 	}
 
 	private static function set_cookie( int $on ): void {
@@ -148,7 +174,7 @@ class Openvote_Panel {
 				<?php endif; ?>
 				<?php echo esc_html( openvote_get_brand_short_name() . ' — ' . __( 'panel koordynatora', 'openvote' ) ); ?>
 			</span>
-			<a class="openvote-panel-logout" href="<?php echo esc_url( wp_logout_url( openvote_get_panel_url() ) ); ?>"><?php esc_html_e( 'Wyloguj', 'openvote' ); ?></a>
+			<a class="openvote-panel-logout" target="_top" href="<?php echo esc_url( wp_logout_url( openvote_get_panel_url() ) ); ?>"><?php esc_html_e( 'Wyloguj', 'openvote' ); ?></a>
 		</div>
 		<div class="openvote-tabs" role="navigation">
 			<?php $current = self::current_panel_page(); ?>
@@ -160,6 +186,21 @@ class Openvote_Panel {
 				<?php endif; ?>
 			<?php endforeach; ?>
 		</div>
+		<script>
+		/* W ramce panelu: linki poza ekrany panelu (np. Grupy, Konfiguracja, strona publiczna) otwieramy
+		   w całym oknie, żeby nie zagnieżdżać pełnego kokpitu w ramce. Linki z target (np. _blank) bez zmian. */
+		( function () {
+			if ( window.top === window.self ) { return; }
+			var panelPages = <?php echo wp_json_encode( array_keys( array_filter( self::TABS ) ) ); ?>;
+			document.addEventListener( 'click', function ( e ) {
+				var a = e.target.closest ? e.target.closest( 'a[href]' ) : null;
+				if ( ! a || a.target || a.getAttribute( 'href' ).charAt( 0 ) === '#' || a.protocol === 'javascript:' ) { return; }
+				var page = new URL( a.href, location.href ).searchParams.get( 'page' );
+				var inPanel = a.pathname.indexOf( '/wp-admin/' ) !== -1 && panelPages.indexOf( page ) !== -1;
+				if ( ! inPanel ) { a.target = '_top'; }
+			}, true );
+		}() );
+		</script>
 		<?php
 	}
 }
