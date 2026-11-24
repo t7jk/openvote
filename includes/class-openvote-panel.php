@@ -15,6 +15,31 @@ class Openvote_Panel {
 
 	private const COOKIE = 'openvote_panel';
 
+	/**
+	 * Zakładki panelu w kolejności wyświetlania: slug strony wp-admin => aktywna w panelu?
+	 * Nieaktywna = widoczna, ale wyszarzona i nieklikalna. Włączenie kolejnej = zmiana na true.
+	 */
+	private const TABS = [
+		'openvote'               => true,
+		'openvote-surveys'       => false,
+		'openvote-communication' => true,
+	];
+
+	private static function tab_label( string $slug ): string {
+		$labels = [
+			'openvote'               => __( 'Głosowania', 'openvote' ),
+			'openvote-surveys'       => __( 'Ankiety', 'openvote' ),
+			'openvote-communication' => __( 'Wysyłka', 'openvote' ),
+		];
+		return $labels[ $slug ] ?? $slug;
+	}
+
+	/** Slug bieżącej strony admina, jeśli należy do panelu; inaczej ''. */
+	private static function current_panel_page(): string {
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		return ! empty( self::TABS[ $page ] ) ? $page : '';
+	}
+
 	public static function register_hooks(): void {
 		add_action( 'init', [ __CLASS__, 'maybe_handle_entry' ], 1 );
 		add_action( 'admin_init', [ __CLASS__, 'maybe_end_panel' ], 1 );
@@ -39,7 +64,7 @@ class Openvote_Panel {
 	public static function is_active(): bool {
 		return is_admin()
 			&& ! empty( $_COOKIE[ self::COOKIE ] )
-			&& isset( $_GET['page'] ) && 'openvote' === $_GET['page'] // phpcs:ignore WordPress.Security.NonceVerification
+			&& '' !== self::current_panel_page()
 			&& self::has_access();
 	}
 
@@ -90,7 +115,7 @@ class Openvote_Panel {
 		if ( 'admin-post.php' === $script || 'async-upload.php' === $script ) {
 			return;
 		}
-		if ( ! isset( $_GET['page'] ) || 'openvote' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( '' === self::current_panel_page() ) {
 			self::set_cookie( 0 );
 		}
 	}
@@ -126,9 +151,14 @@ class Openvote_Panel {
 			<a class="openvote-panel-logout" href="<?php echo esc_url( wp_logout_url( home_url( '/openvote' ) ) ); ?>"><?php esc_html_e( 'Wyloguj', 'openvote' ); ?></a>
 		</div>
 		<div class="openvote-tabs" role="navigation">
-			<a class="openvote-tab openvote-tab--active" href="<?php echo esc_url( admin_url( 'admin.php?page=openvote' ) ); ?>"><?php esc_html_e( 'Głosowania', 'openvote' ); ?></a>
-			<span class="openvote-tab openvote-tab--disabled" aria-disabled="true"><?php esc_html_e( 'Ankiety', 'openvote' ); ?></span>
-			<span class="openvote-tab openvote-tab--disabled" aria-disabled="true"><?php esc_html_e( 'Wysyłka', 'openvote' ); ?></span>
+			<?php $current = self::current_panel_page(); ?>
+			<?php foreach ( self::TABS as $slug => $enabled ) : ?>
+				<?php if ( ! $enabled ) : ?>
+					<span class="openvote-tab openvote-tab--disabled" aria-disabled="true"><?php echo esc_html( self::tab_label( $slug ) ); ?></span>
+				<?php else : ?>
+					<a class="openvote-tab<?php echo $slug === $current ? ' openvote-tab--active' : ''; ?>"<?php echo $slug === $current ? ' aria-current="page"' : ''; ?> href="<?php echo esc_url( admin_url( 'admin.php?page=' . $slug ) ); ?>"><?php echo esc_html( self::tab_label( $slug ) ); ?></a>
+				<?php endif; ?>
+			<?php endforeach; ?>
 		</div>
 		<?php
 	}
