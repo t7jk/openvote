@@ -30,3 +30,11 @@ body.openvote-panel-mode #wpbody-content th { font-size: 15px; }
   .openvote-panel-mode .openvote-tabs { gap: 1rem; }
   .openvote-panel-mode .openvote-tab { font-size: 1rem; }
 }
+
+/* Logi audytu (czarne okna na dole ekranów) są dla administratora — w panelu koordynatora ukryte.
+   Pełne logi nadal widać w zwykłym kokpicie. */
+.openvote-panel-mode .openvote-polls-audit-log,
+.openvote-panel-mode .openvote-surveys-audit-log,
+.openvote-panel-mode .openvote-messages-audit-log {
+  display: none !important;
+}
