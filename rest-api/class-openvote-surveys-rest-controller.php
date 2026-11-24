@@ -85,6 +85,11 @@ class Openvote_Surveys_Rest_Controller {
             return new WP_Error( 'survey_not_found', __( 'Ankieta nie istnieje.', 'openvote' ), [ 'status' => 404 ] );
         }
 
+        // Wersje robocze ankiet są widoczne tylko dla zarządzających (endpoint publiczny).
+        if ( 'draft' === $survey->status && ! ( current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators() ) ) {
+            return new WP_Error( 'survey_not_found', __( 'Ankieta nie istnieje.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
         $user_id  = Openvote_Identity_Verifier::resolve_user_id( $request, 'survey', (int) $survey_id );
         $response = $user_id ? Openvote_Survey::get_user_response( $survey_id, $user_id ) : null;
         if ( $user_id && ! is_user_logged_in() ) {

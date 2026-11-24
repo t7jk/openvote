@@ -1,0 +1,32 @@
+/* Tryb panelu koordynatora (body.openvote-panel-mode) — ukrywa chrome wp-admin, zostawia ekrany OpenVote. */
+body.openvote-panel-mode #wpadminbar,
+body.openvote-panel-mode #adminmenumain,
+body.openvote-panel-mode #adminmenuwrap,
+body.openvote-panel-mode #adminmenuback,
+body.openvote-panel-mode #wpfooter,
+body.openvote-panel-mode #screen-meta,
+body.openvote-panel-mode #screen-meta-links { display: none !important; }
+html.wp-toolbar:has(body.openvote-panel-mode) { padding-top: 0 !important; }
+body.openvote-panel-mode { background: #fff; font-size: 15px; }
+body.openvote-panel-mode #wpcontent,
+body.openvote-panel-mode #wpbody-content { margin-left: 0 !important; padding-left: 0; }
+body.openvote-panel-mode #wpbody-content { max-width: 1100px; margin: 0 auto !important; padding: 0 16px 40px; float: none; }
+body.openvote-panel-mode #wpbody-content p,
+body.openvote-panel-mode #wpbody-content td,
+body.openvote-panel-mode #wpbody-content th { font-size: 15px; }
+
+.openvote-panel-mode .openvote-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
+.openvote-panel-mode .openvote-panel-brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; font-weight: 700; }
+.openvote-panel-mode .openvote-panel-logo { max-height: 40px; width: auto; }
+.openvote-panel-mode .openvote-panel-logout { font-weight: 600; }
+
+/* Zakładki — wygląd jak na publicznej stronie głosowania (public/css/openvote-public.css). */
+.openvote-panel-mode .openvote-tabs { display: flex; justify-content: center; gap: 2.5rem; border-bottom: 2px solid #e2e4e7; margin: 0 0 1.5rem; padding: 0; }
+.openvote-panel-mode .openvote-tab { display: inline-block; padding: .6rem .1rem; margin-bottom: -2px; font-size: 1.15rem; font-weight: 700; color: #888; text-decoration: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+.openvote-panel-mode .openvote-tab--active { color: #0073aa; border-bottom-color: #0073aa; }
+.openvote-panel-mode .openvote-tab--disabled { cursor: default; opacity: .7; }
+
+@media (max-width: 600px) {
+  .openvote-panel-mode .openvote-tabs { gap: 1rem; }
+  .openvote-panel-mode .openvote-tab { font-size: 1rem; }
+}

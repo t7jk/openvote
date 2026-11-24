@@ -332,7 +332,7 @@ class Openvote_Mailer {
      * @param string $api_key   Pusta = z opcji.
      * @param string $api_secret Pusta = z opcji.
      * @param string $content_type 'text/plain' lub 'text/html'.
-     * @return array{ sent: int, failed: int, error: string }
+     * @return array{ sent: int, failed: int, error: string, sent_emails?: string[] }
      */
     public static function send_via_freshmail(
         array $recipients,
@@ -356,6 +356,7 @@ class Openvote_Mailer {
         $from_name  = openvote_get_brand_short_name();
         $path       = '/rest/mail';
         $sent       = 0;
+        $sent_emails = [];
         $last_error = '';
 
         foreach ( $recipients as $r ) {
@@ -397,6 +398,7 @@ class Openvote_Mailer {
             $code = wp_remote_retrieve_response_code( $response );
             if ( $code >= 200 && $code < 300 ) {
                 $sent++;
+                $sent_emails[] = $email;
             } else {
                 $body  = wp_remote_retrieve_body( $response );
                 $data  = json_decode( $body, true );
@@ -405,7 +407,9 @@ class Openvote_Mailer {
         }
 
         $failed = count( $recipients ) - $sent;
-        return [ 'sent' => $sent, 'failed' => $failed, 'error' => $failed > 0 ? $last_error : '' ];
+        // 'sent_emails': adresy faktycznie przyjęte przez API – pozwala kolejce oznaczać wiersze
+        // pojedynczo (bez ponownej wysyłki do odbiorców, którym już wysłano).
+        return [ 'sent' => $sent, 'failed' => $failed, 'error' => $failed > 0 ? $last_error : '', 'sent_emails' => $sent_emails ];
     }
 
     /**
@@ -417,7 +421,7 @@ class Openvote_Mailer {
      * @param string $api_key        Pusta = z opcji.
      * @param string $from_field_id  Pusta = z opcji.
      * @param string $content_type   'text/plain' lub 'text/html'.
-     * @return array{ sent: int, failed: int, error: string }
+     * @return array{ sent: int, failed: int, error: string, sent_emails?: string[] }
      */
     public static function send_via_getresponse(
         array $recipients,
@@ -441,6 +445,7 @@ class Openvote_Mailer {
         }
 
         $sent       = 0;
+        $sent_emails = [];
         $last_error = '';
 
         foreach ( $recipients as $r ) {
@@ -477,6 +482,7 @@ class Openvote_Mailer {
             $code = wp_remote_retrieve_response_code( $response );
             if ( $code >= 200 && $code < 300 ) {
                 $sent++;
+                $sent_emails[] = $email;
             } else {
                 $body      = wp_remote_retrieve_body( $response );
                 $data      = json_decode( $body, true );
@@ -485,7 +491,9 @@ class Openvote_Mailer {
         }
 
         $failed = count( $recipients ) - $sent;
-        return [ 'sent' => $sent, 'failed' => $failed, 'error' => $failed > 0 ? $last_error : '' ];
+        // 'sent_emails': adresy faktycznie przyjęte przez API – pozwala kolejce oznaczać wiersze
+        // pojedynczo (bez ponownej wysyłki do odbiorców, którym już wysłano).
+        return [ 'sent' => $sent, 'failed' => $failed, 'error' => $failed > 0 ? $last_error : '', 'sent_emails' => $sent_emails ];
     }
 
     /**

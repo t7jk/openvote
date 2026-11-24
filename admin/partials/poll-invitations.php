@@ -54,7 +54,7 @@ $eligible_count   = max( 0, $eligible_count - $skipped_inactive );
 $poll_time_expired = Openvote_Poll::is_time_expired( $poll );
 // Wysyłka zaproszeń ma sens tylko podczas trwania głosowania (nie dla szkicu, zakończonego ani po terminie).
 $can_send_invites  = 'open' === ( $poll->status ?? '' ) && ! $poll_time_expired;
-$can_manage_invites = current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators();
+$can_manage_invites = current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators();
 
 $invitation_plain = openvote_render_email_template( openvote_get_email_body_plain_template(), $poll, 'plain' );
 ?>
@@ -152,7 +152,7 @@ $invitation_plain = openvote_render_email_template( openvote_get_email_body_plai
     </div>
     <?php endif; ?>
 
-    <?php if ( current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators() ) : ?>
+    <?php if ( current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators() ) : ?>
     <div class="openvote-invitations-copy-box" style="max-width:560px;margin-bottom:24px;padding:16px 20px;background:#f6f7f7;border:1px solid #c3c4c7;border-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.04);">
         <p style="margin:0 0 12px;font-size:13px;color:#1d2327;line-height:1.5;">
             <?php esc_html_e( 'Możesz skopiować treść zaproszenia do schowka i wkleić je samodzielnie na mediach społecznościowych lub w innym kanale (np. komunikator, forum).', 'openvote' ); ?>

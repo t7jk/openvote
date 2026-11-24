@@ -1256,7 +1256,9 @@ class Openvote_Batch_Processor {
             $content_type_sendgrid = $content_type_short;
             $result = Openvote_Mailer::send_via_sendgrid( $recipients, $subject, $message, '', $content_type_sendgrid );
             $all_sent = ( $result['sent'] === count( $rows ) );
+            // Jedno żądanie na całą partię: błąd = nic nie wysłano, więc cała partia failed.
             foreach ( $rows as $row ) {
+                self::mark_queue_row( $eq, (int) $row->id, $all_sent, (string) $result['error'] );
                 if ( $all_sent ) {
                     $sent[] = $row->email;
                 } else {
@@ -1278,7 +1280,9 @@ class Openvote_Batch_Processor {
             $content_type_brevo = $content_type_short;
             $result = Openvote_Mailer::send_via_brevo( $recipients, $subject, $message, '', $content_type_brevo );
             $all_sent = ( $result['sent'] === count( $rows ) );
+            // Jedno żądanie na całą partię: błąd = nic nie wysłano, więc cała partia failed.
             foreach ( $rows as $row ) {
+                self::mark_queue_row( $eq, (int) $row->id, $all_sent, (string) $result['error'] );
                 if ( $all_sent ) {
                     $sent[] = $row->email;
                 } else {
@@ -1299,11 +1303,14 @@ class Openvote_Batch_Processor {
             }
             $content_type_fm = $content_type_short;
             $result = Openvote_Mailer::send_via_freshmail( $recipients, $subject, $message, '', '', $content_type_fm );
-            $all_sent = ( $result['sent'] === count( $rows ) );
+            // HTTP per odbiorca: oznaczamy wiersze indywidualnie wg 'sent_emails'.
+            $delivered = array_flip( $result['sent_emails'] ?? [] );
             foreach ( $rows as $row ) {
-                if ( $all_sent ) {
+                if ( isset( $delivered[ sanitize_email( $row->email ) ] ) ) {
+                    self::mark_queue_row( $eq, (int) $row->id, true );
                     $sent[] = $row->email;
                 } else {
+                    self::mark_queue_row( $eq, (int) $row->id, false, (string) ( $result['error'] ?: 'send error' ) );
                     $failed[ $row->id ] = $result['error'];
                 }
             }
@@ -1321,11 +1328,14 @@ class Openvote_Batch_Processor {
             }
             $content_type_gr = $content_type_short;
             $result = Openvote_Mailer::send_via_getresponse( $recipients, $subject, $message, '', '', $content_type_gr );
-            $all_sent = ( $result['sent'] === count( $rows ) );
+            // HTTP per odbiorca: oznaczamy wiersze indywidualnie wg 'sent_emails'.
+            $delivered = array_flip( $result['sent_emails'] ?? [] );
             foreach ( $rows as $row ) {
-                if ( $all_sent ) {
+                if ( isset( $delivered[ sanitize_email( $row->email ) ] ) ) {
+                    self::mark_queue_row( $eq, (int) $row->id, true );
                     $sent[] = $row->email;
                 } else {
+                    self::mark_queue_row( $eq, (int) $row->id, false, (string) ( $result['error'] ?: 'send error' ) );
                     $failed[ $row->id ] = $result['error'];
                 }
             }
@@ -1345,6 +1355,9 @@ class Openvote_Batch_Processor {
             ];
             foreach ( $rows as $row ) {
                 $ok = wp_mail( $row->email, $subject, $message, $headers );
+                // Oznaczamy od razu po wysyłce: jeśli PHP padnie w połowie partii (limit czasu),
+                // wysłane wiersze nie wrócą do 'pending' i nie zostaną wysłane ponownie.
+                self::mark_queue_row( $eq, (int) $row->id, (bool) $ok, 'wp_mail error' );
                 if ( $ok ) {
                     $sent[] = $row->email;
                 } else {
@@ -1354,35 +1367,6 @@ class Openvote_Batch_Processor {
             if ( ! empty( $failed ) ) {
                 $extra_logs[] = gmdate( 'Y-m-d H:i:s' ) . ' ' . __( 'Błąd dostawcy e-mail przy wysyłce partii — sprawdź konfigurację.', 'openvote' );
             }
-        }
-
-        $now = current_time( 'mysql' );
-
-        // Oznacz wysłane.
-        if ( ! empty( $sent ) ) {
-            $sent_ids = array_column(
-                array_filter( $rows, fn( $r ) => in_array( $r->email, $sent, true ) ),
-                'id'
-            );
-            if ( $sent_ids ) {
-                $placeholders = implode( ',', array_fill( 0, count( $sent_ids ), '%d' ) );
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-                $wpdb->query( $wpdb->prepare(
-                    "UPDATE {$eq} SET status = 'sent', sent_at = %s WHERE id IN ({$placeholders})",
-                    array_merge( [ $now ], $sent_ids )
-                ) );
-            }
-        }
-
-        // Oznacz nieudane.
-        foreach ( $failed as $row_id => $error_msg ) {
-            $wpdb->update(
-                $eq,
-                [ 'status' => 'failed', 'error_msg' => mb_substr( $error_msg, 0, 512 ) ],
-                [ 'id' => $row_id ],
-                [ '%s', '%s' ],
-                [ '%d' ]
-            );
         }
 
         return [
@@ -1665,8 +1649,12 @@ class Openvote_Batch_Processor {
                 }
             }
 
+            // Oznaczenie wiersza od razu po jego wysyłce (po id) – odporność na przerwanie partii.
             if ( $ok ) {
+                self::mark_queue_row( $mq, (int) $row->id, true );
                 $sent[] = $row->email;
+            } elseif ( isset( $failed[ $row->id ] ) ) {
+                self::mark_queue_row( $mq, (int) $row->id, false, (string) $failed[ $row->id ] );
             }
         }
 
@@ -1678,36 +1666,25 @@ class Openvote_Batch_Processor {
             }
         }
 
-        $now = current_time( 'mysql' );
-
-        if ( ! empty( $sent ) ) {
-            $sent_ids = array_column(
-                array_filter( $rows, fn( $r ) => in_array( $r->email, $sent, true ) ),
-                'id'
-            );
-            if ( $sent_ids ) {
-                $placeholders = implode( ',', array_fill( 0, count( $sent_ids ), '%d' ) );
-                $wpdb->query( $wpdb->prepare(
-                    "UPDATE {$mq} SET status = 'sent', sent_at = %s WHERE id IN ({$placeholders})",
-                    array_merge( [ $now ], $sent_ids )
-                ) );
-            }
-        }
-
-        foreach ( $failed as $row_id => $error_msg ) {
-            $wpdb->update(
-                $mq,
-                [ 'status' => 'failed', 'error_msg' => mb_substr( $error_msg, 0, 512 ) ],
-                [ 'id' => $row_id ],
-                [ '%s', '%s' ],
-                [ '%d' ]
-            );
-        }
-
         return [
             'items'      => $sent,
             'extra_logs' => $extra_logs,
         ];
+    }
+
+    /**
+     * Oznacz pojedynczy wiersz kolejki (po id) jako wysłany albo nieudany.
+     * Wywoływane zaraz po wysyłce danego wiersza – patrz komentarze o lock takeover w acquire_send_lock().
+     *
+     * @param string $table Pełna nazwa tabeli kolejki (email_queue / message_queue).
+     */
+    private static function mark_queue_row( string $table, int $row_id, bool $ok, string $error = '' ): void {
+        global $wpdb;
+        if ( $ok ) {
+            $wpdb->update( $table, [ 'status' => 'sent', 'sent_at' => current_time( 'mysql' ) ], [ 'id' => $row_id ], [ '%s', '%s' ], [ '%d' ] );
+            return;
+        }
+        $wpdb->update( $table, [ 'status' => 'failed', 'error_msg' => mb_substr( $error, 0, 512 ) ], [ 'id' => $row_id ], [ '%s', '%s' ], [ '%d' ] );
     }
 
 }

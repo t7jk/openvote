@@ -90,6 +90,10 @@ class Openvote {
         add_action( 'init',             [ 'Openvote_Survey_Page', 'add_rewrite_rule' ] );
         add_filter( 'template_include', [ 'Openvote_Survey_Page', 'filter_template' ] );
         add_filter( 'body_class',       [ 'Openvote_Survey_Page', 'add_body_class' ] );
+
+        // Panel koordynatora (/openvote + tryb kiosk w wp-admin) — hooki rejestruje sama klasa.
+        require_once OPENVOTE_PLUGIN_DIR . 'includes/class-openvote-panel.php';
+        Openvote_Panel::register_hooks();
     }
 
     private function define_rest_hooks(): void {

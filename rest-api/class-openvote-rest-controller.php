@@ -59,7 +59,7 @@ class Openvote_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/send-invitations', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'send_invitations' ],
-            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
@@ -79,7 +79,7 @@ class Openvote_Rest_Controller {
         register_rest_route( self::NAMESPACE, '/polls/(?P<id>\d+)/schedule-email-resume', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [ $this, 'schedule_email_resume' ],
-            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || current_user_can( 'publish_posts' ) || Openvote_Admin::user_can_access_coordinators(),
+            'permission_callback' => fn() => current_user_can( 'edit_others_posts' ) || Openvote_Admin::user_can_access_coordinators(),
             'args'                => [
                 'id' => [ 'sanitize_callback' => 'absint' ],
             ],
@@ -128,10 +128,27 @@ class Openvote_Rest_Controller {
         return new WP_REST_Response( $data, 200 );
     }
 
+    /**
+     * Czy bieżący użytkownik zarządza tym głosowaniem (może widzieć wersję roboczą).
+     * Administrator/edytor lub koordynator z dostępem do grup głosowania.
+     */
+    private function current_user_can_manage_poll( object $poll ): bool {
+        if ( current_user_can( 'edit_others_posts' ) ) {
+            return true;
+        }
+        return Openvote_Admin::user_can_access_coordinators() && Openvote_Poll::current_user_can_access( $poll );
+    }
+
     public function get_poll( WP_REST_Request $request ): WP_REST_Response|WP_Error {
         $poll = Openvote_Poll::get( $request->get_param( 'id' ) );
 
         if ( ! $poll ) {
+            return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'openvote' ), [ 'status' => 404 ] );
+        }
+
+        // Wersje robocze nie mogą wyciekać publicznie (endpoint jest __return_true) – dla
+        // niepowołanych udajemy brak zasobu (to samo 404 co dla nieistniejącego ID).
+        if ( 'draft' === $poll->status && ! $this->current_user_can_manage_poll( $poll ) ) {
             return new WP_Error( 'not_found', __( 'Głosowanie nie zostało znalezione.', 'openvote' ), [ 'status' => 404 ] );
         }
 
