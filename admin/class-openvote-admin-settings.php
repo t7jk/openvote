@@ -165,6 +165,14 @@ class Openvote_Admin_Settings {
         $submissions_slug = $submissions_slug !== '' ? $submissions_slug : 'zgloszenia';
         update_option( 'openvote_submissions_page_slug', $submissions_slug, false );
 
+        // Slug panelu koordynatora — nie może pokrywać się ze stronami głosowania/ankiet/zgłoszeń
+        // (panel przechwytuje adres wcześniej i zasłoniłby je); przy kolizji zostaje poprzedni slug.
+        $panel_slug = isset( $_POST['openvote_panel_slug'] ) ? sanitize_title( wp_unslash( $_POST['openvote_panel_slug'] ) ) : '';
+        $panel_slug = $panel_slug !== '' ? $panel_slug : 'openvote';
+        if ( ! in_array( $panel_slug, [ $slug, $survey_slug, $submissions_slug ], true ) ) {
+            update_option( 'openvote_panel_slug', $panel_slug, false );
+        }
+
         $offset = isset( $_POST['openvote_time_offset_hours'] ) ? (int) $_POST['openvote_time_offset_hours'] : 0;
         $offset = max( -12, min( 12, $offset ) );
         update_option( 'openvote_time_offset_hours', $offset, false );

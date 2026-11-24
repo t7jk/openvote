@@ -2,7 +2,7 @@
 /**
  * Panel koordynatora: tryb "kiosk" nakładany na istniejące ekrany wp-admin (admin.php?page=openvote).
  *
- * Wejście: /openvote (wykrywane po ścieżce na `init`, bez rewrite rules — upgrade FTP nie robi flush).
+ * Wejście: /{slug panelu} z Konfiguracji, domyślnie /openvote (wykrywane po ścieżce na `init`, bez rewrite rules — upgrade FTP nie robi flush).
  * Tryb panelu = ciasteczko `openvote_panel` + page=openvote. Każde inne wejście w wp-admin kasuje
  * ciasteczko, więc przejście do zwykłego kokpitu kończy tryb. Ciasteczko (a nie parametr URL) jest po to,
  * żeby tryb przetrwał redirecty istniejących handlerów (admin_url('admin.php?page=openvote...')).
@@ -21,7 +21,7 @@ class Openvote_Panel {
 	 */
 	private const TABS = [
 		'openvote'               => true,
-		'openvote-surveys'       => false,
+		'openvote-surveys'       => true,
 		'openvote-communication' => true,
 	];
 
@@ -57,7 +57,7 @@ class Openvote_Panel {
 	}
 
 	private static function entry_path(): string {
-		return untrailingslashit( (string) wp_parse_url( home_url( '/openvote' ), PHP_URL_PATH ) );
+		return untrailingslashit( (string) wp_parse_url( openvote_get_panel_url(), PHP_URL_PATH ) );
 	}
 
 	/** Aktywny tylko na ekranach głosowań, z ciasteczkiem i uprawnieniami. */
@@ -75,11 +75,11 @@ class Openvote_Panel {
 		$path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
 		// Druga forma: permalinki typu PATH_INFO (/index.php/openvote) — np. dev bez mod_rewrite.
 		$home_path = untrailingslashit( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ) );
-		if ( $path !== self::entry_path() && $path !== $home_path . '/index.php/openvote' ) {
+		if ( $path !== self::entry_path() && $path !== $home_path . '/index.php/' . openvote_get_panel_slug() ) {
 			return;
 		}
 		// Po zalogowaniu wracamy pod ten sam wariant adresu, którym weszliśmy.
-		$entry_url = $path === self::entry_path() ? home_url( '/openvote' ) : home_url( '/index.php/openvote' );
+		$entry_url = $path === self::entry_path() ? openvote_get_panel_url() : home_url( '/index.php/' . openvote_get_panel_slug() );
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( wp_login_url( $entry_url ) );
 			exit;
@@ -148,7 +148,7 @@ class Openvote_Panel {
 				<?php endif; ?>
 				<?php echo esc_html( openvote_get_brand_short_name() . ' — ' . __( 'panel koordynatora', 'openvote' ) ); ?>
 			</span>
-			<a class="openvote-panel-logout" href="<?php echo esc_url( wp_logout_url( home_url( '/openvote' ) ) ); ?>"><?php esc_html_e( 'Wyloguj', 'openvote' ); ?></a>
+			<a class="openvote-panel-logout" href="<?php echo esc_url( wp_logout_url( openvote_get_panel_url() ) ); ?>"><?php esc_html_e( 'Wyloguj', 'openvote' ); ?></a>
 		</div>
 		<div class="openvote-tabs" role="navigation">
 			<?php $current = self::current_panel_page(); ?>

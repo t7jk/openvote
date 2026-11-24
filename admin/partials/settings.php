@@ -332,6 +332,30 @@ function openvote_settings_select( string $logical, string $current, array $core
         </table>
         </div>
 
+        <div class="openvote-settings-url-section">
+        <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'URL panelu koordynatora', 'openvote' ); ?></h2>
+        <p class="description openvote-settings-url-section__desc">
+            <?php esc_html_e( 'Uproszczony panel dla koordynatorów (Głosowania, Ankiety, Wysyłka) bez menu WordPress. Slug musi być inny niż slugi stron głosowania, ankiet i zgłoszeń.', 'openvote' ); ?>
+        </p>
+        <table class="form-table openvote-settings-url-section__table" role="presentation">
+            <tr>
+                <th scope="row"><label for="openvote_panel_slug"><?php esc_html_e( 'Slug panelu', 'openvote' ); ?></label></th>
+                <td>
+                    <input type="text" name="openvote_panel_slug" id="openvote_panel_slug" value="<?php echo esc_attr( openvote_get_panel_slug() ); ?>" class="regular-text" style="width:140px;" placeholder="openvote" />
+                    <p class="description" style="margin-top:6px;">
+                        <?php esc_html_e( 'Adres panelu:', 'openvote' ); ?>
+                        <strong><a href="<?php echo esc_url( openvote_get_panel_url() ); ?>" target="_blank" rel="noopener"><?php echo esc_html( openvote_get_panel_url() ); ?></a></strong>
+                    </p>
+                    <?php if ( get_page_by_path( openvote_get_panel_slug(), OBJECT, [ 'page', 'post' ] ) ) : ?>
+                    <p class="description" style="margin-top:6px;color:#b32d2e;">
+                        <?php esc_html_e( 'Uwaga: istnieje strona lub wpis WordPress o tym slugu — panel go zasłania. Zmień slug panelu.', 'openvote' ); ?>
+                    </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        </div>
+
         <div class="openvote-settings-url-section openvote-settings-time-section">
         <h2 class="title openvote-settings-url-section__title"><?php esc_html_e( 'Ustawienie czasu (strefa głosowań)', 'openvote' ); ?></h2>
         <p class="description openvote-settings-url-section__desc">

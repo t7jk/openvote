@@ -108,6 +108,7 @@ class Openvote_Admin_Uninstall {
             'openvote_vote_page_slug',
             'openvote_survey_page_slug',
             'openvote_submissions_page_slug',
+            'openvote_panel_slug',
             'openvote_time_offset_hours',
             'openvote_logo_attachment_id',
             'openvote_banner_attachment_id',

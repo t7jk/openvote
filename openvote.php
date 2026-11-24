@@ -3,7 +3,7 @@
  * Plugin Name:       Open Vote
  * Plugin URI:        https://github.com/t7jk/openvote
  * Description:       Electronic polls and surveys: multi-question votes, target groups, coordinators, email invitations and mass messaging (WP, SMTP, SendGrid, Brevo, Freshmail, GetResponse), surveys with responses page, results (open or anonymous) and PDF export.
- * Version:           1.0.42
+ * Version:           1.0.43
  * Requires at least: 6.4
  * Tested up to:      6.7
  * Requires PHP:      8.1
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'OPENVOTE_VERSION', '1.0.42' );
+define( 'OPENVOTE_VERSION', '1.0.43' );
 define( 'OPENVOTE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OPENVOTE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -780,6 +780,20 @@ add_action( 'user_register', [ 'Openvote_Role_Manager', 'enforce_wp_admin_group_
 function openvote_get_vote_page_slug(): string {
 	$slug = get_option( 'openvote_vote_page_slug', 'glosuj' );
 	return is_string( $slug ) && $slug !== '' ? $slug : 'glosuj';
+}
+
+/**
+ * Slug panelu koordynatora (np. „openvote” → /openvote). Opcja openvote_panel_slug, domyślnie „openvote”.
+ * Panel przechwytuje ten adres na `init`, więc slug zasłania ewentualną stronę WP o tej samej nazwie.
+ */
+function openvote_get_panel_slug(): string {
+	$slug = get_option( 'openvote_panel_slug', 'openvote' );
+	return is_string( $slug ) && $slug !== '' ? $slug : 'openvote';
+}
+
+/** Pełny URL panelu koordynatora. */
+function openvote_get_panel_url(): string {
+	return home_url( '/' . openvote_get_panel_slug() );
 }
 
 /**
